@@ -1,0 +1,41 @@
+[project]
+name = "harnyx-miner"
+version = "0.1.0"
+description = "Miner-facing SDK harness for the Harnyx Subnet."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+authors = [
+  { name = "Harnyx Labs", email = "engineering@harnyx.example" }
+]
+dependencies = [
+  "httpx>=0.27",
+  "python-dotenv>=1.1.1",
+  "bittensor==10.4.1",
+  "harnyx-miner-sdk>=0.1.13",
+  "harnyx-commons>=0.1.14",
+  "harnyx-validator>=20260506.post0",
+]
+
+[project.scripts]
+harnyx-miner-hash = "harnyx_miner.hash:main"
+harnyx-miner-local-eval = "harnyx_miner.local_eval:main"
+harnyx-miner-local-benchmark = "harnyx_miner.local_benchmark:main"
+harnyx-miner-submit = "harnyx_miner.submit:main"
+harnyx-miner-config = "harnyx_miner.miner_config:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+]
+
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harnyx_miner"]
+
+[tool.deptry.package_module_name_map]
+harnyx-commons = "harnyx_commons"
+harnyx-miner-sdk = "harnyx_miner_sdk"
+harnyx-validator = "harnyx_validator"

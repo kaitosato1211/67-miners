@@ -1,0 +1,8 @@
+[workspace]
+members = [
+  "packages/commons",
+  "validator",
+  "miner",
+  "sandbox",
+  "packages/miner-sdk",
+]

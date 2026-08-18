@@ -1,0 +1,212 @@
+"""Helpers for preparing miner-task batch execution."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from concurrent.futures import Executor
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import Protocol
+from uuid import UUID, uuid4
+
+from harnyx_commons.application.ports.receipt_log import ReceiptLogPort
+from harnyx_commons.application.session_manager import SessionManager
+from harnyx_commons.domain.miner_task import MinerTask
+from harnyx_commons.sandbox.client import SandboxClient
+from harnyx_commons.sandbox.docker import DockerSandboxManager
+from harnyx_commons.sandbox.options import SandboxOptions
+from harnyx_commons.sandbox.state import DEFAULT_STATE_DIR, resolve_state_mount_source
+from harnyx_validator.application.dto.evaluation import MinerTaskBatchSpec, ScriptArtifactSpec
+from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator
+from harnyx_validator.application.platform_tool_proxy import PlatformToolProxyScopeRegistry
+from harnyx_validator.application.ports.evaluation_record import EvaluationRecordPort
+from harnyx_validator.application.ports.progress import ProgressRecorder
+from harnyx_validator.application.ports.subtensor import SubtensorClientPort
+from harnyx_validator.application.scheduler import EvaluationScheduler, SchedulerConfig
+from harnyx_validator.application.status import BatchActivityTracker
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationBatchConfig:
+    """Configuration for evaluation batch processing."""
+
+    state_dir: str = DEFAULT_STATE_DIR
+    token_secret_bytes: int = 16
+    artifact_parallelism: int = 4
+    artifact_task_parallelism: int = 20
+
+
+SandboxOptionsFactory = Callable[[], SandboxOptions]
+OrchestratorFactory = Callable[[SandboxClient], TaskRunOrchestrator]
+
+
+class AgentArtifact(Protocol):
+    @property
+    def container_path(self) -> str: ...
+
+
+AgentResolver = Callable[[UUID, ScriptArtifactSpec, Path, str], AgentArtifact]
+
+SANDBOX_CONTAINER_NAME_PREFIX = "harnyx-sandbox"
+SANDBOX_LABELS = {
+    "harnyx.sandbox.managed": "true",
+    "harnyx.sandbox.owner": "validator",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class RunContext:
+    batch_id: UUID
+    tasks: tuple[MinerTask, ...]
+    config: EvaluationBatchConfig
+    base_options: SandboxOptions
+    base_env: dict[str, str]
+    base_volumes: tuple[tuple[str, str, str | None], ...]
+    state_dir: Path
+
+
+class BatchExecutionPlanner:
+    """Builds run context, resolves agents, and constructs the scheduler."""
+
+    def __init__(
+        self,
+        *,
+        subtensor_client: SubtensorClientPort,
+        sandbox_manager: DockerSandboxManager,
+        session_manager: SessionManager,
+        evaluation_records: EvaluationRecordPort,
+        receipt_log: ReceiptLogPort,
+        blocking_executor: Executor,
+        orchestrator_factory: OrchestratorFactory,
+        sandbox_options_factory: SandboxOptionsFactory,
+        agent_resolver: AgentResolver,
+        progress: ProgressRecorder,
+        config: EvaluationBatchConfig,
+        activity: BatchActivityTracker | None = None,
+        platform_tool_proxy_scopes: PlatformToolProxyScopeRegistry | None = None,
+    ) -> None:
+        self._subtensor = subtensor_client
+        self._sandbox_manager = sandbox_manager
+        self._session_manager = session_manager
+        self._evaluation_records = evaluation_records
+        self._receipt_log = receipt_log
+        self._blocking_executor = blocking_executor
+        self._orchestrator_factory = orchestrator_factory
+        self._sandbox_options_factory = sandbox_options_factory
+        self._agent_resolver = agent_resolver
+        self._progress = progress
+        self._activity = activity
+        self._platform_tool_proxy_scopes = platform_tool_proxy_scopes
+        self._config = config
+
+    def build_run_context(self, batch: MinerTaskBatchSpec) -> RunContext:
+        base_options = self._sandbox_options_factory()
+        state_dir = Path(self._config.state_dir)
+        state_dir.mkdir(parents=True, exist_ok=True)
+        return RunContext(
+            batch_id=batch.batch_id,
+            tasks=batch.tasks,
+            config=self._config,
+            base_options=base_options,
+            base_env=dict(base_options.env),
+            base_volumes=tuple(base_options.volumes),
+            state_dir=state_dir,
+        )
+
+    def prepare_execution(
+        self,
+        run_ctx: RunContext,
+        batch: MinerTaskBatchSpec,
+    ) -> tuple[tuple[ScriptArtifactSpec, ...], EvaluationScheduler]:
+        scheduler = self._build_scheduler(run_ctx)
+        return batch.artifacts, scheduler
+
+    def _build_scheduler(
+        self,
+        run_ctx: RunContext,
+    ) -> EvaluationScheduler:
+        options_factory = self._build_sandbox_options_factory(run_ctx)
+        return EvaluationScheduler(
+            tasks=run_ctx.tasks,
+            subtensor_client=self._subtensor,
+            sandbox_manager=self._sandbox_manager,
+            session_manager=self._session_manager,
+            evaluation_records=self._evaluation_records,
+            receipt_log=self._receipt_log,
+            blocking_executor=self._blocking_executor,
+            orchestrator_factory=self._orchestrator_factory,
+            sandbox_options_factory=options_factory,
+            clock=lambda: datetime.now(UTC),
+            config=SchedulerConfig(
+                token_secret_bytes=run_ctx.config.token_secret_bytes,
+                session_ttl=timedelta(minutes=5),
+                artifact_parallelism=run_ctx.config.artifact_parallelism,
+                artifact_task_parallelism=run_ctx.config.artifact_task_parallelism,
+            ),
+            progress=self._progress,
+            activity=self._activity,
+            platform_tool_proxy_scopes=self._platform_tool_proxy_scopes,
+        )
+
+    def _build_sandbox_options_factory(
+        self,
+        run_ctx: RunContext,
+    ) -> Callable[[ScriptArtifactSpec], SandboxOptions]:
+        volumes = run_ctx.base_volumes + ((resolve_state_mount_source(), run_ctx.config.state_dir, "ro"),)
+        resolved_artifacts: dict[UUID, AgentArtifact] = {}
+
+        def sandbox_options_factory(artifact: ScriptArtifactSpec) -> SandboxOptions:
+            container_name_prefix = (
+                f"{SANDBOX_CONTAINER_NAME_PREFIX}-{artifact.uid}-"
+                f"{artifact.artifact_id.hex[:8]}-{run_ctx.batch_id.hex[:8]}"
+            )
+            container_name = f"{container_name_prefix}-{uuid4().hex[:12]}"
+            failure_diagnostics_dir = (
+                run_ctx.state_dir
+                / "sandbox-diagnostics"
+                / str(run_ctx.batch_id)
+                / str(artifact.artifact_id)
+                / container_name
+            )
+            labels = dict(run_ctx.base_options.labels)
+            labels.update(
+                SANDBOX_LABELS
+                | {
+                    "harnyx.sandbox.batch_id": str(run_ctx.batch_id),
+                    "harnyx.sandbox.artifact_id": str(artifact.artifact_id),
+                    "harnyx.sandbox.uid": str(artifact.uid),
+                }
+            )
+            env = dict(run_ctx.base_env)
+            env["MINER_UID"] = str(artifact.uid)
+            env["EVALUATION_RUN_ID"] = str(run_ctx.batch_id)
+            resolved_artifact = resolved_artifacts.get(artifact.artifact_id)
+            if resolved_artifact is None:
+                resolved_artifact = self._agent_resolver(
+                    run_ctx.batch_id,
+                    artifact,
+                    run_ctx.state_dir,
+                    run_ctx.config.state_dir,
+                )
+                resolved_artifacts[artifact.artifact_id] = resolved_artifact
+            env["AGENT_PATH"] = resolved_artifact.container_path
+            return replace(
+                run_ctx.base_options,
+                container_name=container_name,
+                labels=labels,
+                env=env,
+                volumes=volumes,
+                failure_diagnostics_dir=str(failure_diagnostics_dir),
+            )
+
+        return sandbox_options_factory
+
+
+__all__ = [
+    "BatchExecutionPlanner",
+    "EvaluationBatchConfig",
+    "RunContext",
+    "SANDBOX_CONTAINER_NAME_PREFIX",
+    "SANDBOX_LABELS",
+]

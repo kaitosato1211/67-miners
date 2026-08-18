@@ -1,0 +1,13 @@
+{
+  "suite_slug": "draco",
+  "suite_name": "DRACO",
+  "dataset_version": "2026-06-16-hf-ce076749",
+  "scoring_version": "weighted-rubric-v1",
+  "source_url": "https://huggingface.co/datasets/perplexity-ai/draco/resolve/ce076749809027649ebd331bcb70f42bf720d387/test.jsonl",
+  "source_page_url": "https://huggingface.co/datasets/perplexity-ai/draco",
+  "license": "MIT",
+  "sha256": "e35bfe78cd827fa1d541b79fbc7bc7b91966d3227d8742c83e99d26d4ac4679a",
+  "row_count": 100,
+  "file_name": "test.jsonl",
+  "fetched_at": "2026-06-16"
+}

@@ -1,0 +1,85 @@
+[project]
+name = "harnyx-commons"
+version = "0.1.14"
+description = "Shared SDK utilities and sandbox harness for the Harnyx Subnet."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+authors = [
+  { name = "Harnyx Labs", email = "engineering@harnyx.example" }
+]
+dependencies = [
+  "harnyx-miner-sdk>=0.1.13",
+  "aiobotocore>=3.4.0,<3.5",
+  "botocore>=1.42.79,<1.42.85",
+  "pydantic>=2.12",
+  "httpx>=0.27",
+  "sentry-sdk>=2.64.0",
+  "jinja2>=3.1.5",
+  "langfuse>=3.14.1",
+  "google-cloud-logging>=3.11",
+  "google-genai>=1.52.0",
+  "google-auth>=2.28",
+  "anthropic>=0.75.0",
+  "claude-agent-sdk==0.2.128",
+  "pymupdf>=1.26.0,<2",
+  "beautifulsoup4>=4.13.0,<5",
+  "openpyxl>=3.1.5,<4",
+  "regex>=2026.2.28,<2027",
+  "opentelemetry-sdk>=1.39",
+  "opentelemetry-exporter-otlp-proto-http>=1.39",
+  "opentelemetry-exporter-prometheus>=0.62b0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+]
+
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harnyx_commons"]
+include = [
+  "src/harnyx_commons/sandbox/seccomp/*.json",
+  "src/harnyx_commons/miner_task_benchmark/browsecomp/data/current_version.json",
+  "src/harnyx_commons/miner_task_benchmark/browsecomp/data/versions/*/*.csv",
+  "src/harnyx_commons/miner_task_benchmark/browsecomp/data/versions/*/*.json",
+  "src/harnyx_commons/miner_task_benchmark/browsecomp/data/versions/*/LICENSE.openai-simple-evals",
+  "src/harnyx_commons/miner_task_benchmark/deepsearchqa/data/current_version.json",
+  "src/harnyx_commons/miner_task_benchmark/deepsearchqa/data/versions/*/*.csv",
+  "src/harnyx_commons/miner_task_benchmark/deepsearchqa/data/versions/*/*.json",
+  "src/harnyx_commons/miner_task_benchmark/deepresearch9k_l1/data/current_version.json",
+  "src/harnyx_commons/miner_task_benchmark/deepresearch9k_l1/data/versions/*/*.csv",
+  "src/harnyx_commons/miner_task_benchmark/deepresearch9k_l1/data/versions/*/*.json",
+  "src/harnyx_commons/miner_task_benchmark/deepresearch9k_l2/data/current_version.json",
+  "src/harnyx_commons/miner_task_benchmark/deepresearch9k_l2/data/versions/*/*.csv",
+  "src/harnyx_commons/miner_task_benchmark/deepresearch9k_l2/data/versions/*/*.json",
+  "src/harnyx_commons/miner_task_benchmark/draco/data/current_version.json",
+  "src/harnyx_commons/miner_task_benchmark/draco/data/versions/*/*.json",
+  "src/harnyx_commons/miner_task_benchmark/draco/data/versions/*/*.jsonl",
+  "src/harnyx_commons/miner_task_benchmark/webwalkerqa/data/current_version.json",
+  "src/harnyx_commons/miner_task_benchmark/webwalkerqa/data/sources/*/*.json",
+  "src/harnyx_commons/miner_task_benchmark/webwalkerqa/data/versions/*/*.json",
+  "src/harnyx_commons/miner_task_benchmark/webwalkerqa/data/*/current_version.json",
+  "src/harnyx_commons/miner_task_benchmark/webwalkerqa/data/*/versions/*/*.json",
+]
+
+[tool.deptry.package_module_name_map]
+aiobotocore = "aiobotocore"
+harnyx-miner-sdk = "harnyx_miner_sdk"
+anthropic = "anthropic"
+botocore = "botocore"
+google-auth = "google"
+google-cloud-logging = "google"
+google-genai = "google"
+claude-agent-sdk = "claude_agent_sdk"
+beautifulsoup4 = "bs4"
+openpyxl = "openpyxl"
+pymupdf = "fitz"
+regex = "regex"
+langfuse = "langfuse"
+sentry-sdk = "sentry_sdk"
+opentelemetry-exporter-otlp-proto-http = "opentelemetry"
+opentelemetry-sdk = "opentelemetry"

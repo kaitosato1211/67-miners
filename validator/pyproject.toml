@@ -1,0 +1,39 @@
+[project]
+name = "harnyx-validator"
+version = "20260818.post1"
+description = "Validator runtime for the Harnyx Subnet."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+authors = [
+  { name = "Harnyx Labs", email = "engineering@harnyx.example" }
+]
+dependencies = [
+  "pydantic>=2.8",
+  "harnyx-commons>=0.1.14",
+  "fastapi>=0.133,<1",
+  "httpx>=0.27",
+  "uvicorn>=0.30",
+  "bittensor==10.4.1",
+  "pydantic-settings>=2.4",
+]
+
+[project.scripts]
+harnyx-validator = "harnyx_validator.server:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "anthropic>=0.75.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harnyx_validator"]
+
+[tool.deptry.package_module_name_map]
+anthropic = "anthropic"
+harnyx-commons = "harnyx_commons"
+pydantic-settings = "pydantic_settings"

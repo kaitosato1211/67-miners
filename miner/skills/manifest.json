@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "name": "prepare-benchmark-context",
+      "path": "prepare-benchmark-context/SKILL.md",
+      "description": "Prepare local batch-eval context before editing a miner artifact.",
+      "when_to_use": "Before changing agent.py based on a local-eval report.",
+      "inputs": ["agent path", "local-eval report or batch id"],
+      "outputs": ["task-level problems", "improvement hypotheses"]
+    },
+    {
+      "name": "improve-artifact",
+      "path": "improve-artifact/SKILL.md",
+      "description": "Change a miner artifact using hypotheses from local-eval reports.",
+      "when_to_use": "When a focused code change should address known local-eval failures.",
+      "inputs": ["agent path", "improvement hypotheses"],
+      "outputs": ["updated artifact", "expected impact", "risks"]
+    },
+    {
+      "name": "run-local-eval",
+      "path": "run-local-eval/SKILL.md",
+      "description": "Run miner local batch evaluation and extract the next iteration signal.",
+      "when_to_use": "After changing agent.py or before deciding whether to submit.",
+      "inputs": ["agent path", "mode", "optional batch id"],
+      "outputs": ["report paths", "findings", "next action"]
+    },
+    {
+      "name": "connect-platform-mcp",
+      "path": "connect-platform-mcp/SKILL.md",
+      "description": "Connect to the public platform monitoring MCP and verify workflow tools are available.",
+      "when_to_use": "Before using MCP tools for champion context, submission verification, batch monitoring, or score diagnosis.",
+      "inputs": ["MCP client", "https://api.harnyx.ai/mcp"],
+      "outputs": ["confirmed MCP endpoint", "available workflow tools"]
+    },
+    {
+      "name": "start-from-champion",
+      "path": "start-from-champion/SKILL.md",
+      "description": "Seed a miner iteration from current champion context exposed through public MCP.",
+      "when_to_use": "When starting from scratch or comparing a local candidate against current champion behavior.",
+      "inputs": ["get_champion", "get_benchmark", "get_miner_script"],
+      "outputs": ["champion context", "optional baseline script", "local-eval fallback"]
+    },
+    {
+      "name": "configure-before-submit",
+      "path": "configure-before-submit/SKILL.md",
+      "description": "Check and update miner config before submitting a script.",
+      "when_to_use": "Before uploading an artifact that needs provider credentials or intentional retry behavior.",
+      "inputs": ["wallet name", "hotkey name", "provider credentials", "optional retry count"],
+      "outputs": ["verified config state", "config commands used"]
+    },
+    {
+      "name": "submit-and-confirm",
+      "path": "submit-and-confirm/SKILL.md",
+      "description": "Submit a miner artifact and confirm platform acceptance.",
+      "when_to_use": "After local evaluation justifies uploading agent.py.",
+      "inputs": ["agent path", "wallet name", "hotkey name", "PLATFORM_BASE_URL"],
+      "outputs": ["artifact_id", "content_hash", "submission evidence"]
+    },
+    {
+      "name": "monitor-batch",
+      "path": "monitor-batch/SKILL.md",
+      "description": "Monitor waiting, running, and completed miner-task batches without overreading public visibility.",
+      "when_to_use": "After submission, while waiting for cutoff eligibility, running progress, or completed batch visibility.",
+      "inputs": ["artifact_id", "content_hash", "submitted_at", "batch id when known"],
+      "outputs": ["batch status", "eligibility assessment", "next monitoring action"]
+    },
+    {
+      "name": "inspect-completed-results",
+      "path": "inspect-completed-results/SKILL.md",
+      "description": "Inspect completed batch comparison and artifact-scoped result rows.",
+      "when_to_use": "After a source batch is completed and artifact/result rows are public.",
+      "inputs": ["batch_id", "artifact_id"],
+      "outputs": ["aggregate comparison", "artifact result rows", "attempt details"]
+    },
+    {
+      "name": "diagnose-score",
+      "path": "diagnose-score/SKILL.md",
+      "description": "Diagnose weak, missing, failed, or surprising miner scores from public MCP evidence.",
+      "when_to_use": "When a submitted artifact has a confusing score, missing result, timeout, crash, or weak answer.",
+      "inputs": ["batch_id", "artifact_id", "task_id examples"],
+      "outputs": ["diagnosis", "evidence", "next action"]
+    },
+    {
+      "name": "preserve-debug-evidence",
+      "path": "preserve-debug-evidence/SKILL.md",
+      "description": "Record the identifiers and observations needed before changing workflow direction.",
+      "when_to_use": "Before switching hypotheses, changing config, or starting a new iteration after platform diagnosis.",
+      "inputs": ["artifact_id", "content_hash", "batch_id", "task_id examples", "observed errors"],
+      "outputs": ["debug evidence bundle"]
+    }
+  ]
+}

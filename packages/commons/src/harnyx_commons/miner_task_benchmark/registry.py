@@ -1,0 +1,147 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+
+from harnyx_commons.miner_task_benchmark.browsecomp.loader import (
+    BROWSECOMP_SUITE_SLUG,
+    list_browsecomp_snapshots,
+    load_browsecomp_snapshot,
+)
+from harnyx_commons.miner_task_benchmark.deepresearch9k_l1.loader import (
+    DEEPRESEARCH9K_L1_SUITE_SLUG,
+    list_deepresearch9k_l1_snapshots,
+    load_deepresearch9k_l1_snapshot,
+)
+from harnyx_commons.miner_task_benchmark.deepresearch9k_l2.loader import (
+    DEEPRESEARCH9K_L2_SUITE_SLUG,
+    list_deepresearch9k_l2_snapshots,
+    load_deepresearch9k_l2_snapshot,
+)
+from harnyx_commons.miner_task_benchmark.deepsearchqa.loader import (
+    DEEPSEARCHQA_SUITE_SLUG,
+    list_deepsearchqa_snapshots,
+    load_deepsearchqa_snapshot,
+)
+from harnyx_commons.miner_task_benchmark.draco.loader import (
+    DRACO_SUITE_SLUG,
+    list_draco_snapshots,
+    load_draco_snapshot,
+)
+from harnyx_commons.miner_task_benchmark.types import BenchmarkDatasetSnapshot
+from harnyx_commons.miner_task_benchmark.webwalkerqa.loader import (
+    WEBWALKERQA_MULTI_SOURCE_MEDIUM_SUITE_SLUG,
+    WEBWALKERQA_SINGLE_SOURCE_MEDIUM_SUITE_SLUG,
+    WEBWALKERQA_SUITE_SLUG,
+    list_webwalkerqa_multi_source_medium_snapshots,
+    list_webwalkerqa_single_source_medium_snapshots,
+    list_webwalkerqa_snapshots,
+    load_webwalkerqa_multi_source_medium_snapshot,
+    load_webwalkerqa_single_source_medium_snapshot,
+    load_webwalkerqa_snapshot,
+)
+
+BenchmarkSnapshotCatalogLoader = Callable[[], tuple[BenchmarkDatasetSnapshot, ...]]
+BenchmarkCurrentSnapshotLoader = Callable[[], BenchmarkDatasetSnapshot]
+BenchmarkSnapshotVersionKey = tuple[str, str]
+
+_BENCHMARK_SNAPSHOT_CATALOG_LOADERS: dict[str, BenchmarkSnapshotCatalogLoader] = {
+    BROWSECOMP_SUITE_SLUG: list_browsecomp_snapshots,
+    DEEPRESEARCH9K_L1_SUITE_SLUG: list_deepresearch9k_l1_snapshots,
+    DEEPRESEARCH9K_L2_SUITE_SLUG: list_deepresearch9k_l2_snapshots,
+    DEEPSEARCHQA_SUITE_SLUG: list_deepsearchqa_snapshots,
+    DRACO_SUITE_SLUG: list_draco_snapshots,
+    WEBWALKERQA_SUITE_SLUG: list_webwalkerqa_snapshots,
+    WEBWALKERQA_MULTI_SOURCE_MEDIUM_SUITE_SLUG: list_webwalkerqa_multi_source_medium_snapshots,
+    WEBWALKERQA_SINGLE_SOURCE_MEDIUM_SUITE_SLUG: list_webwalkerqa_single_source_medium_snapshots,
+}
+_BENCHMARK_CURRENT_SNAPSHOT_LOADERS: dict[str, BenchmarkCurrentSnapshotLoader] = {
+    BROWSECOMP_SUITE_SLUG: load_browsecomp_snapshot,
+    DEEPRESEARCH9K_L1_SUITE_SLUG: load_deepresearch9k_l1_snapshot,
+    DEEPRESEARCH9K_L2_SUITE_SLUG: load_deepresearch9k_l2_snapshot,
+    DEEPSEARCHQA_SUITE_SLUG: load_deepsearchqa_snapshot,
+    DRACO_SUITE_SLUG: load_draco_snapshot,
+    WEBWALKERQA_SUITE_SLUG: load_webwalkerqa_snapshot,
+    WEBWALKERQA_MULTI_SOURCE_MEDIUM_SUITE_SLUG: load_webwalkerqa_multi_source_medium_snapshot,
+    WEBWALKERQA_SINGLE_SOURCE_MEDIUM_SUITE_SLUG: load_webwalkerqa_single_source_medium_snapshot,
+}
+
+
+def list_current_benchmark_suite_slugs() -> tuple[str, ...]:
+    return tuple(sorted(_BENCHMARK_CURRENT_SNAPSHOT_LOADERS))
+
+
+def load_benchmark_snapshot(
+    suite_slug: str,
+    *,
+    dataset_version: str | None = None,
+    scoring_version: str | None = None,
+) -> BenchmarkDatasetSnapshot:
+    expected_version = _expected_snapshot_version(
+        dataset_version=dataset_version,
+        scoring_version=scoring_version,
+    )
+    if expected_version is None:
+        current_loader = _BENCHMARK_CURRENT_SNAPSHOT_LOADERS.get(suite_slug)
+        if current_loader is None:
+            raise RuntimeError(f"unknown benchmark suite_slug: {suite_slug}")
+        return current_loader()
+
+    catalog_loader = _BENCHMARK_SNAPSHOT_CATALOG_LOADERS.get(suite_slug)
+    if catalog_loader is None:
+        raise RuntimeError(f"unknown benchmark suite_slug: {suite_slug}")
+    snapshots = catalog_loader()
+    for snapshot in snapshots:
+        if snapshot.manifest.suite_slug != suite_slug:
+            raise RuntimeError(
+                "benchmark suite registry mismatch: "
+                f"requested {suite_slug} got {snapshot.manifest.suite_slug}"
+            )
+        snapshot_version = (snapshot.manifest.dataset_version, snapshot.manifest.scoring_version)
+        if snapshot_version == expected_version:
+            return snapshot
+    raise RuntimeError(
+        "unknown benchmark snapshot version: "
+        f"{suite_slug} dataset_version={dataset_version!r} scoring_version={scoring_version!r}"
+    )
+
+
+def load_active_benchmark_snapshot() -> BenchmarkDatasetSnapshot:
+    if len(_BENCHMARK_CURRENT_SNAPSHOT_LOADERS) != 1:
+        raise RuntimeError("active benchmark suite is ambiguous; resolve an explicit suite_slug")
+    _, loader = next(iter(_BENCHMARK_CURRENT_SNAPSHOT_LOADERS.items()))
+    return loader()
+
+
+def list_current_benchmark_snapshots() -> tuple[BenchmarkDatasetSnapshot, ...]:
+    return tuple(
+        loader()
+        for _, loader in sorted(_BENCHMARK_CURRENT_SNAPSHOT_LOADERS.items(), key=lambda entry: entry[0])
+    )
+
+
+def load_current_benchmark_snapshot(suite_slug: str) -> BenchmarkDatasetSnapshot:
+    current_loader = _BENCHMARK_CURRENT_SNAPSHOT_LOADERS.get(suite_slug)
+    if current_loader is None:
+        raise RuntimeError(f"unknown current benchmark suite_slug: {suite_slug}")
+    return current_loader()
+
+
+def _expected_snapshot_version(
+    *,
+    dataset_version: str | None,
+    scoring_version: str | None,
+) -> BenchmarkSnapshotVersionKey | None:
+    if dataset_version is None and scoring_version is None:
+        return None
+    if dataset_version is None or scoring_version is None:
+        raise RuntimeError("benchmark snapshot lookup requires both dataset_version and scoring_version")
+    return dataset_version, scoring_version
+
+
+__all__ = [
+    "list_current_benchmark_snapshots",
+    "list_current_benchmark_suite_slugs",
+    "load_active_benchmark_snapshot",
+    "load_benchmark_snapshot",
+    "load_current_benchmark_snapshot",
+]

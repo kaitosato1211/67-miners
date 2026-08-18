@@ -1,0 +1,48 @@
+services:
+  validator:
+    image: "${VALIDATOR_IMAGE:-harnyx/harnyx-subnet-validator:finney}"
+    env_file:
+      - .env
+    environment:
+      STATE_VOLUME_NAME: "${STATE_VOLUME_NAME:-harnyx-validator-state}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${WALLETS_HOST_DIR:-~/.bittensor/wallets}:/root/.bittensor/wallets
+      - ${STATE_VOLUME_NAME:-harnyx-validator-state}:/workspace/.harnyx_state
+    ports:
+      - "${VALIDATOR_HOST_PORT:-8100}:8100"
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    networks:
+      - default
+      - harnyx-sandbox-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    stop_grace_period: "60s"
+
+  watchtower:
+    image: containrrr/watchtower
+    command:
+      - --label-enable
+      - --api-version
+      - "${WATCHTOWER_DOCKER_API_VERSION:-1.44}"
+      - --interval
+      - "${WATCHTOWER_INTERVAL:-300}"
+      - --stop-timeout
+      - "60s"
+      - --cleanup
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+networks:
+  harnyx-sandbox-net:
+    name: harnyx-sandbox-net
+    driver: bridge
+    internal: true
+
+volumes:
+  harnyx-validator-state:
+    driver: local
+    name: harnyx-validator-state

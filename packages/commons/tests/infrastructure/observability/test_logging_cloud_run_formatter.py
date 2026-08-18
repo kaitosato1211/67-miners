@@ -1,0 +1,220 @@
+import json
+import logging
+import sys
+
+from opentelemetry import baggage, context, trace
+from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags, TraceState
+
+from harnyx_commons.observability.logging import (
+    CloudJsonSanitizer,
+    ExtrasFormatter,
+    OtelContextLogFilter,
+)
+
+
+def test_formatter_emits_json_payload_for_json_fields_in_cloud_run(monkeypatch) -> None:
+    monkeypatch.setenv("K_SERVICE", "harnyx-platform")
+    formatter = ExtrasFormatter("%(levelname)s %(name)s: %(message)s")
+
+    record = logging.LogRecord(
+        name="harnyx_commons.llm.calls",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="llm.invoke.retry.complete",
+        args=(),
+        exc_info=None,
+    )
+    record.data = {"provider": "chutes"}
+    record.json_fields = {"request": {"payload": b"hello"}, "response": {"ok": True}}
+
+    rendered = formatter.format(record)
+    payload = json.loads(rendered)
+
+    expected_data = json.dumps(record.data, sort_keys=True, separators=(",", ":"))
+    assert payload["message"] == f"{record.getMessage()} | data={expected_data}"
+    assert payload["severity"] == "INFO"
+    assert payload["logger"] == "harnyx_commons.llm.calls"
+    assert payload["data"]["provider"] == "chutes"
+    assert payload["request"]["payload"] == "<bytes len=5>"
+    assert payload["response"]["ok"] is True
+
+
+def test_formatter_emits_json_payload_for_data_in_cloud_run(monkeypatch) -> None:
+    monkeypatch.setenv("K_SERVICE", "harnyx-platform")
+    formatter = ExtrasFormatter("%(levelname)s %(name)s: %(message)s")
+
+    record = logging.LogRecord(
+        name="harnyx_platform.content_ingestion",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="ingestion stream exhausted candidates before filling limit",
+        args=(),
+        exc_info=None,
+    )
+    record.data = {"feed_id": "feed-123", "run_id": "run-123", "limit": 1000, "enqueued": 201}
+
+    rendered = formatter.format(record)
+    payload = json.loads(rendered)
+
+    expected_data = json.dumps(record.data, sort_keys=True, separators=(",", ":"))
+    assert payload["message"] == f"{record.getMessage()} | data={expected_data}"
+    assert payload["severity"] == "INFO"
+    assert payload["logger"] == "harnyx_platform.content_ingestion"
+    assert payload["data"]["feed_id"] == "feed-123"
+    assert payload["data"]["limit"] == 1000
+
+
+def test_formatter_emits_json_payload_for_json_fields_in_kubernetes(monkeypatch) -> None:
+    monkeypatch.delenv("K_SERVICE", raising=False)
+    monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.0.0.1")
+    formatter = ExtrasFormatter("%(levelname)s %(name)s: %(message)s")
+
+    record = logging.LogRecord(
+        name="harnyx_commons.tools.desearch.calls",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="desearch.request.complete",
+        args=(),
+        exc_info=None,
+    )
+    record.data = {"provider": "desearch"}
+    record.json_fields = {"request": {"payload": b"hello"}, "response": {"ok": True}}
+
+    rendered = formatter.format(record)
+    payload = json.loads(rendered)
+
+    expected_data = json.dumps(record.data, sort_keys=True, separators=(",", ":"))
+    assert payload["message"] == f"{record.getMessage()} | data={expected_data}"
+    assert payload["severity"] == "INFO"
+    assert payload["logger"] == "harnyx_commons.tools.desearch.calls"
+    assert payload["data"]["provider"] == "desearch"
+    assert payload["request"]["payload"] == "<bytes len=5>"
+    assert payload["response"]["ok"] is True
+
+
+def test_formatter_emits_exception_payload_in_kubernetes(monkeypatch) -> None:
+    monkeypatch.delenv("K_SERVICE", raising=False)
+    monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.0.0.1")
+    formatter = ExtrasFormatter("%(levelname)s %(name)s: %(message)s")
+
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        exc_info = sys.exc_info()
+
+    record = logging.LogRecord(
+        name="harnyx_platform.ingestion_worker",
+        level=logging.ERROR,
+        pathname=__file__,
+        lineno=1,
+        msg="ingestion worker tick failed",
+        args=(),
+        exc_info=exc_info,
+    )
+    record.data = {"run_id": "run-123"}
+
+    rendered = formatter.format(record)
+    payload = json.loads(rendered)
+
+    expected_data = json.dumps(record.data, sort_keys=True, separators=(",", ":"))
+    assert payload["message"] == f"{record.getMessage()} | data={expected_data}"
+    assert payload["severity"] == "ERROR"
+    assert payload["data"]["run_id"] == "run-123"
+    assert "ValueError: boom" in payload["exception"]
+
+
+def test_formatter_ignores_json_fields_outside_managed_runtimes(monkeypatch) -> None:
+    monkeypatch.delenv("K_SERVICE", raising=False)
+    monkeypatch.delenv("KUBERNETES_SERVICE_HOST", raising=False)
+    formatter = ExtrasFormatter("%(levelname)s %(name)s: %(message)s")
+
+    record = logging.LogRecord(
+        name="harnyx_commons.llm.calls",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="llm.invoke.retry.complete",
+        args=(),
+        exc_info=None,
+    )
+    record.data = {"provider": "chutes"}
+    record.json_fields = {"request": {"payload": "hello"}}
+
+    rendered = formatter.format(record)
+
+    assert rendered.startswith("INFO harnyx_commons.llm.calls: llm.invoke.retry.complete")
+    assert "data=" in rendered
+    assert "request" not in rendered
+
+
+def test_cloud_json_sanitizer_injects_data_into_json_fields() -> None:
+    sanitizer = CloudJsonSanitizer()
+    record = logging.LogRecord(
+        name="harnyx_commons.llm.calls",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="llm.invoke.retry.complete",
+        args=(),
+        exc_info=None,
+    )
+    record.data = {"provider": "chutes", "payload": b"hello"}
+    record.json_fields = {"request": {"ok": True}}
+
+    assert sanitizer.filter(record) is True
+    assert record.json_fields["request"]["ok"] is True
+    assert record.json_fields["data"]["provider"] == "chutes"
+    assert record.json_fields["data"]["payload"] == "<bytes len=5>"
+
+
+def test_otel_context_log_filter_injects_trace_and_baggage(monkeypatch) -> None:
+    monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.0.0.1")
+
+    ctx = baggage.set_baggage("harnyx.run_id", "run-123")
+    ctx = baggage.set_baggage("harnyx.feed_id", "feed-456", context=ctx)
+    ctx = baggage.set_baggage("harnyx.use_case", "feed_run", context=ctx)
+    token = context.attach(ctx)
+    try:
+        span_context = SpanContext(
+            trace_id=int("0123456789abcdef0123456789abcdef", 16),
+            span_id=int("0123456789abcdef", 16),
+            is_remote=False,
+            trace_flags=TraceFlags(TraceFlags.SAMPLED),
+            trace_state=TraceState(),
+        )
+        span = NonRecordingSpan(span_context)
+        with trace.use_span(span, end_on_exit=False):
+            record = logging.LogRecord(
+                name="harnyx_commons.llm.calls",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg="demo",
+                args=(),
+                exc_info=None,
+            )
+            record.json_fields = {"existing": {"ok": True}}
+
+            assert OtelContextLogFilter(gcp_project_id="demo-project").filter(record) is True
+
+            rendered = ExtrasFormatter("%(levelname)s %(name)s: %(message)s").format(record)
+            payload = json.loads(rendered)
+
+            assert payload["existing"]["ok"] is True
+            assert (
+                payload["logging.googleapis.com/trace"]
+                == "projects/demo-project/traces/0123456789abcdef0123456789abcdef"
+            )
+            assert payload["logging.googleapis.com/spanId"] == "0123456789abcdef"
+            assert payload["logging.googleapis.com/trace_sampled"] is True
+            assert payload["otel"]["trace_id"] == "0123456789abcdef0123456789abcdef"
+            assert payload["otel"]["span_id"] == "0123456789abcdef"
+            baggage_payload = payload["otel"]["baggage"]
+            assert baggage_payload["harnyx.run_id"] == "run-123"
+            assert baggage_payload["harnyx.feed_id"] == "feed-456"
+            assert baggage_payload["harnyx.use_case"] == "feed_run"
+    finally:
+        context.detach(token)

@@ -1,0 +1,33 @@
+[project]
+name = "harnyx-subnet-public-workspace"
+version = "0.0.0"
+description = "Workspace manifest for the public Harnyx Subnet packages."
+requires-python = ">=3.11"
+authors = [
+  { name = "Brightmount", email = "dev@brightmount.co" }
+]
+license = { text = "Proprietary" }
+dependencies = [
+  "ruff>=0.5",
+  "pytest>=8.3",
+  "pytest-cov>=6.2.1",
+  "pytest-rerunfailures>=16.4",
+  "vulture>=2.11",
+  "deptry>=0.23",
+]
+
+[tool.uv.workspace]
+members = [
+  "packages/commons",
+  "validator",
+  "miner",
+  "sandbox",
+  "packages/miner-sdk",
+]
+
+[tool.uv.sources]
+harnyx-commons = { workspace = true }
+harnyx-validator = { workspace = true }
+harnyx-miner = { workspace = true }
+harnyx-miner-sdk = { workspace = true }
+harnyx-sandbox = { workspace = true }

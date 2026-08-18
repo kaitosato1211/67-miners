@@ -1,0 +1,55 @@
+# harnyx-sandbox
+
+This package contains the **sandbox runtime** — the FastAPI server that validators use to execute miner agent scripts in isolated containers.
+
+## What this is
+
+- A lightweight HTTP server exposing `/entry/{entrypoint}` endpoints
+- Loads miner scripts via `runpy.run_path` and invokes registered entrypoints
+- Provides tool proxies (search, LLM) back to the validator host
+- In the subnet miner-task path, validators call `/entry/query` with the sandbox envelope `{ "payload": { "text": "..." }, "context": {} }`
+- Runs inside a Docker container with seccomp + resource limits
+
+## How it fits in
+
+```
+  Validator
+      │
+      │ starts container from harnyx/harnyx-subnet-sandbox image
+      ▼
+  ┌─────────────────────────────────┐
+  │  sandbox/                       │  ◀── this package
+  │  harnyx-sandbox --serve         │
+  │  loads miner agent.py           │
+  │  calls query                    │
+  └─────────────────────────────────┘
+      │
+      │ returns plain text or direct structured output
+      ▼
+  Validator (grades result)
+```
+
+The sandbox validates the miner entrypoint query and response envelope through
+the miner SDK. A query without `output_schema` requires `Response.text` for a
+plain-text answer; a query with a schema requires direct `Response.output`. The
+host that submitted the query validates that output against the originating schema before it
+hydrates response-level citation refs. This keeps citations outside the
+caller-owned output schema and preserves invalid-response classification.
+
+## Building the image
+
+From the repo root:
+
+```bash
+docker build -f sandbox/Dockerfile -t harnyx/harnyx-subnet-sandbox:local .
+```
+
+This builds the `harnyx/harnyx-subnet-sandbox:local` Docker image using `sandbox/Dockerfile`.
+
+## Running locally (development)
+
+```bash
+uv run --package harnyx-sandbox harnyx-sandbox --serve
+```
+
+The server starts on `http://127.0.0.1:8000` by default. Set `SANDBOX_HOST` and `SANDBOX_PORT` to customize.

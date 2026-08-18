@@ -1,0 +1,992 @@
+"""HTTP client for the centralized evaluation platform."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass, field, is_dataclass
+from datetime import datetime
+from typing import Any, Literal, cast
+from uuid import UUID
+
+import bittensor as bt
+import httpx
+from pydantic import BaseModel, TypeAdapter
+
+from harnyx_commons.bittensor import build_canonical_request
+from harnyx_commons.domain.miner_task import EvaluationTrace, MinerTask, Response
+from harnyx_commons.domain.session import LlmUsageTotals, Session, SessionStatus
+from harnyx_commons.domain.tool_call import ToolExecutionFacts
+from harnyx_commons.domain.tool_usage import ToolUsageSummary
+from harnyx_commons.errors import BudgetExceededError, ToolInvocationTimeoutError, ToolProviderError
+from harnyx_commons.json_types import JsonObject, JsonValue
+from harnyx_commons.protocol_headers import PLATFORM_TOOL_PROXY_TOKEN_HEADER
+from harnyx_commons.tools.types import ToolName
+from harnyx_validator.application.dto.evaluation import (
+    MinerTaskWorkAssignment,
+    PlatformOwnedTaskExecution,
+    PlatformOwnedTaskResult,
+    ScriptArtifactSpec,
+    TokenUsageSummary,
+)
+from harnyx_validator.application.ports.platform import (
+    ChampionWeights,
+    PlatformPort,
+    PlatformTaskAttemptIdentity,
+    PlatformTaskResultAcknowledgement,
+    PlatformToolProxyGrant,
+    PlatformToolProxyPlatformPort,
+    PlatformToolProxyToolResult,
+    PlatformWeightsUnavailableError,
+)
+from harnyx_validator.infrastructure.transient_network import classify_transient_network_failure
+
+_GET_ATTEMPTS = 2
+_PLATFORM_WORK_TASKS_READ_TIMEOUT_SECONDS = 300.0
+_PLATFORM_WORK_RESULT_TIMEOUT_SECONDS = 300.0
+_PLATFORM_TOOL_PROXY_GRANT_RETRY_DELAYS_SECONDS = (0.25, 1.0)
+_LLM_USAGE_TOTALS_ADAPTER = TypeAdapter(dict[str, dict[str, LlmUsageTotals]])
+_TOOL_USAGE_ADAPTER = TypeAdapter(ToolUsageSummary)
+
+
+class PlatformClientError(RuntimeError):
+    """Raised when the platform responds with an unexpected status."""
+
+    def __init__(self, *, status_code: int | None, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class PlatformToolProxyInvocationError(RuntimeError):
+    """Raised when platform-tool-proxy rejects a tool invocation for non-provider reasons."""
+
+    def __init__(self, *, status_code: int, error_code: str | None, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.error_code = error_code
+
+
+class PlatformToolProxyInterruptedError(RuntimeError):
+    """Raised when a sent platform-tool-proxy execution is interrupted before a response."""
+
+    error_code = "platform_interrupted"
+    status_code = 0
+
+
+class PlatformToolProxyProviderError(ToolProviderError):
+    """Raised when platform-tool-proxy reports an upstream provider failure."""
+
+    error_code = "provider_failed"
+
+    def __init__(self, *, status_code: int, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class PlatformToolProxyToolTimeoutError(ToolInvocationTimeoutError):
+    """Raised when platform-tool-proxy reports a tool timeout."""
+
+    error_code = "tool_timeout"
+
+    def __init__(self, *, status_code: int, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class PlatformToolProxyBudgetExceededError(BudgetExceededError):
+    """Raised when platform-tool-proxy reports grant budget exhaustion."""
+
+    error_code = "budget_exhausted"
+
+    def __init__(self, *, status_code: int, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+@dataclass
+class HttpPlatformClient(PlatformPort):
+    """Implementation of PlatformPort backed by HTTPX."""
+
+    base_url: str
+    hotkey: bt.Keypair
+    timeout_seconds: float = 10.0
+    transport: httpx.BaseTransport | httpx.AsyncBaseTransport | None = None
+
+    def __post_init__(self) -> None:
+        if not self.base_url:
+            raise ValueError("platform base_url must not be empty")
+
+    def _client(self) -> httpx.Client:
+        return httpx.Client(
+            base_url=self.base_url,
+            timeout=self.timeout_seconds,
+            transport=cast(httpx.BaseTransport | None, self.transport),
+        )
+
+    def _async_client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=self.timeout_seconds,
+            transport=cast(httpx.AsyncBaseTransport | None, self.transport),
+        )
+
+    def _signed_header(self, method: str, path_qs: str, body: bytes) -> str:
+        canonical = build_canonical_request(method, path_qs, body)
+        signature = self.hotkey.sign(canonical)
+        return f'Bittensor ss58="{self.hotkey.ss58_address}",sig="{signature.hex()}"'
+
+    def _request_headers(self, method: str, path_qs: str, body: bytes) -> dict[str, str]:
+        headers = {
+            "Authorization": self._signed_header(method, path_qs, body),
+            "Accept": "application/json",
+        }
+        if body:
+            headers["Content-Type"] = "application/json"
+        return headers
+
+    def _get(self, path: str, *, timeout_seconds: float | None = None) -> httpx.Response:
+        for attempt in range(_GET_ATTEMPTS):
+            try:
+                with self._client() as client:
+                    kwargs: dict[str, Any] = {}
+                    if timeout_seconds is not None:
+                        kwargs["timeout"] = timeout_seconds
+                    return client.get(
+                        path,
+                        headers=self._request_headers("GET", path, b""),
+                        **kwargs,
+                    )
+            except httpx.TransportError as exc:
+                if classify_transient_network_failure(exc) is None or attempt == _GET_ATTEMPTS - 1:
+                    raise
+        raise RuntimeError("platform GET retry loop exhausted without response")
+
+    def _post_json(
+        self,
+        path: str,
+        payload: JsonObject,
+        *,
+        timeout: float | httpx.Timeout | None = None,
+    ) -> httpx.Response:
+        body = _json_body(payload)
+        with self._client() as client:
+            kwargs: dict[str, Any] = {}
+            if timeout is not None:
+                kwargs["timeout"] = timeout
+            return client.post(
+                path,
+                content=body,
+                headers=self._request_headers("POST", path, body),
+                **kwargs,
+            )
+
+    async def _post_json_async(
+        self,
+        path: str,
+        payload: JsonObject,
+        *,
+        timeout: float | httpx.Timeout | None = None,
+    ) -> httpx.Response:
+        body = _json_body(payload)
+        async with self._async_client() as client:
+            kwargs: dict[str, Any] = {}
+            if timeout is not None:
+                kwargs["timeout"] = timeout
+            return await client.post(
+                path,
+                content=body,
+                headers=self._request_headers("POST", path, body),
+                **kwargs,
+            )
+
+    def fetch_artifact(self, batch_id: UUID, artifact_id: UUID) -> bytes:
+        path = f"/v1/miner-task-batches/{batch_id}/artifacts/{artifact_id}"
+        response = self._get(path)
+        if response.status_code != httpx.codes.OK:
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message=f"platform returned {response.status_code} for GET {path}",
+            )
+        return response.content
+
+    def get_champion_weights(self) -> ChampionWeights:
+        path = "/v1/weights"
+        response = self._get(path)
+        if response.status_code != httpx.codes.OK:
+            if (
+                response.status_code == httpx.codes.SERVICE_UNAVAILABLE
+                and _platform_error_code(response) == "weights_unavailable"
+            ):
+                raise PlatformWeightsUnavailableError(
+                    _platform_error_message(response) or "platform weights unavailable"
+                )
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message=f"platform returned {response.status_code} for GET /v1/weights",
+            )
+        payload = response.json()
+        weights = {int(uid): float(weight) for uid, weight in payload.get("weights", {}).items()}
+        champion_uid_raw = payload.get("champion_uid")
+        champion_uid = int(champion_uid_raw) if champion_uid_raw is not None else None
+        return ChampionWeights(champion_uid=champion_uid, weights=weights)
+
+    async def request_miner_task_work(
+        self,
+        *,
+        target_concurrency: int,
+        max_active_artifacts: int,
+        active_attempts: Sequence[PlatformTaskAttemptIdentity],
+    ) -> tuple[MinerTaskWorkAssignment, ...]:
+        path = "/v2/miner-task-work/tasks"
+        timeout = httpx.Timeout(
+            connect=self.timeout_seconds,
+            read=_PLATFORM_WORK_TASKS_READ_TIMEOUT_SECONDS,
+            write=self.timeout_seconds,
+            pool=self.timeout_seconds,
+        )
+        response = await self._post_json_async(
+            path,
+            {
+                "target_concurrency": target_concurrency,
+                "max_active_artifacts": max_active_artifacts,
+                "active_attempts": [
+                    {
+                        "batch_id": str(attempt.batch_id),
+                        "artifact_id": str(attempt.artifact_id),
+                        "task_id": str(attempt.task_id),
+                        "attempt_number": attempt.attempt_number,
+                        "validator_session_id": (
+                            None
+                            if attempt.validator_session_id is None
+                            else str(attempt.validator_session_id)
+                        ),
+                    }
+                    for attempt in active_attempts
+                ],
+            },
+            timeout=timeout,
+        )
+        if response.status_code != httpx.codes.OK:
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message=f"platform returned {response.status_code} for POST {path}",
+            )
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise PlatformClientError(status_code=response.status_code, message="platform work response is invalid")
+        tasks = payload.get("tasks", ())
+        if not isinstance(tasks, list):
+            raise PlatformClientError(status_code=response.status_code, message="platform work tasks are invalid")
+        return tuple(_miner_task_work_assignment(task) for task in tasks)
+
+    def submit_miner_task_work_results(
+        self,
+        results: Sequence[PlatformOwnedTaskResult],
+    ) -> tuple[PlatformTaskResultAcknowledgement, ...]:
+        path = "/v2/miner-task-work/results"
+        response = self._post_json(
+            path,
+            {
+                "results": [_platform_task_result_payload(result) for result in results],
+            },
+            timeout=_PLATFORM_WORK_RESULT_TIMEOUT_SECONDS,
+        )
+        if response.status_code != httpx.codes.OK:
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message=f"platform returned {response.status_code} for POST {path}",
+            )
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise PlatformClientError(status_code=response.status_code, message="platform result response is invalid")
+        items = payload.get("results", ())
+        if not isinstance(items, list):
+            raise PlatformClientError(status_code=response.status_code, message="platform result items are invalid")
+        return tuple(_platform_result_acknowledgement(item) for item in items)
+
+    def submit_miner_task_work_executions(
+        self,
+        executions: Sequence[PlatformOwnedTaskExecution],
+    ) -> tuple[PlatformTaskResultAcknowledgement, ...]:
+        path = "/v2/miner-task-work/executions"
+        response = self._post_json(
+            path,
+            {
+                "executions": [_platform_task_execution_payload(execution) for execution in executions],
+            },
+            timeout=_PLATFORM_WORK_RESULT_TIMEOUT_SECONDS,
+        )
+        if response.status_code != httpx.codes.OK:
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message=f"platform returned {response.status_code} for POST {path}",
+        )
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform execution response is invalid",
+            )
+        items = payload.get("executions", ())
+        if not isinstance(items, list):
+            raise PlatformClientError(status_code=response.status_code, message="platform execution items are invalid")
+        return tuple(_platform_result_acknowledgement(item) for item in items)
+
+    def request_scoreable_miner_task_work_executions(
+        self,
+        *,
+        limit: int,
+        active_scoring: Sequence[PlatformTaskAttemptIdentity],
+    ) -> tuple[PlatformOwnedTaskExecution, ...]:
+        path = "/v2/miner-task-work/scoreable-executions"
+        response = self._post_json(
+            path,
+            {
+                "limit": limit,
+                "active_scoring": [
+                    {
+                        "batch_id": str(attempt.batch_id),
+                        "artifact_id": str(attempt.artifact_id),
+                        "task_id": str(attempt.task_id),
+                        "attempt_number": attempt.attempt_number,
+                        "validator_session_id": (
+                            None
+                            if attempt.validator_session_id is None
+                            else str(attempt.validator_session_id)
+                        ),
+                    }
+                    for attempt in active_scoring
+                ],
+            },
+            timeout=_PLATFORM_WORK_RESULT_TIMEOUT_SECONDS,
+        )
+        if response.status_code != httpx.codes.OK:
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message=f"platform returned {response.status_code} for POST {path}",
+        )
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform scoreable response is invalid",
+            )
+        items = payload.get("executions", ())
+        if not isinstance(items, list):
+            raise PlatformClientError(status_code=response.status_code, message="platform scoreable items are invalid")
+        return tuple(_platform_scoreable_execution(item) for item in items)
+
+
+@dataclass
+class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
+    """Async HTTP client for platform tool proxy endpoints."""
+
+    base_url: str
+    hotkey: bt.Keypair
+    timeout_seconds: float = 10.0
+    transport: httpx.AsyncBaseTransport | None = None
+    grant_retry_delays_seconds: tuple[float, ...] = _PLATFORM_TOOL_PROXY_GRANT_RETRY_DELAYS_SECONDS
+    _client: httpx.AsyncClient = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.base_url:
+            raise ValueError("platform base_url must not be empty")
+        self._client = httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=self.timeout_seconds,
+            transport=self.transport,
+        )
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
+    def _signed_header(self, method: str, path_qs: str, body: bytes) -> str:
+        canonical = build_canonical_request(method, path_qs, body)
+        signature = self.hotkey.sign(canonical)
+        return f'Bittensor ss58="{self.hotkey.ss58_address}",sig="{signature.hex()}"'
+
+    async def create_platform_tool_proxy_grant(
+        self,
+        *,
+        batch_id: UUID,
+        artifact_id: UUID,
+        task_id: UUID,
+        validator_session_id: UUID,
+        attempt_number: int,
+        assignment_token: str,
+    ) -> PlatformToolProxyGrant:
+        path = "/v1/platform-tool-proxy/grants"
+        body = _json_body(
+            {
+                "batch_id": str(batch_id),
+                "artifact_id": str(artifact_id),
+                "task_id": str(task_id),
+                "validator_session_id": str(validator_session_id),
+                "attempt_number": attempt_number,
+                "assignment_token": assignment_token,
+            }
+        )
+        headers = {
+            "Authorization": self._signed_header("POST", path, body),
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        response = await self._post_grant_with_transient_retry(path, body, headers)
+        if response.status_code != httpx.codes.OK:
+            error_code = _platform_error_code(response)
+            if error_code == "platform_tool_proxy_denied":
+                raise PlatformToolProxyInvocationError(
+                    status_code=response.status_code,
+                    error_code=error_code,
+                    message=_platform_error_message(response) or "platform tool proxy grant denied",
+                )
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_tool_proxy_grant_failed",
+                message=_platform_error_message(response) or "platform tool proxy grant failed",
+            )
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_tool_proxy_grant_failed",
+                message="platform tool proxy grant response is invalid",
+            ) from exc
+        if not isinstance(payload, dict):
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_tool_proxy_grant_failed",
+                message="platform tool proxy grant response is invalid",
+            )
+        token = payload.get("token")
+        expires_at = payload.get("expires_at")
+        if not isinstance(token, str) or not isinstance(expires_at, str):
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_tool_proxy_grant_failed",
+                message="platform tool proxy grant response is invalid",
+            )
+        try:
+            parsed_expires_at = datetime.fromisoformat(expires_at)
+        except ValueError as exc:
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_tool_proxy_grant_failed",
+                message="platform tool proxy grant response is invalid",
+            ) from exc
+        return PlatformToolProxyGrant(
+            token=token,
+            expires_at=parsed_expires_at,
+        )
+
+    async def _post_grant_with_transient_retry(
+        self,
+        path: str,
+        body: bytes,
+        headers: dict[str, str],
+    ) -> httpx.Response:
+        attempts = len(self.grant_retry_delays_seconds) + 1
+        for attempt_index in range(attempts):
+            retry_remaining = attempt_index < attempts - 1
+            try:
+                response = await self._client.post(path, content=body, headers=headers)
+            except httpx.HTTPError as exc:
+                transient = classify_transient_network_failure(exc)
+                if transient is None or not retry_remaining:
+                    raise PlatformToolProxyInvocationError(
+                        status_code=0,
+                        error_code="platform_tool_proxy_grant_failed",
+                        message="platform tool proxy grant request failed",
+                    ) from exc
+                await asyncio.sleep(self.grant_retry_delays_seconds[attempt_index])
+                continue
+            if _is_transient_platform_tool_proxy_grant_response(response) and retry_remaining:
+                await asyncio.sleep(self.grant_retry_delays_seconds[attempt_index])
+                continue
+            return response
+        raise RuntimeError("platform tool proxy grant retry loop exhausted without response")
+
+    async def execute_platform_tool_proxy_tool(
+        self,
+        *,
+        token: str,
+        uid: int,
+        artifact_id: UUID,
+        task_id: UUID,
+        validator_session_id: UUID,
+        attempt_number: int,
+        receipt_id: str,
+        receipt_started_at: datetime | None = None,
+        receipt_issued_at: datetime | None = None,
+        tool: ToolName,
+        args: tuple[JsonValue, ...],
+        kwargs: dict[str, JsonValue],
+        transport_timeout_seconds: float,
+    ) -> PlatformToolProxyToolResult:
+        path = "/v1/platform-tool-proxy/tools/execute"
+        body = _json_body(
+            {
+                "uid": uid,
+                "artifact_id": str(artifact_id),
+                "task_id": str(task_id),
+                "validator_session_id": str(validator_session_id),
+                "attempt_number": attempt_number,
+                "receipt_id": receipt_id,
+                **(
+                    {}
+                    if receipt_started_at is None or receipt_issued_at is None
+                    else {
+                        "receipt_started_at": receipt_started_at.isoformat(),
+                        "receipt_issued_at": receipt_issued_at.isoformat(),
+                    }
+                ),
+                "tool": tool,
+                "args": list(args),
+                "kwargs": kwargs,
+            }
+        )
+        headers = {
+            PLATFORM_TOOL_PROXY_TOKEN_HEADER: token,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        try:
+            response = await self._client.post(
+                path,
+                content=body,
+                headers=headers,
+                timeout=transport_timeout_seconds,
+            )
+        except httpx.ReadTimeout as exc:
+            raise PlatformToolProxyToolTimeoutError(
+                status_code=0,
+                message="platform tool proxy execution timed out while awaiting tool result",
+            ) from exc
+        except (httpx.RemoteProtocolError, httpx.ReadError) as exc:
+            raise PlatformToolProxyInterruptedError(
+                "platform tool proxy execution interrupted before a response"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise PlatformToolProxyInvocationError(
+                status_code=0,
+                error_code="platform_tool_proxy_execution_failed",
+                message="platform tool proxy transport failed",
+            ) from exc
+        if response.status_code != httpx.codes.OK:
+            error_code = _platform_error_code(response)
+            if error_code == "platform_interrupted":
+                raise PlatformToolProxyInterruptedError(
+                    _platform_error_message(response) or "platform tool proxy execution interrupted"
+                )
+            if error_code == "tool_timeout":
+                raise PlatformToolProxyToolTimeoutError(
+                    status_code=response.status_code,
+                    message=_platform_error_message(response) or "tool timed out",
+                )
+            if error_code == "provider_failed":
+                raise PlatformToolProxyProviderError(
+                    status_code=response.status_code,
+                    message=_platform_error_message(response) or "tool provider failed",
+                )
+            if error_code == "budget_exhausted":
+                raise PlatformToolProxyBudgetExceededError(
+                    status_code=response.status_code,
+                    message=_platform_error_message(response) or "platform tool proxy budget exhausted",
+                )
+            if error_code in _SELECTED_PROVIDER_OR_TOOL_REQUEST_MINER_OWNED_PROXY_ERROR_CODES:
+                raise PlatformToolProxyInvocationError(
+                    status_code=response.status_code,
+                    error_code=error_code,
+                    message=(
+                        _platform_error_message(response)
+                        or "platform tool proxy selected-provider/tool request failed"
+                    ),
+                )
+            if error_code in _NON_PROVIDER_PLATFORM_TOOL_PROXY_ERROR_CODES:
+                raise PlatformToolProxyInvocationError(
+                    status_code=response.status_code,
+                    error_code=error_code,
+                    message=_platform_error_message(response) or "platform tool proxy control failure",
+                )
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_error",
+                message=(
+                    _platform_error_message(response)
+                    or f"platform returned {response.status_code} for POST {path}"
+                ),
+            )
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_error",
+                message="platform tool proxy response is invalid",
+            ) from exc
+        if not isinstance(payload, dict):
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_error",
+                message="platform tool proxy response is invalid",
+            )
+        response_payload = payload.get("response")
+        if not isinstance(response_payload, dict):
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_error",
+                message="platform tool proxy response is invalid",
+            )
+        execution_payload = payload.get("execution")
+        execution = None
+        if isinstance(execution_payload, dict):
+            try:
+                execution = ToolExecutionFacts(
+                    elapsed_ms=_optional_float(execution_payload.get("elapsed_ms")),
+                    ttft_ms=_optional_float(execution_payload.get("ttft_ms")),
+                )
+            except PlatformClientError as exc:
+                raise PlatformToolProxyInvocationError(
+                    status_code=response.status_code,
+                    error_code="platform_error",
+                    message=str(exc),
+                ) from exc
+        try:
+            actual_cost_usd = _optional_float(payload.get("actual_cost_usd"))
+        except PlatformClientError as exc:
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_error",
+                message=str(exc),
+            ) from exc
+        actual_cost_evidence = payload.get("actual_cost_evidence")
+        if actual_cost_evidence is not None and not isinstance(actual_cost_evidence, dict):
+            raise PlatformToolProxyInvocationError(
+                status_code=response.status_code,
+                error_code="platform_error",
+                message="platform tool proxy actual_cost_evidence must be an object",
+            )
+        return PlatformToolProxyToolResult(
+            response=cast(JsonObject, response_payload),
+            execution=execution,
+            actual_cost_usd=actual_cost_usd,
+            actual_cost_provider=(
+                str(payload["actual_cost_provider"]) if payload.get("actual_cost_provider") is not None else None
+            ),
+            actual_cost_evidence=cast(JsonObject, actual_cost_evidence),
+        )
+
+
+def _json_body(payload: JsonObject) -> bytes:
+    return json.dumps(payload, separators=(",", ":")).encode()
+
+
+def _platform_task_result_payload(result: PlatformOwnedTaskResult) -> JsonObject:
+    return {
+        "batch_id": str(result.batch_id),
+        "artifact_id": str(result.artifact_id),
+        "task_id": str(result.task_id),
+        "attempt_number": result.attempt_number,
+        "result": None if result.result is None else _run_submission_payload(result.result),
+        "terminal_attempt": _attempt_payload(result.terminal_attempt),
+    }
+
+
+def _platform_task_execution_payload(execution: PlatformOwnedTaskExecution) -> JsonObject:
+    return {
+        "batch_id": str(execution.batch_id),
+        "artifact_id": str(execution.artifact_id),
+        "task_id": str(execution.task_id),
+        "attempt_number": execution.attempt_number,
+        "validator_session_id": str(execution.validator_session_id),
+        "uid": execution.uid,
+        "miner_hotkey_ss58": execution.miner_hotkey_ss58,
+        "started_at": execution.started_at.isoformat(),
+        "execution_completed_at": execution.execution_completed_at.isoformat(),
+        "response": _jsonable(execution.response),
+        "session": {
+            "session_id": str(execution.session.session_id),
+            "uid": execution.session.uid,
+            "status": execution.session.status.value,
+            "issued_at": execution.session.issued_at.isoformat(),
+            "expires_at": execution.session.expires_at.isoformat(),
+        },
+        "usage": _jsonable(execution.usage),
+        "total_tool_usage": _jsonable(execution.total_tool_usage),
+        "trace": _jsonable(execution.trace),
+    }
+
+
+def _platform_scoreable_execution(value: object) -> PlatformOwnedTaskExecution:
+    if not isinstance(value, dict):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution item is invalid")
+    item = cast(dict[str, object], value)
+    artifact = item.get("artifact")
+    if not isinstance(artifact, dict):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution artifact is invalid")
+    task = item.get("task")
+    if not isinstance(task, dict):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution task is invalid")
+    session_payload = item.get("session")
+    if not isinstance(session_payload, dict):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution session is invalid")
+    artifact_item = dict(cast(dict[str, object], artifact))
+    task_item = dict(cast(dict[str, object], task))
+    session_item = cast(dict[str, object], session_payload)
+
+    artifact_id = UUID(str(artifact_item["artifact_id"]))
+    task_id = UUID(str(task_item["task_id"]))
+    artifact_item["artifact_id"] = artifact_id
+    task_item["task_id"] = task_id
+
+    miner_hotkey_ss58 = item.get("miner_hotkey_ss58")
+    if not isinstance(miner_hotkey_ss58, str):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution miner hotkey is invalid")
+    response_payload = item.get("response")
+    if not isinstance(response_payload, dict):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution response is invalid")
+    trace_payload = item.get("trace")
+    if trace_payload is not None and not isinstance(trace_payload, dict):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution trace is invalid")
+
+    task_model = MinerTask.model_validate(task_item)
+    issued_at = _parse_datetime(session_item["issued_at"])
+    expires_at = _parse_datetime(session_item["expires_at"])
+    return PlatformOwnedTaskExecution(
+        batch_id=UUID(str(item["batch_id"])),
+        artifact=ScriptArtifactSpec.model_validate(artifact_item),
+        task=task_model,
+        artifact_id=artifact_id,
+        task_id=task_id,
+        attempt_number=_required_int(item, "attempt_number"),
+        max_attempts=_required_int(item, "max_attempts"),
+        validator_session_id=UUID(str(item["validator_session_id"])),
+        uid=_required_int(item, "uid"),
+        miner_hotkey_ss58=miner_hotkey_ss58,
+        started_at=_parse_datetime(item["started_at"]),
+        execution_completed_at=_parse_datetime(item["execution_completed_at"]),
+        response=Response.model_validate(response_payload),
+        session=Session(
+            session_id=UUID(str(session_item["session_id"])),
+            uid=_required_int(session_item, "uid"),
+            task_id=task_id,
+            issued_at=issued_at,
+            expires_at=expires_at,
+            budget_usd=task_model.budget_usd,
+            status=SessionStatus(str(session_item["status"])),
+        ),
+        usage=_scoreable_token_usage_summary(item["usage"]),
+        total_tool_usage=_TOOL_USAGE_ADAPTER.validate_python(item["total_tool_usage"]),
+        execution_log=(),
+        trace=None if trace_payload is None else EvaluationTrace.model_validate(trace_payload),
+    )
+
+
+def _scoreable_token_usage_summary(value: object) -> TokenUsageSummary:
+    if not isinstance(value, dict):
+        raise PlatformClientError(status_code=None, message="platform scoreable execution usage is invalid")
+    usage_item = cast(dict[str, object], value)
+    return TokenUsageSummary(
+        by_provider=_LLM_USAGE_TOTALS_ADAPTER.validate_python(usage_item.get("by_provider", {})),
+        total_prompt_tokens=_required_int(usage_item, "total_prompt_tokens"),
+        total_completion_tokens=_required_int(usage_item, "total_completion_tokens"),
+        total_tokens=_required_int(usage_item, "total_tokens"),
+        call_count=_required_int(usage_item, "call_count"),
+    )
+
+
+def _run_submission_payload(submission: Any) -> JsonObject:
+    return {
+        "batch_id": str(submission.batch_id),
+        "run": {
+            "artifact_id": str(submission.run.artifact_id),
+            "task_id": str(submission.run.task_id),
+            "completed_at": (
+                None
+                if submission.run.completed_at is None
+                else submission.run.completed_at.isoformat()
+            ),
+            "response": _jsonable(submission.run.response),
+        },
+        "score": submission.score,
+        "usage": _jsonable(submission.usage),
+        "session": {
+            "session_id": str(submission.session.session_id),
+            "uid": submission.session.uid,
+            "status": submission.session.status.value,
+            "issued_at": submission.session.issued_at.isoformat(),
+            "expires_at": submission.session.expires_at.isoformat(),
+        },
+        "specifics": _jsonable(submission.run.details),
+    }
+
+
+def _attempt_payload(attempt: Any) -> JsonObject:
+    payload = {
+        "validator_session_id": str(attempt.validator_session_id),
+        "batch_id": str(attempt.batch_id),
+        "artifact_id": str(attempt.artifact_id),
+        "task_id": str(attempt.task_id),
+        "attempt_number": attempt.attempt_number,
+        "uid": attempt.uid,
+        "miner_hotkey_ss58": attempt.miner_hotkey_ss58,
+        "started_at": attempt.started_at.isoformat(),
+        "finished_at": attempt.finished_at.isoformat(),
+        "status": attempt.status.value,
+        "error_code": attempt.error_code,
+        "error_summary_code": attempt.error_summary_code,
+        "retry_decision": attempt.retry_decision.value,
+        "terminal_effect": None if attempt.terminal_effect is None else attempt.terminal_effect.value,
+        "max_attempts": attempt.max_attempts,
+    }
+    if attempt.diagnostics is not None:
+        payload["diagnostics"] = _jsonable(attempt.diagnostics)
+    if attempt.delivery_failure_detail is not None:
+        payload["delivery_failure_detail"] = _jsonable(attempt.delivery_failure_detail)
+    return payload
+
+
+def _parse_datetime(value: object) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        raise PlatformClientError(status_code=None, message="platform datetime field is invalid")
+    return datetime.fromisoformat(value)
+
+
+def _platform_result_acknowledgement(value: object) -> PlatformTaskResultAcknowledgement:
+    if not isinstance(value, dict):
+        raise PlatformClientError(status_code=None, message="platform result item is invalid")
+    item = cast(dict[str, object], value)
+    outcome = str(item["outcome"])
+    if outcome not in {"accepted", "rejected"}:
+        raise PlatformClientError(
+            status_code=None,
+            message=f"platform result item has unsupported outcome {outcome!r}",
+        )
+    return PlatformTaskResultAcknowledgement(
+        batch_id=UUID(str(item["batch_id"])),
+        artifact_id=UUID(str(item["artifact_id"])),
+        task_id=UUID(str(item["task_id"])),
+        attempt_number=_required_int(item, "attempt_number"),
+        outcome=cast(Literal["accepted", "rejected"], outcome),
+        canonical=bool(item["canonical"]),
+        reason_code=None if item.get("reason_code") is None else str(item["reason_code"]),
+        reason=None if item.get("reason") is None else str(item["reason"]),
+    )
+
+
+def _jsonable(value: object) -> JsonValue:
+    if isinstance(value, BaseModel):
+        return cast(JsonValue, value.model_dump(mode="json"))
+    if is_dataclass(value) and not isinstance(value, type):
+        return _jsonable(asdict(value))
+    if isinstance(value, UUID):
+        return str(value)
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, tuple | list):
+        return [_jsonable(entry) for entry in value]
+    if isinstance(value, dict):
+        return {str(key): _jsonable(entry) for key, entry in value.items()}
+    return cast(JsonValue, value)
+
+
+def _optional_float(value: object) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise PlatformClientError(status_code=None, message="platform tool proxy numeric field is invalid")
+    return float(value)
+
+
+def _required_int(payload: dict[str, object], key: str) -> int:
+    value = payload.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise PlatformClientError(status_code=None, message=f"platform {key} field is invalid")
+    return value
+
+
+def _miner_task_work_assignment(value: object) -> MinerTaskWorkAssignment:
+    if not isinstance(value, dict):
+        raise PlatformClientError(status_code=None, message="platform work assignment is invalid")
+    entry = cast(dict[str, object], value)
+    artifact = entry.get("artifact")
+    task = entry.get("task")
+    if not isinstance(artifact, dict) or not isinstance(task, dict):
+        raise PlatformClientError(status_code=None, message="platform work assignment is invalid")
+    artifact_payload = dict(artifact)
+    task_payload = dict(task)
+    artifact_payload["artifact_id"] = UUID(str(artifact_payload["artifact_id"]))
+    task_payload["task_id"] = UUID(str(task_payload["task_id"]))
+    return MinerTaskWorkAssignment.model_validate(
+        {
+            **entry,
+            "batch_id": UUID(str(entry["batch_id"])),
+            "artifact": artifact_payload,
+            "task": task_payload,
+        }
+    )
+
+
+_SELECTED_PROVIDER_OR_TOOL_REQUEST_MINER_OWNED_PROXY_ERROR_CODES = frozenset(
+    {
+        "miner_credential_missing",
+        "duplicate_call",
+        "concurrency_exhausted",
+        "unsupported_provider",
+        "unsupported_model",
+        "invalid_request",
+    }
+)
+
+_NON_PROVIDER_PLATFORM_TOOL_PROXY_ERROR_CODES = frozenset(
+    {
+        "platform_tool_proxy_denied",
+        "platform_error",
+        "platform_tool_proxy_grant_failed",
+        "platform_tool_proxy_execution_failed",
+    }
+)
+
+
+def _is_transient_platform_tool_proxy_grant_response(response: httpx.Response) -> bool:
+    if _platform_error_code(response) == "platform_tool_proxy_denied":
+        return False
+    return response.status_code == 429 or 500 <= response.status_code <= 599
+
+
+def _platform_error_code(response: httpx.Response) -> str | None:
+    try:
+        payload = response.json()
+    except ValueError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    code = payload.get("error_code")
+    return code if isinstance(code, str) else None
+
+
+def _platform_error_message(response: httpx.Response) -> str | None:
+    try:
+        payload = response.json()
+    except ValueError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    message = payload.get("message")
+    return message if isinstance(message, str) and message.strip() else None
+
+
+__all__ = [
+    "AsyncPlatformToolProxyPlatformClient",
+    "HttpPlatformClient",
+    "PlatformClientError",
+    "PlatformToolProxyBudgetExceededError",
+    "PlatformToolProxyInterruptedError",
+    "PlatformToolProxyInvocationError",
+    "PlatformToolProxyProviderError",
+    "PlatformToolProxyToolTimeoutError",
+]

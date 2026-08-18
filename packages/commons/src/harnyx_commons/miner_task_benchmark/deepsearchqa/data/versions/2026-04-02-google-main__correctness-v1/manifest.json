@@ -1,0 +1,13 @@
+{
+  "suite_slug": "deepsearchqa",
+  "suite_name": "DeepSearchQA",
+  "dataset_version": "2026-04-02-google-main",
+  "scoring_version": "correctness-v1",
+  "source_url": "https://huggingface.co/datasets/google/deepsearchqa/raw/main/DSQA-full.csv",
+  "source_page_url": "https://huggingface.co/datasets/google/deepsearchqa",
+  "license": "Apache-2.0",
+  "sha256": "25d48dcf7efa872e5467032e8b8eedf38d301f59a252d0da95cda584baa78396",
+  "row_count": 900,
+  "file_name": "DSQA-full.csv",
+  "fetched_at": "2026-04-02"
+}
