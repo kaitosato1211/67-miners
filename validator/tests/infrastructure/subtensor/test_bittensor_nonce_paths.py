@@ -13,7 +13,9 @@ from harnyx_validator.application.ports.subtensor import WeightSubmissionTooEarl
 from harnyx_validator.infrastructure.subtensor.bittensor import BittensorSubtensorClient
 
 
-def _make_settings(*, wait_for_inclusion: bool = True, wait_for_finalization: bool = False) -> SubtensorSettings:
+def _make_settings(
+    *, wait_for_inclusion: bool = True, wait_for_finalization: bool = False
+) -> SubtensorSettings:
     return SubtensorSettings.model_construct(
         network="local",
         endpoint="ws://127.0.0.1:9945",
@@ -152,7 +154,9 @@ class _SubtensorStub:
     def get_current_block(self) -> int:
         return self.current_block_value
 
-    def get_hyperparameter(self, param_name: str, netuid: int, block: int | None = None) -> object:
+    def get_hyperparameter(
+        self, param_name: str, netuid: int, block: int | None = None
+    ) -> object:
         assert netuid == 1
         del block
         if param_name == "LastUpdate":
@@ -221,7 +225,9 @@ def _patch_set_weights_extrinsic(monkeypatch: pytest.MonkeyPatch) -> None:
             nonce_key="hotkey",
         )
 
-    monkeypatch.setattr(bittensor_mod, "set_weights_extrinsic", fake_set_weights_extrinsic)
+    monkeypatch.setattr(
+        bittensor_mod, "set_weights_extrinsic", fake_set_weights_extrinsic
+    )
 
 
 def test_publish_commitment_uses_pool_aware_hotkey_nonce(
@@ -291,7 +297,10 @@ def test_submit_weights_retries_commit_reveal_when_attempt_raises(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     subtensor = _SubtensorStub(commit_reveal_enabled=True)
-    subtensor.sign_side_effects = [RuntimeError("temporary rpc failure"), (True, "signed-hotkey-extrinsic")]
+    subtensor.sign_side_effects = [
+        RuntimeError("temporary rpc failure"),
+        (True, "signed-hotkey-extrinsic"),
+    ]
     client = _make_client(monkeypatch, subtensor=subtensor)
 
     tx_hash = client.submit_weights({7: 1.0})
@@ -337,7 +346,9 @@ def test_commit_reveal_preserves_deterministic_return_after_transient_network_fa
         httpx.ConnectError("connect failed"),
         TimeoutError("local timeout"),
         socket.gaierror(socket.EAI_NONAME, "permanent dns"),
-        httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed"),
+        httpx.ConnectError(
+            "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed"
+        ),
     ],
 )
 def test_commit_reveal_does_not_treat_non_transient_transport_shapes_as_transient(
@@ -369,7 +380,9 @@ def test_commit_reveal_raises_wrapper_from_final_transient_after_retry_budget(
     ]
     client = _make_client(monkeypatch, subtensor=subtensor)
 
-    with pytest.raises(RuntimeError, match="commit-reveal weight submission attempts failed") as exc_info:
+    with pytest.raises(
+        RuntimeError, match="commit-reveal weight submission attempts failed"
+    ) as exc_info:
         client.submit_weights({7: 1.0})
 
     assert exc_info.value.__cause__ is final_exception
@@ -452,7 +465,10 @@ def test_submit_weights_retries_plain_set_weights_when_attempt_fails(
 ) -> None:
     _patch_set_weights_extrinsic(monkeypatch)
     subtensor = _SubtensorStub(commit_reveal_enabled=False)
-    subtensor.sign_side_effects = [(False, "temporary rpc failure"), (True, "signed-hotkey-extrinsic")]
+    subtensor.sign_side_effects = [
+        (False, "temporary rpc failure"),
+        (True, "signed-hotkey-extrinsic"),
+    ]
     client = _make_client(monkeypatch, subtensor=subtensor)
 
     tx_hash = client.submit_weights({7: 1.0})
@@ -496,7 +512,9 @@ def test_submit_weights_plain_keeps_other_chain_errors_hard(
     ] * 5
     client = _make_client(monkeypatch, subtensor=subtensor)
 
-    with pytest.raises(RuntimeError, match="set_weights failed: SubtensorModule.TxRateLimitExceeded"):
+    with pytest.raises(
+        RuntimeError, match="set_weights failed: SubtensorModule.TxRateLimitExceeded"
+    ):
         client.submit_weights({7: 1.0})
 
     assert len(subtensor.set_weights_extrinsic_calls) == 5
@@ -528,7 +546,9 @@ def test_submit_weights_commit_reveal_keeps_non_chain_too_early_text_hard(
 ) -> None:
     subtensor = _SubtensorStub(commit_reveal_enabled=True)
     subtensor.sign_side_effects = [
-        RuntimeError("diagnostic text mentioned SettingWeightsTooFast but was not a chain error")
+        RuntimeError(
+            "diagnostic text mentioned SettingWeightsTooFast but was not a chain error"
+        )
     ] * 5
     client = _make_client(monkeypatch, subtensor=subtensor)
 
@@ -542,7 +562,9 @@ def test_submit_weights_commit_reveal_raises_too_early_for_chain_error_mapping(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     subtensor = _SubtensorStub(commit_reveal_enabled=True)
-    subtensor.sign_side_effects = [RuntimeError({"name": "CommittingWeightsTooFast", "docs": []})]
+    subtensor.sign_side_effects = [
+        RuntimeError({"name": "CommittingWeightsTooFast", "docs": []})
+    ]
     client = _make_client(monkeypatch, subtensor=subtensor)
 
     with pytest.raises(WeightSubmissionTooEarlyError):

@@ -100,7 +100,10 @@ def is_platform_tool_proxy_timeout_receipt(receipt: ToolCall) -> bool:
     if receipt.outcome is not ToolCallOutcome.TIMEOUT:
         return False
     extra = receipt.details.extra or {}
-    return extra.get("platform_tool_proxy_error_code") == PLATFORM_TOOL_PROXY_TIMEOUT_ERROR_CODE
+    return (
+        extra.get("platform_tool_proxy_error_code")
+        == PLATFORM_TOOL_PROXY_TIMEOUT_ERROR_CODE
+    )
 
 
 def is_uncaught_platform_tool_proxy_timeout_sandbox_invocation(

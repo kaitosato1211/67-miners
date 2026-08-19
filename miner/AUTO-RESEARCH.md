@@ -38,20 +38,20 @@ BENCHMARK_RUBRIC_JUDGE_LLM_MODEL=<rubric-judge-model>
 
 What each value is for:
 
-| Variable | Needed for |
-|----------|------------|
-| `PLATFORM_BASE_URL` | `uv run prepare.py --benchmark-suite <suite>` batch discovery, local eval context, and later manual submit commands |
-| `CHUTES_API_KEY` | local-eval judging and miner `llm_chat` calls when Chutes is the tool/scoring provider |
-| `TOOL_LLM_PROVIDER` | provider used for miner `llm_chat` tool calls; the public example defaults to `chutes` |
-| `SEARCH_PROVIDER` | default provider used for miner `search_web` and `fetch_page` calls |
-| `DESEARCH_API_KEY` | required when `SEARCH_PROVIDER=desearch` |
-| `FIRECRAWL_API_KEY` | required when `SEARCH_PROVIDER=firecrawl` |
-| `EXA_API_KEY` | required when `SEARCH_PROVIDER=exa` |
-| `TAVILY_API_KEY` | required when `SEARCH_PROVIDER=tavily` |
-| `BENCHMARK_LLM_PROVIDER` | provider for benchmark correctness judging |
-| `BENCHMARK_LLM_MODEL` | model for benchmark correctness judging |
-| `BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER` | provider for DRACO / `weighted-rubric-v1` benchmark judging |
-| `BENCHMARK_RUBRIC_JUDGE_LLM_MODEL` | model for DRACO / `weighted-rubric-v1` benchmark judging |
+| Variable                              | Needed for                                                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `PLATFORM_BASE_URL`                   | `uv run prepare.py --benchmark-suite <suite>` batch discovery, local eval context, and later manual submit commands |
+| `CHUTES_API_KEY`                      | local-eval judging and miner `llm_chat` calls when Chutes is the tool/scoring provider                              |
+| `TOOL_LLM_PROVIDER`                   | provider used for miner `llm_chat` tool calls; the public example defaults to `chutes`                              |
+| `SEARCH_PROVIDER`                     | default provider used for miner `search_web` and `fetch_page` calls                                                 |
+| `DESEARCH_API_KEY`                    | required when `SEARCH_PROVIDER=desearch`                                                                            |
+| `FIRECRAWL_API_KEY`                   | required when `SEARCH_PROVIDER=firecrawl`                                                                           |
+| `EXA_API_KEY`                         | required when `SEARCH_PROVIDER=exa`                                                                                 |
+| `TAVILY_API_KEY`                      | required when `SEARCH_PROVIDER=tavily`                                                                              |
+| `BENCHMARK_LLM_PROVIDER`              | provider for benchmark correctness judging                                                                          |
+| `BENCHMARK_LLM_MODEL`                 | model for benchmark correctness judging                                                                             |
+| `BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER` | provider for DRACO / `weighted-rubric-v1` benchmark judging                                                         |
+| `BENCHMARK_RUBRIC_JUDGE_LLM_MODEL`    | model for DRACO / `weighted-rubric-v1` benchmark judging                                                            |
 
 If using `SEARCH_PROVIDER=parallel`, `firecrawl`, `exa`, or `tavily`, set the matching provider API key instead of `DESEARCH_API_KEY`. These providers expose ordinary search and page retrieval only; Harnyx remains responsible for query planning, iteration, reasoning, and synthesis.
 

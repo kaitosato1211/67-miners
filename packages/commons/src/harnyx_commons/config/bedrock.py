@@ -21,16 +21,24 @@ class BedrockSettings(BaseSettings):
 
     region: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("BEDROCK_AWS_REGION", "AWS_REGION", "AWS_DEFAULT_REGION"),
+        validation_alias=AliasChoices(
+            "BEDROCK_AWS_REGION", "AWS_REGION", "AWS_DEFAULT_REGION"
+        ),
     )
-    connect_timeout_seconds: float = Field(default=5.0, alias="BEDROCK_CONNECT_TIMEOUT_SECONDS")
-    read_timeout_seconds: float = Field(default=300.0, alias="BEDROCK_READ_TIMEOUT_SECONDS")
+    connect_timeout_seconds: float = Field(
+        default=5.0, alias="BEDROCK_CONNECT_TIMEOUT_SECONDS"
+    )
+    read_timeout_seconds: float = Field(
+        default=300.0, alias="BEDROCK_READ_TIMEOUT_SECONDS"
+    )
 
     @property
     def region_value(self) -> str:
         region = (self.region or "").strip()
         if not region:
-            raise ValueError("BEDROCK_AWS_REGION or AWS_REGION must be configured for Bedrock")
+            raise ValueError(
+                "BEDROCK_AWS_REGION or AWS_REGION must be configured for Bedrock"
+            )
         return region
 
 

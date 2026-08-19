@@ -33,7 +33,9 @@ def ensure_wallet_hotkey_from_seed(wallet: bt.Wallet, hotkey_seed: str) -> None:
         )
 
     if not wallet.hotkey_file.exists_on_device():
-        raise RuntimeError(f"wallet hotkey file was not created: {wallet.hotkey_file.path}")
+        raise RuntimeError(
+            f"wallet hotkey file was not created: {wallet.hotkey_file.path}"
+        )
 
     hotkey = wallet.hotkey
     if hotkey is None:

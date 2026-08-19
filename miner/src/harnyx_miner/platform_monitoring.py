@@ -24,7 +24,9 @@ class PlatformMonitoringRequestError(RuntimeError):
         self.path = path
         self.status_code = status_code
         self.detail = detail
-        super().__init__(f"platform monitoring request failed ({status_code}): {detail}")
+        super().__init__(
+            f"platform monitoring request failed ({status_code}): {detail}"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,7 +47,9 @@ class RecordedResultsError:
     status_code: int | None = None
 
     @classmethod
-    def from_request_error(cls, exc: PlatformMonitoringRequestError) -> RecordedResultsError:
+    def from_request_error(
+        cls, exc: PlatformMonitoringRequestError
+    ) -> RecordedResultsError:
         return cls(path=exc.path, status_code=exc.status_code, detail=exc.detail)
 
 
@@ -56,7 +60,9 @@ class RecordedBatchResultsSnapshot:
     scope: RecordedResultsScope | None
 
     @classmethod
-    def unavailable_without_baseline(cls, batch_id: UUID) -> RecordedBatchResultsSnapshot:
+    def unavailable_without_baseline(
+        cls, batch_id: UUID
+    ) -> RecordedBatchResultsSnapshot:
         return cls(
             rows=None,
             error=RecordedResultsError(
@@ -78,7 +84,9 @@ def platform_base_url_from_env() -> str:
     load_public_env()
     base_url = (os.getenv("PLATFORM_BASE_URL") or "").strip()
     if not base_url:
-        raise RuntimeError("PLATFORM_BASE_URL must be set (for example: https://api.harnyx.ai)")
+        raise RuntimeError(
+            "PLATFORM_BASE_URL must be set (for example: https://api.harnyx.ai)"
+        )
     return base_url.rstrip("/")
 
 
@@ -106,8 +114,12 @@ class PlatformMonitoringClient:
                 params["before"] = before
             if before_batch_id is not None:
                 params["before_batch_id"] = before_batch_id
-            payload = self._get_json_object("/v1/monitoring/miner-task-batches", params=params)
-            batches = _require_sequence(payload.get("batches"), label="monitoring batches")
+            payload = self._get_json_object(
+                "/v1/monitoring/miner-task-batches", params=params
+            )
+            batches = _require_sequence(
+                payload.get("batches"), label="monitoring batches"
+            )
             for raw_batch in batches:
                 batch = _require_mapping(raw_batch, label="monitoring batch")
                 if str(batch.get("status")) == "completed":
@@ -118,7 +130,9 @@ class PlatformMonitoringClient:
             before = str(next_before)
             next_before_batch_id = payload.get("next_before_batch_id")
             before_batch_id = (
-                None if next_before_batch_id in (None, "") else str(next_before_batch_id)
+                None
+                if next_before_batch_id in (None, "")
+                else str(next_before_batch_id)
             )
         raise RuntimeError("no completed public miner-task batch is available")
 
@@ -145,10 +159,15 @@ class PlatformMonitoringClient:
                 f"/v1/monitoring/miner-task-batches/{batch_id}/artifacts/{artifact_id}/tasks/{result_task_id}/results",
             )
             if not isinstance(payload, list):
-                raise RuntimeError("monitoring task results response must be a JSON array")
+                raise RuntimeError(
+                    "monitoring task results response must be a JSON array"
+                )
             rows.extend(
                 dict(row)
-                for row in (_require_mapping(item, label="monitoring task result row") for item in payload)
+                for row in (
+                    _require_mapping(item, label="monitoring task result row")
+                    for item in payload
+                )
                 if "lifecycle_status" not in row
             )
         return tuple(rows)
@@ -207,7 +226,9 @@ class PlatformMonitoringClient:
                 task_id=task_id,
             )
             if recorded_artifact_id is not None
-            else RecordedBatchResultsSnapshot.unavailable_without_baseline(resolved_batch_id)
+            else RecordedBatchResultsSnapshot.unavailable_without_baseline(
+                resolved_batch_id
+            )
         )
         return SelectedBatchContext(
             batch_id=resolved_batch_id,
@@ -282,11 +303,15 @@ def _completed_task_ids_from_index_payload(payload: object) -> tuple[UUID, ...]:
     return tuple(task_ids)
 
 
-def _require_completed_batch_detail(detail: Mapping[str, object], *, batch_id: UUID) -> None:
+def _require_completed_batch_detail(
+    detail: Mapping[str, object], *, batch_id: UUID
+) -> None:
     summary = _require_mapping(detail.get("summary"), label="monitoring batch summary")
     status = str(summary.get("status") or "")
     if status != "completed":
-        raise RuntimeError(f"miner-task batch {batch_id} is not completed (status={status or 'unknown'})")
+        raise RuntimeError(
+            f"miner-task batch {batch_id} is not completed (status={status or 'unknown'})"
+        )
 
 
 def _recorded_context_artifact_id(detail: Mapping[str, object]) -> UUID | None:

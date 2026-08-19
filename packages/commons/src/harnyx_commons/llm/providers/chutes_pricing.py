@@ -8,7 +8,11 @@ from dataclasses import dataclass
 from typing import Literal, cast
 
 from harnyx_commons.json_types import JsonObject
-from harnyx_commons.llm.pricing import MINER_TOOL_LLM_PRICING, STATIC_LLM_PRICING, ModelPricing
+from harnyx_commons.llm.pricing import (
+    MINER_TOOL_LLM_PRICING,
+    STATIC_LLM_PRICING,
+    ModelPricing,
+)
 from harnyx_commons.llm.provider_types import CHUTES_PROVIDER
 from harnyx_commons.llm.schema import LlmUsage
 
@@ -43,9 +47,13 @@ class ChutesModelPricingCache:
         fallback_pricing: Mapping[str, ModelPricing] | None = None,
     ) -> None:
         self._ttl_seconds = ttl_seconds
-        self._static_pricing = dict(static_pricing if fallback_pricing is None else fallback_pricing)
+        self._static_pricing = dict(
+            static_pricing if fallback_pricing is None else fallback_pricing
+        )
         self._snapshot: dict[str, ModelPricing] = dict(cached_pricing or {})
-        self._snapshot_loaded_at: float | None = time.monotonic() if cached_pricing is not None else None
+        self._snapshot_loaded_at: float | None = (
+            time.monotonic() if cached_pricing is not None else None
+        )
 
     def update_snapshot(self, pricing: Mapping[str, ModelPricing]) -> None:
         self._snapshot = dict(pricing)
@@ -122,15 +130,25 @@ def _pricing_from_entry(entry: Mapping[str, object]) -> ModelPricing | None:
     )
     output_rate = _rate_per_million(
         pricing_mapping,
-        ("output_per_million", "completion_per_million", "output", "completion", "completion_tokens"),
+        (
+            "output_per_million",
+            "completion_per_million",
+            "output",
+            "completion",
+            "completion_tokens",
+        ),
     )
     if input_rate is None or output_rate is None:
         return None
-    reasoning_rate = _rate_per_million(pricing_mapping, ("reasoning_per_million", "reasoning"))
+    reasoning_rate = _rate_per_million(
+        pricing_mapping, ("reasoning_per_million", "reasoning")
+    )
     return ModelPricing(input_rate, output_rate, reasoning_rate or 0.0)
 
 
-def _rate_per_million(source: Mapping[str, object], keys: tuple[str, ...]) -> float | None:
+def _rate_per_million(
+    source: Mapping[str, object], keys: tuple[str, ...]
+) -> float | None:
     for key in keys:
         value = _optional_float(source.get(key))
         if value is None:

@@ -52,9 +52,15 @@ class JudgeModelUsage:
         if self.reasoning_tokens is not None and self.reasoning_tokens < 0:
             raise ValueError("reasoning_tokens must be non-negative")
         _validate_actual_cost_usd(self.actual_cost_usd)
-        if self.actual_cost_source == "provider_actual" and self.actual_cost_usd is None:
+        if (
+            self.actual_cost_source == "provider_actual"
+            and self.actual_cost_usd is None
+        ):
             raise ValueError("provider_actual judge usage requires actual_cost_usd")
-        if self.actual_cost_source == "unavailable" and self.actual_cost_usd is not None:
+        if (
+            self.actual_cost_source == "unavailable"
+            and self.actual_cost_usd is not None
+        ):
             raise ValueError("unavailable judge usage must not include actual_cost_usd")
 
 
@@ -84,25 +90,39 @@ class JudgeUsageSummary:
             raise ValueError("judge usage call_count must equal model call counts")
         if self.prompt_tokens != sum(model.prompt_tokens for model in self.models):
             raise ValueError("judge usage prompt_tokens must equal model prompt tokens")
-        if self.completion_tokens != sum(model.completion_tokens for model in self.models):
-            raise ValueError("judge usage completion_tokens must equal model completion tokens")
+        if self.completion_tokens != sum(
+            model.completion_tokens for model in self.models
+        ):
+            raise ValueError(
+                "judge usage completion_tokens must equal model completion tokens"
+            )
         if self.total_tokens != sum(model.total_tokens for model in self.models):
             raise ValueError("judge usage total_tokens must equal model total tokens")
-        if self.reasoning_tokens != _sum_reasoning_tokens(model.reasoning_tokens for model in self.models):
-            raise ValueError("judge usage reasoning_tokens must equal model reasoning tokens")
+        if self.reasoning_tokens != _sum_reasoning_tokens(
+            model.reasoning_tokens for model in self.models
+        ):
+            raise ValueError(
+                "judge usage reasoning_tokens must equal model reasoning tokens"
+            )
         model_costs = tuple(model.actual_cost_usd for model in self.models)
         if any(cost is None for cost in model_costs):
             if self.actual_cost_usd is not None:
-                raise ValueError("judge usage actual_cost_usd must be unavailable when any model cost is unavailable")
+                raise ValueError(
+                    "judge usage actual_cost_usd must be unavailable when any model cost is unavailable"
+                )
         else:
-            model_cost_total = round(sum(cost for cost in model_costs if cost is not None), 12)
+            model_cost_total = round(
+                sum(cost for cost in model_costs if cost is not None), 12
+            )
             if self.actual_cost_usd is None or not math.isclose(
                 self.actual_cost_usd,
                 model_cost_total,
                 rel_tol=1e-12,
                 abs_tol=1e-12,
             ):
-                raise ValueError("judge usage actual_cost_usd must equal model actual costs")
+                raise ValueError(
+                    "judge usage actual_cost_usd must equal model actual costs"
+                )
 
 
 def _sum_reasoning_tokens(values: Iterable[int | None]) -> int:

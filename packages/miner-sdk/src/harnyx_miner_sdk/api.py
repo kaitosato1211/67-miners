@@ -103,7 +103,9 @@ def _parse_execute_response(raw_response: object) -> ToolExecuteResponseDTO:
     return ToolExecuteResponseDTO.model_validate(raw_response)
 
 
-def _require_response_mapping(response_payload: object, *, label: str) -> Mapping[str, Any]:
+def _require_response_mapping(
+    response_payload: object, *, label: str
+) -> Mapping[str, Any]:
     if not isinstance(response_payload, Mapping):
         raise RuntimeError(label)
     return cast(Mapping[str, Any], response_payload)
@@ -118,12 +120,18 @@ async def test_tool(
 
     kwargs: dict[str, Any] = {}
     if timeout is not None:
-        payload = _TestToolInvocationPayload.model_validate({"message": message, "timeout": timeout})
+        payload = _TestToolInvocationPayload.model_validate(
+            {"message": message, "timeout": timeout}
+        )
         message = payload.message
         kwargs["timeout"] = payload.timeout
-    raw_response = await _current_tool_invoker().invoke("test_tool", args=(message,), kwargs=kwargs)
+    raw_response = await _current_tool_invoker().invoke(
+        "test_tool", args=(message,), kwargs=kwargs
+    )
     dto = _parse_execute_response(raw_response)
-    response_payload = _require_response_mapping(dto.response, label="test_tool response payload must be a mapping")
+    response_payload = _require_response_mapping(
+        dto.response, label="test_tool response payload must be a mapping"
+    )
     response = TestToolResponse.model_validate(response_payload)
     return ToolCallResponse(
         receipt_id=dto.receipt_id,
@@ -142,13 +150,19 @@ async def tooling_info(
 ) -> ToolCallResponse[dict[str, Any]]:
     """Fetch tool pricing and current session budget metadata."""
 
-    payload = _ToolingInfoInvocationPayload.model_validate({"timeout": timeout}).model_dump(
+    payload = _ToolingInfoInvocationPayload.model_validate(
+        {"timeout": timeout}
+    ).model_dump(
         exclude_none=True,
         mode="json",
     )
-    raw_response = await _current_tool_invoker().invoke("tooling_info", args=(), kwargs=payload)
+    raw_response = await _current_tool_invoker().invoke(
+        "tooling_info", args=(), kwargs=payload
+    )
     dto = _parse_execute_response(raw_response)
-    response_payload = _require_response_mapping(dto.response, label="tooling_info response payload must be a mapping")
+    response_payload = _require_response_mapping(
+        dto.response, label="tooling_info response payload must be a mapping"
+    )
     response = dict(response_payload)
     return ToolCallResponse(
         receipt_id=dto.receipt_id,
@@ -182,10 +196,16 @@ async def search_web(
     }
     if timeout is not None:
         raw_payload["timeout"] = timeout
-    payload = SearchWebSearchRequest.model_validate(raw_payload).model_dump(exclude_none=True, mode="json")
-    raw_response = await _current_tool_invoker().invoke("search_web", args=(), kwargs=payload)
+    payload = SearchWebSearchRequest.model_validate(raw_payload).model_dump(
+        exclude_none=True, mode="json"
+    )
+    raw_response = await _current_tool_invoker().invoke(
+        "search_web", args=(), kwargs=payload
+    )
     dto = _parse_execute_response(raw_response)
-    response_payload = _require_response_mapping(dto.response, label="search_web response payload must be a mapping")
+    response_payload = _require_response_mapping(
+        dto.response, label="search_web response payload must be a mapping"
+    )
     response = SearchWebSearchResponse.model_validate(response_payload)
     return ToolCallResponse(
         receipt_id=dto.receipt_id,
@@ -209,13 +229,24 @@ async def fetch_page(
 ) -> ToolCallResponse[FetchPageResponse]:
     """Execute the validator-hosted page fetch tool and return its response payload."""
 
-    raw_payload = {"provider": provider, "url": url, "provider_extra": provider_extra, **kwargs}
+    raw_payload = {
+        "provider": provider,
+        "url": url,
+        "provider_extra": provider_extra,
+        **kwargs,
+    }
     if timeout is not None:
         raw_payload["timeout"] = timeout
-    payload = FetchPageRequest.model_validate(raw_payload).model_dump(exclude_none=True, mode="json")
-    raw_response = await _current_tool_invoker().invoke("fetch_page", args=(), kwargs=payload)
+    payload = FetchPageRequest.model_validate(raw_payload).model_dump(
+        exclude_none=True, mode="json"
+    )
+    raw_response = await _current_tool_invoker().invoke(
+        "fetch_page", args=(), kwargs=payload
+    )
     dto = _parse_execute_response(raw_response)
-    response_payload = _require_response_mapping(dto.response, label="fetch_page response payload must be a mapping")
+    response_payload = _require_response_mapping(
+        dto.response, label="fetch_page response payload must be a mapping"
+    )
     response = FetchPageResponse.model_validate(response_payload)
     return ToolCallResponse(
         receipt_id=dto.receipt_id,
@@ -283,12 +314,20 @@ async def embed_text(
     }
     if provider_extra is not None:
         payload_raw["provider_extra"] = (
-            provider_extra.to_request_extra() if isinstance(provider_extra, OpenRouterExtra) else provider_extra
+            provider_extra.to_request_extra()
+            if isinstance(provider_extra, OpenRouterExtra)
+            else provider_extra
         )
-    payload = EmbedTextRequest.model_validate(payload_raw).model_dump(exclude_none=True, mode="json")
-    raw_response = await _current_tool_invoker().invoke("embed_text", args=(), kwargs=payload)
+    payload = EmbedTextRequest.model_validate(payload_raw).model_dump(
+        exclude_none=True, mode="json"
+    )
+    raw_response = await _current_tool_invoker().invoke(
+        "embed_text", args=(), kwargs=payload
+    )
     dto = _parse_execute_response(raw_response)
-    response_payload = _require_response_mapping(dto.response, label="embed_text response payload must be a mapping")
+    response_payload = _require_response_mapping(
+        dto.response, label="embed_text response payload must be a mapping"
+    )
     response = EmbedTextResponse.model_validate(response_payload)
     return ToolCallResponse(
         receipt_id=dto.receipt_id,
@@ -387,7 +426,9 @@ async def llm_chat(
     if max_tokens is not None:
         payload_raw["max_tokens"] = max_tokens
     if thinking is not None:
-        payload_raw["thinking"] = asdict(thinking) if isinstance(thinking, LlmThinkingConfig) else thinking
+        payload_raw["thinking"] = (
+            asdict(thinking) if isinstance(thinking, LlmThinkingConfig) else thinking
+        )
     if provider_extra is not None:
         if isinstance(provider_extra, OpenRouterExtra | AiGatewayExtra):
             payload_raw["provider_extra"] = provider_extra.to_request_extra()
@@ -412,7 +453,9 @@ async def llm_chat(
         kwargs=payload,
     )
     dto = _parse_execute_response(raw_response)
-    response_payload = _require_response_mapping(dto.response, label="llm_chat response missing 'response' payload")
+    response_payload = _require_response_mapping(
+        dto.response, label="llm_chat response missing 'response' payload"
+    )
     llm = LlmResponse.from_payload(response_payload)
     return LlmChatResult(
         receipt_id=dto.receipt_id,
@@ -425,23 +468,34 @@ async def llm_chat(
     )
 
 
-def _llm_chat_message_input(message: Mapping[str, Any] | LlmChatMessage | LlmMessage) -> object:
+def _llm_chat_message_input(
+    message: Mapping[str, Any] | LlmChatMessage | LlmMessage,
+) -> object:
     if isinstance(message, Mapping):
         return dict(message)
     if not isinstance(message, LlmMessage):
         return message
 
-    text_parts = [part.text for part in message.content if isinstance(part, LlmInputTextPart)]
+    text_parts = [
+        part.text for part in message.content if isinstance(part, LlmInputTextPart)
+    ]
     if message.role == "assistant":
         if len(text_parts) != len(message.content):
             raise ValueError("assistant messages can contain only input_text parts")
         return {
             "role": "assistant",
             "content": "\n".join(text_parts) if text_parts else None,
-            "tool_calls": [asdict(tool_call) for tool_call in message.tool_calls or ()] or None,
-            "reasoning_details": list(message.reasoning_details) if message.reasoning_details is not None else None,
+            "tool_calls": [asdict(tool_call) for tool_call in message.tool_calls or ()]
+            or None,
+            "reasoning_details": (
+                list(message.reasoning_details)
+                if message.reasoning_details is not None
+                else None
+            ),
         }
-    tool_results = [part for part in message.content if isinstance(part, LlmInputToolResultPart)]
+    tool_results = [
+        part for part in message.content if isinstance(part, LlmInputToolResultPart)
+    ]
     if message.role == "tool":
         if len(message.content) != 1 or len(tool_results) != 1:
             raise ValueError("tool messages require exactly one input_tool_result part")

@@ -33,7 +33,9 @@ class ParallelSourcePolicy(_SearchExtra):
     @model_validator(mode="after")
     def _validate_domains(self) -> ParallelSourcePolicy:
         if self.include_domains and self.exclude_domains:
-            raise ValueError("Parallel include_domains and exclude_domains cannot be combined")
+            raise ValueError(
+                "Parallel include_domains and exclude_domains cannot be combined"
+            )
         return self
 
 
@@ -68,9 +70,15 @@ class FirecrawlCategory(_SearchExtra):
 
 
 class FirecrawlSearchExtra(_SearchExtra):
-    categories: tuple[FirecrawlCategory | Literal["github", "research", "pdf"], ...] | None = None
-    include_domains: tuple[str, ...] | None = Field(default=None, alias="includeDomains")
-    exclude_domains: tuple[str, ...] | None = Field(default=None, alias="excludeDomains")
+    categories: (
+        tuple[FirecrawlCategory | Literal["github", "research", "pdf"], ...] | None
+    ) = None
+    include_domains: tuple[str, ...] | None = Field(
+        default=None, alias="includeDomains"
+    )
+    exclude_domains: tuple[str, ...] | None = Field(
+        default=None, alias="excludeDomains"
+    )
     tbs: str | None = Field(default=None, min_length=1)
     location: str | None = Field(default=None, min_length=1)
     country: str | None = Field(default=None, min_length=2, max_length=2)
@@ -80,7 +88,9 @@ class FirecrawlSearchExtra(_SearchExtra):
     @model_validator(mode="after")
     def _validate_domains(self) -> FirecrawlSearchExtra:
         if self.include_domains and self.exclude_domains:
-            raise ValueError("Firecrawl include_domains and exclude_domains cannot be combined")
+            raise ValueError(
+                "Firecrawl include_domains and exclude_domains cannot be combined"
+            )
         return self
 
     def to_provider_payload(self) -> dict[str, Any]:
@@ -125,12 +135,30 @@ class FirecrawlFetchExtra(_SearchExtra):
 
 class ExaSearchExtra(_SearchExtra):
     type: Literal["auto", "instant", "fast"] = "auto"
-    category: Literal["company", "publication", "news", "personal site", "financial report", "people"] | None = None
-    include_domains: tuple[str, ...] | None = Field(default=None, alias="includeDomains", max_length=1200)
-    exclude_domains: tuple[str, ...] | None = Field(default=None, alias="excludeDomains", max_length=1200)
-    start_published_date: datetime | None = Field(default=None, alias="startPublishedDate")
+    category: (
+        Literal[
+            "company",
+            "publication",
+            "news",
+            "personal site",
+            "financial report",
+            "people",
+        ]
+        | None
+    ) = None
+    include_domains: tuple[str, ...] | None = Field(
+        default=None, alias="includeDomains", max_length=1200
+    )
+    exclude_domains: tuple[str, ...] | None = Field(
+        default=None, alias="excludeDomains", max_length=1200
+    )
+    start_published_date: datetime | None = Field(
+        default=None, alias="startPublishedDate"
+    )
     end_published_date: datetime | None = Field(default=None, alias="endPublishedDate")
-    user_location: str | None = Field(default=None, alias="userLocation", min_length=2, max_length=2)
+    user_location: str | None = Field(
+        default=None, alias="userLocation", min_length=2, max_length=2
+    )
     moderation: bool | None = None
 
     @model_validator(mode="after")
@@ -140,7 +168,9 @@ class ExaSearchExtra(_SearchExtra):
             or self.end_published_date is not None
             or self.exclude_domains is not None
         ):
-            raise ValueError("Exa company/people searches do not support published dates or exclude_domains")
+            raise ValueError(
+                "Exa company/people searches do not support published dates or exclude_domains"
+            )
         return self
 
 
@@ -153,14 +183,18 @@ class ExaTextOptions(_SearchExtra):
 class ExaFetchExtra(_SearchExtra):
     text: ExaTextOptions | Literal[True] = True
     max_age_hours: int | None = Field(default=None, alias="maxAgeHours", ge=-1, le=720)
-    livecrawl_timeout: int | None = Field(default=None, alias="livecrawlTimeout", gt=0, le=90_000)
+    livecrawl_timeout: int | None = Field(
+        default=None, alias="livecrawlTimeout", gt=0, le=90_000
+    )
 
 
 class TavilySearchExtra(_SearchExtra):
     search_depth: Literal["basic", "advanced", "fast", "ultra-fast"] = "fast"
     chunks_per_source: int | None = Field(default=None, ge=1, le=3)
     topic: Literal["general", "news", "finance"] = "general"
-    time_range: Literal["day", "week", "month", "year", "d", "w", "m", "y"] | None = None
+    time_range: Literal["day", "week", "month", "year", "d", "w", "m", "y"] | None = (
+        None
+    )
     start_date: date | None = None
     end_date: date | None = None
     include_domains: tuple[str, ...] | None = Field(default=None, max_length=300)
@@ -175,9 +209,13 @@ class TavilySearchExtra(_SearchExtra):
         if self.country is not None and self.topic != "general":
             raise ValueError("Tavily country is only supported for the general topic")
         if self.safe_search is True and self.search_depth in {"fast", "ultra-fast"}:
-            raise ValueError("Tavily safe_search cannot be combined with fast or ultra-fast search_depth")
+            raise ValueError(
+                "Tavily safe_search cannot be combined with fast or ultra-fast search_depth"
+            )
         if self.chunks_per_source is not None and self.search_depth == "ultra-fast":
-            raise ValueError("Tavily chunks_per_source cannot be combined with ultra-fast search_depth")
+            raise ValueError(
+                "Tavily chunks_per_source cannot be combined with ultra-fast search_depth"
+            )
         return self
 
 
@@ -195,10 +233,18 @@ class TavilyFetchExtra(_SearchExtra):
 
 
 SearchWebProviderExtra: TypeAlias = (
-    DeSearchSearchExtra | ParallelSearchExtra | FirecrawlSearchExtra | ExaSearchExtra | TavilySearchExtra
+    DeSearchSearchExtra
+    | ParallelSearchExtra
+    | FirecrawlSearchExtra
+    | ExaSearchExtra
+    | TavilySearchExtra
 )
 FetchPageProviderExtra: TypeAlias = (
-    DeSearchFetchExtra | ParallelFetchExtra | FirecrawlFetchExtra | ExaFetchExtra | TavilyFetchExtra
+    DeSearchFetchExtra
+    | ParallelFetchExtra
+    | FirecrawlFetchExtra
+    | ExaFetchExtra
+    | TavilyFetchExtra
 )
 
 _SEARCH_MODELS = {
@@ -218,7 +264,10 @@ _FETCH_MODELS = {
 
 
 def validate_search_provider_extra(
-    *, operation: Literal["search_web", "fetch_page"], provider: str, provider_extra: object
+    *,
+    operation: Literal["search_web", "fetch_page"],
+    provider: str,
+    provider_extra: object,
 ) -> SearchWebProviderExtra | FetchPageProviderExtra | None:
     if provider_extra is None:
         return None
@@ -226,13 +275,24 @@ def validate_search_provider_extra(
     try:
         adapter = models[provider]
     except KeyError as exc:
-        raise ValueError(f"provider_extra is not supported for provider {provider!r}") from exc
+        raise ValueError(
+            f"provider_extra is not supported for provider {provider!r}"
+        ) from exc
     return adapter.validate_python(provider_extra)
 
 
 __all__ = [
-    "DeSearchFetchExtra", "DeSearchSearchExtra", "ExaFetchExtra", "ExaSearchExtra",
-    "FetchPageProviderExtra", "FirecrawlFetchExtra", "FirecrawlSearchExtra",
-    "ParallelFetchExtra", "ParallelSearchExtra", "SearchWebProviderExtra",
-    "TavilyFetchExtra", "TavilySearchExtra", "validate_search_provider_extra",
+    "DeSearchFetchExtra",
+    "DeSearchSearchExtra",
+    "ExaFetchExtra",
+    "ExaSearchExtra",
+    "FetchPageProviderExtra",
+    "FirecrawlFetchExtra",
+    "FirecrawlSearchExtra",
+    "ParallelFetchExtra",
+    "ParallelSearchExtra",
+    "SearchWebProviderExtra",
+    "TavilyFetchExtra",
+    "TavilySearchExtra",
+    "validate_search_provider_extra",
 ]

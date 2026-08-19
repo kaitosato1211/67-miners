@@ -56,7 +56,8 @@ class _ResultIpcBarrierHandler(BaseHTTPRequestHandler):
             roles.add(role)
             self.condition.notify_all()
             ready = role == "reduce" or self.condition.wait_for(
-                lambda: {"malicious", "healthy"} <= self.arrivals.get(barrier_id, set()),
+                lambda: {"malicious", "healthy"}
+                <= self.arrivals.get(barrier_id, set()),
                 timeout=3,
             )
         self.send_response(204 if ready else 504)
@@ -110,7 +111,9 @@ def _find_free_port() -> int:
 @pytest.fixture
 def result_ipc_barrier() -> ResultIpcBarrier:
     port = _find_free_port()
-    server = ThreadingHTTPServer(("0.0.0.0", port), _ResultIpcBarrierHandler)  # noqa: S104 - Docker bridge access
+    server = ThreadingHTTPServer(
+        ("0.0.0.0", port), _ResultIpcBarrierHandler
+    )  # noqa: S104 - Docker bridge access
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     url = resolve_sandbox_host_container_url(
@@ -141,8 +144,12 @@ def sandbox(attacker_agent_path: Path):
 
     port = _find_free_port()
     manager = DockerSandboxManager(docker_binary=DOCKER_BINARY, host="127.0.0.1")
-    workspace_root = Path(os.getenv("HOST_WORKSPACE", str(Path(__file__).resolve().parents[6])))
-    state_dir = Path(tempfile.mkdtemp(prefix=".harnyx-security-int-state-", dir=workspace_root))
+    workspace_root = Path(
+        os.getenv("HOST_WORKSPACE", str(Path(__file__).resolve().parents[6]))
+    )
+    state_dir = Path(
+        tempfile.mkdtemp(prefix=".harnyx-security-int-state-", dir=workspace_root)
+    )
     artifact = stage_agent_source(
         state_dir=state_dir,
         container_root="/sandbox",

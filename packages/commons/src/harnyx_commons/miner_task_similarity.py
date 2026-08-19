@@ -9,7 +9,9 @@ from uuid import UUID
 from harnyx_commons.domain.judge_usage import JudgeUsageSummary
 from harnyx_commons.llm.provider_types import LlmRouteTarget
 
-SimilarityClassification = Literal["duplicate", "near_duplicate", "notable_change", "novel"]
+SimilarityClassification = Literal[
+    "duplicate", "near_duplicate", "notable_change", "novel"
+]
 StoredSimilarityClassification = Literal[
     "not_duplicate",
     "duplicate",
@@ -68,7 +70,9 @@ class SimilarityVoteTally:
     eligible_classification: EligibleSimilarityClassification | None
 
 
-def tally_similarity_votes(votes: tuple[SimilarityVoteInput, ...]) -> SimilarityVoteTally:
+def tally_similarity_votes(
+    votes: tuple[SimilarityVoteInput, ...],
+) -> SimilarityVoteTally:
     responding_validator_count = 0
     eligible_votes = 0
     not_duplicate_votes = 0
@@ -81,7 +85,9 @@ def tally_similarity_votes(votes: tuple[SimilarityVoteInput, ...]) -> Similarity
     for vote in votes:
         if vote.status == "disqualified":
             if vote.classification is not None:
-                raise ValueError("disqualified similarity votes must not include a classification")
+                raise ValueError(
+                    "disqualified similarity votes must not include a classification"
+                )
             disqualified_count += 1
             continue
         if vote.classification is None:
@@ -103,9 +109,15 @@ def tally_similarity_votes(votes: tuple[SimilarityVoteInput, ...]) -> Similarity
             novel_votes += 1
             eligible_votes += 1
         else:
-            raise ValueError(f"unsupported similarity classification: {vote.classification}")
+            raise ValueError(
+                f"unsupported similarity classification: {vote.classification}"
+            )
 
-    passes = None if responding_validator_count == 0 else eligible_votes * 2 >= responding_validator_count
+    passes = (
+        None
+        if responding_validator_count == 0
+        else eligible_votes * 2 >= responding_validator_count
+    )
 
     return SimilarityVoteTally(
         responding_validator_count=responding_validator_count,
@@ -117,7 +129,9 @@ def tally_similarity_votes(votes: tuple[SimilarityVoteInput, ...]) -> Similarity
         novel_votes=novel_votes,
         disqualified_count=disqualified_count,
         passes=passes,
-        eligible_classification=_aggregate_eligible_classification(classifications) if passes else None,
+        eligible_classification=(
+            _aggregate_eligible_classification(classifications) if passes else None
+        ),
     )
 
 

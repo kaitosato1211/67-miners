@@ -35,7 +35,10 @@ from harnyx_commons.llm.provider_types import (
     parse_custom_openai_compatible_target,
 )
 from harnyx_commons.llm.routing import ResolvedLlmRoute, resolve_llm_route
-from harnyx_commons.llm.tool_models import ALLOWED_TOOL_MODELS, parse_miner_selected_llm_provider_model
+from harnyx_commons.llm.tool_models import (
+    ALLOWED_TOOL_MODELS,
+    parse_miner_selected_llm_provider_model,
+)
 from harnyx_commons.miner_task_scoring import (
     EvaluationScoringConfig,
     EvaluationScoringService,
@@ -44,10 +47,23 @@ from harnyx_commons.sandbox.docker import DockerSandboxManager
 from harnyx_commons.sandbox.options import SandboxOptions
 from harnyx_commons.sandbox.runtime import build_sandbox_options, create_sandbox_manager
 from harnyx_commons.tools.dto import ToolInvocationRequest, tool_payload_for_invocation
-from harnyx_commons.tools.embedding_models import parse_miner_selected_embedding_provider_model
-from harnyx_commons.tools.executor import ToolExecutor, ToolInvocationContext, ToolInvocationOutput, ToolInvoker
-from harnyx_commons.tools.invocation_clients import build_optional_tool_embedding_provider
-from harnyx_commons.tools.ports import AiSearchProviderPort, EmbeddingProviderPort, WebSearchProviderPort
+from harnyx_commons.tools.embedding_models import (
+    parse_miner_selected_embedding_provider_model,
+)
+from harnyx_commons.tools.executor import (
+    ToolExecutor,
+    ToolInvocationContext,
+    ToolInvocationOutput,
+    ToolInvoker,
+)
+from harnyx_commons.tools.invocation_clients import (
+    build_optional_tool_embedding_provider,
+)
+from harnyx_commons.tools.ports import (
+    AiSearchProviderPort,
+    EmbeddingProviderPort,
+    WebSearchProviderPort,
+)
 from harnyx_commons.tools.runtime_invoker import (
     AiSearchProviderResolver,
     EmbeddingProviderResolver,
@@ -57,7 +73,10 @@ from harnyx_commons.tools.runtime_invoker import (
     build_miner_sandbox_tool_invoker,
 )
 from harnyx_commons.tools.search_models import SearchProviderName
-from harnyx_commons.tools.token_semaphore import DEFAULT_TOOL_CONCURRENCY_LIMITS, ToolConcurrencyLimiter
+from harnyx_commons.tools.token_semaphore import (
+    DEFAULT_TOOL_CONCURRENCY_LIMITS,
+    ToolConcurrencyLimiter,
+)
 from harnyx_commons.tools.usage_tracker import UsageTracker
 from harnyx_validator.application.assigned_work import AssignedArtifactWork
 from harnyx_validator.application.dto.evaluation import (
@@ -66,14 +85,23 @@ from harnyx_validator.application.dto.evaluation import (
     PlatformOwnedTaskResult,
 )
 from harnyx_validator.application.dto.registration import ValidatorRegistrationMetadata
-from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator, score_platform_execution
-from harnyx_validator.application.invoke_entrypoint import EntrypointInvoker, SandboxClient
+from harnyx_validator.application.evaluate_task_run import (
+    TaskRunOrchestrator,
+    score_platform_execution,
+)
+from harnyx_validator.application.invoke_entrypoint import (
+    EntrypointInvoker,
+    SandboxClient,
+)
 from harnyx_validator.application.platform_tool_proxy import (
     PlatformToolProxyProxyToolInvoker,
     PlatformToolProxyScopeRegistry,
 )
 from harnyx_validator.application.ports.evaluation_record import EvaluationRecordPort
-from harnyx_validator.application.ports.platform import PlatformPort, PlatformToolProxyPlatformPort
+from harnyx_validator.application.ports.platform import (
+    PlatformPort,
+    PlatformToolProxyPlatformPort,
+)
 from harnyx_validator.application.ports.subtensor import SubtensorClientPort
 from harnyx_validator.application.services.evaluation_batch_prep import (
     SANDBOX_CONTAINER_NAME_PREFIX,
@@ -81,7 +109,10 @@ from harnyx_validator.application.services.evaluation_batch_prep import (
     BatchExecutionPlanner,
     EvaluationBatchConfig,
 )
-from harnyx_validator.application.similarity_judge import SimilarityJudge, SimilarityJudgeConfig
+from harnyx_validator.application.similarity_judge import (
+    SimilarityJudge,
+    SimilarityJudgeConfig,
+)
 from harnyx_validator.application.status import BatchActivityTracker, StatusProvider
 from harnyx_validator.application.submit_weights import WeightSubmissionService
 from harnyx_validator.infrastructure.auth.sr25519 import BittensorSr25519InboundVerifier
@@ -94,7 +125,9 @@ from harnyx_validator.infrastructure.platform.registration_client import (
     PlatformRegistrationClient,
     register_with_retry,
 )
-from harnyx_validator.infrastructure.state.evaluation_record import CompactEvaluationRecordStore
+from harnyx_validator.infrastructure.state.evaluation_record import (
+    CompactEvaluationRecordStore,
+)
 from harnyx_validator.infrastructure.state.run_progress import FileBackedRunProgress
 from harnyx_validator.infrastructure.subtensor.client import RuntimeSubtensorClient
 from harnyx_validator.infrastructure.subtensor.hotkey import create_wallet
@@ -109,7 +142,9 @@ from harnyx_validator.runtime.platform_work_worker import (
     ScoringSlotConfig,
     ScoringSlotConfigEntry,
 )
-from harnyx_validator.runtime.registration_metadata import resolve_validator_registration_metadata
+from harnyx_validator.runtime.registration_metadata import (
+    resolve_validator_registration_metadata,
+)
 from harnyx_validator.runtime.resource_usage import ValidatorResourceUsageProvider
 from harnyx_validator.runtime.settings import Settings
 
@@ -480,11 +515,15 @@ def _build_platform_work_worker(
         artifact_id: UUID,
         assigned_work: AssignedArtifactWork,
         close_requested: asyncio.Event,
-        result_queue: asyncio.Queue[PlatformOwnedTaskResult | PlatformOwnedTaskExecution],
+        result_queue: asyncio.Queue[
+            PlatformOwnedTaskResult | PlatformOwnedTaskExecution
+        ],
     ) -> None:
         first_assignment = await assigned_work.take_for_startup()
         if first_assignment.artifact.artifact_id != artifact_id:
-            raise ValueError("platform work artifact queue received mismatched first assignment")
+            raise ValueError(
+                "platform work artifact queue received mismatched first assignment"
+            )
         initial_assignments = [first_assignment]
         while True:
             try:
@@ -492,7 +531,9 @@ def _build_platform_work_worker(
             except asyncio.QueueEmpty:
                 break
             if assignment.artifact.artifact_id != artifact_id:
-                raise ValueError("platform work artifact queue received mismatched assignment")
+                raise ValueError(
+                    "platform work artifact queue received mismatched assignment"
+                )
             initial_assignments.append(assignment)
         batch = MinerTaskBatchSpec(
             batch_id=first_assignment.batch_id,
@@ -526,7 +567,9 @@ def _build_platform_work_worker(
     )
 
 
-def _score_platform_execution_with(scoring_service: EvaluationScoringService) -> ScoringExecutor:
+def _score_platform_execution_with(
+    scoring_service: EvaluationScoringService,
+) -> ScoringExecutor:
     async def score(execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
         return await score_platform_execution(
             scoring_service,
@@ -560,7 +603,8 @@ def _build_state(
     receipt_log = InMemoryReceiptLog()
     evaluation_records = CompactEvaluationRecordStore()
     progress_tracker = FileBackedRunProgress(
-        storage_root=progress_storage_root or settings.validator_state_dir / "run-progress",
+        storage_root=progress_storage_root
+        or settings.validator_state_dir / "run-progress",
     )
     progress_tracker.prune_stale_batch_dirs_older_than(
         datetime.now(UTC) - timedelta(seconds=settings.run_progress_retention_seconds)
@@ -586,10 +630,19 @@ def _build_state(
 
 def _build_external_clients(
     settings: Settings,
-) -> tuple[PlatformPort, PlatformToolProxyPlatformPort, bt.Keypair, SubtensorClientPort]:
-    platform_client, platform_tool_proxy_client, platform_hotkey = _create_platform_client(settings)
+) -> tuple[
+    PlatformPort, PlatformToolProxyPlatformPort, bt.Keypair, SubtensorClientPort
+]:
+    platform_client, platform_tool_proxy_client, platform_hotkey = (
+        _create_platform_client(settings)
+    )
     subtensor_client = _build_subtensor_client(settings)
-    return platform_client, platform_tool_proxy_client, platform_hotkey, subtensor_client
+    return (
+        platform_client,
+        platform_tool_proxy_client,
+        platform_hotkey,
+        subtensor_client,
+    )
 
 
 def _build_llm_clients(settings: Settings) -> RuntimeLlmClients:
@@ -629,7 +682,9 @@ def _build_llm_clients(settings: Settings) -> RuntimeLlmClients:
         similarity_llm_provider=similarity_provider,
         scoring_routes=scoring_routes,
         similarity_route=similarity_route,
-        similarity_request_extra_by_model=_similarity_request_extra_by_model(similarity_routes),
+        similarity_request_extra_by_model=_similarity_request_extra_by_model(
+            similarity_routes
+        ),
     )
 
 
@@ -661,17 +716,23 @@ def _resolve_similarity_judge_route(
     )
 
 
-def _resolve_similarity_judge_routes(settings: Settings) -> tuple[ResolvedLlmRoute, ...]:
+def _resolve_similarity_judge_routes(
+    settings: Settings,
+) -> tuple[ResolvedLlmRoute, ...]:
     models = (
         _effective_similarity_llm_model(settings),
         *_similarity_judge_fallback_models(settings),
     )
-    routes = tuple(_resolve_similarity_judge_route(settings, model=model) for model in models)
+    routes = tuple(
+        _resolve_similarity_judge_route(settings, model=model) for model in models
+    )
     for route in routes:
         if route.provider == OPENROUTER_PROVIDER:
             if route.model in _DUPLICATION_DETECTION_OPENROUTER_MODELS:
                 continue
-            supported_models = ", ".join(sorted(_DUPLICATION_DETECTION_OPENROUTER_MODELS))
+            supported_models = ", ".join(
+                sorted(_DUPLICATION_DETECTION_OPENROUTER_MODELS)
+            )
             raise ValueError(
                 "duplicate-preflight similarity OpenRouter route supports only "
                 f"{supported_models}; resolved model was {route.model!r}"
@@ -695,7 +756,9 @@ def _similarity_request_extra_by_model(
     return {
         route.model: {
             "provider": {
-                "ignore": list(_DUPLICATION_DETECTION_DEEPSEEK_OPENROUTER_IGNORED_PROVIDERS)
+                "ignore": list(
+                    _DUPLICATION_DETECTION_DEEPSEEK_OPENROUTER_IGNORED_PROVIDERS
+                )
             }
         }
         for route in routes
@@ -714,7 +777,10 @@ def _effective_similarity_llm_model(settings: Settings) -> str:
 def _similarity_judge_fallback_models(settings: Settings) -> tuple[str, ...]:
     return _fallback_tail_after_primary(
         primary_model=_effective_similarity_llm_model(settings),
-        ordered_models=(_DUPLICATION_DETECTION_LLM_MODEL, *_DUPLICATION_DETECTION_FALLBACK_MODELS),
+        ordered_models=(
+            _DUPLICATION_DETECTION_LLM_MODEL,
+            *_DUPLICATION_DETECTION_FALLBACK_MODELS,
+        ),
         fallback_tail=_DUPLICATION_DETECTION_FALLBACK_MODELS,
     )
 
@@ -784,7 +850,11 @@ def _build_local_provider_tooling(
         llm_provider_name=resolved.llm.tool_llm_provider,
         llm_provider_resolver=llm_provider_resolver,
         embedding_provider=tool_embedding_provider,
-        embedding_provider_name=resolved.llm.tool_embedding_provider if tool_embedding_provider is not None else None,
+        embedding_provider_name=(
+            resolved.llm.tool_embedding_provider
+            if tool_embedding_provider is not None
+            else None
+        ),
         embedding_provider_resolver=embedding_provider_resolver,
         allowed_models=ALLOWED_TOOL_MODELS,
     )
@@ -811,7 +881,9 @@ def _build_services(
     similarity_request_extra_by_model: Mapping[str, JsonObject],
     subtensor_client: SubtensorClientPort,
     platform_client: PlatformPort,
-) -> tuple[dict[str, EvaluationScoringService], SimilarityJudge, WeightSubmissionService]:
+) -> tuple[
+    dict[str, EvaluationScoringService], SimilarityJudge, WeightSubmissionService
+]:
     scoring_services = {
         entry.model: _create_scoring_service(
             resolved,
@@ -845,7 +917,9 @@ def _build_factories(
     Callable[[SandboxClient], TaskRunOrchestrator],
     Callable[[], SandboxOptions],
 ]:
-    entrypoint_factory = _make_entrypoint_factory(state.session_registry, state.token_registry, state.receipt_log)
+    entrypoint_factory = _make_entrypoint_factory(
+        state.session_registry, state.token_registry, state.receipt_log
+    )
     orchestrator_factory = _make_orchestrator_factory(
         state.receipt_log,
         state.session_registry,
@@ -892,7 +966,9 @@ def _build_http_dependencies(
     return tool_route_provider, control_provider, status_provider, inbound_auth
 
 
-def _create_platform_client(settings: Settings) -> tuple[PlatformPort, PlatformToolProxyPlatformPort, bt.Keypair]:
+def _create_platform_client(
+    settings: Settings,
+) -> tuple[PlatformPort, PlatformToolProxyPlatformPort, bt.Keypair]:
     base_url = settings.platform_api.platform_base_url
     if not base_url:
         raise RuntimeError("PLATFORM_BASE_URL must be configured")
@@ -1016,7 +1092,9 @@ def _payload_for_evidence(request: ToolInvocationRequest) -> Mapping[str, object
         return {}
 
 
-def _explicit_search_provider(payload: Mapping[str, object]) -> SearchProviderName | None:
+def _explicit_search_provider(
+    payload: Mapping[str, object],
+) -> SearchProviderName | None:
     raw_provider = payload.get("provider")
     if not isinstance(raw_provider, str):
         return None
@@ -1025,27 +1103,35 @@ def _explicit_search_provider(payload: Mapping[str, object]) -> SearchProviderNa
     return cast(SearchProviderName, raw_provider)
 
 
-def _explicit_llm_provider_model(payload: Mapping[str, object]) -> tuple[str, str] | None:
+def _explicit_llm_provider_model(
+    payload: Mapping[str, object],
+) -> tuple[str, str] | None:
     raw_provider = payload.get("provider")
     if not isinstance(raw_provider, str):
         return None
     raw_model = payload.get("model")
     model = raw_model if isinstance(raw_model, str) else None
     try:
-        selected = parse_miner_selected_llm_provider_model(provider=raw_provider, model=model)
+        selected = parse_miner_selected_llm_provider_model(
+            provider=raw_provider, model=model
+        )
     except ValueError:
         return None
     return selected.provider, selected.model
 
 
-def _explicit_embedding_provider_model(payload: Mapping[str, object]) -> tuple[str, str] | None:
+def _explicit_embedding_provider_model(
+    payload: Mapping[str, object],
+) -> tuple[str, str] | None:
     raw_provider = payload.get("provider")
     if not isinstance(raw_provider, str):
         return None
     raw_model = payload.get("model")
     model = raw_model if isinstance(raw_model, str) else None
     try:
-        selected = parse_miner_selected_embedding_provider_model(provider=raw_provider, model=model)
+        selected = parse_miner_selected_embedding_provider_model(
+            provider=raw_provider, model=model
+        )
     except ValueError:
         return None
     return selected.provider, selected.model
@@ -1085,7 +1171,9 @@ def _make_control_provider(
     platform_tool_proxy_platform_client: PlatformToolProxyPlatformPort | None = None,
     platform_tool_proxy_scopes: PlatformToolProxyScopeRegistry | None = None,
 ) -> Callable[[], ValidatorControlDeps]:
-    effective_resource_usage_provider = resource_usage_provider or ValidatorResourceUsageProvider()
+    effective_resource_usage_provider = (
+        resource_usage_provider or ValidatorResourceUsageProvider()
+    )
     is_chutes_configured = bool(settings.chutes_api_key_value.strip())
     is_openrouter_configured = bool(settings.openrouter_api_key_value.strip())
 
@@ -1202,13 +1290,19 @@ def _build_inbound_auth(
         try:
             subtensor.close()
         except Exception as exc:  # pragma: no cover - best-effort cleanup
-            logger.debug("subtensor close failed during inbound auth setup", exc_info=exc)
+            logger.debug(
+                "subtensor close failed during inbound auth setup", exc_info=exc
+            )
 
     if subnet_info is None:
-        raise RuntimeError(f"unable to resolve subnet info (netuid={subtensor_settings.netuid})")
+        raise RuntimeError(
+            f"unable to resolve subnet info (netuid={subtensor_settings.netuid})"
+        )
     owner_coldkey = subnet_info.owner_ss58
     if not owner_coldkey:
-        raise RuntimeError(f"unable to resolve subnet owner coldkey (netuid={subtensor_settings.netuid})")
+        raise RuntimeError(
+            f"unable to resolve subnet owner coldkey (netuid={subtensor_settings.netuid})"
+        )
     owner_coldkey_ss58 = str(owner_coldkey)
     logger.info(
         "configured inbound platform request verifier",
@@ -1223,8 +1317,14 @@ def _build_inbound_auth(
         netuid=subtensor_settings.netuid,
         network=network_or_endpoint,
         owner_coldkey_ss58=owner_coldkey_ss58,
-        on_refresh_succeeded=status_provider.mark_auth_ready if status_provider is not None else None,
-        on_refresh_failed=status_provider.mark_auth_unavailable if status_provider is not None else None,
+        on_refresh_succeeded=(
+            status_provider.mark_auth_ready if status_provider is not None else None
+        ),
+        on_refresh_failed=(
+            status_provider.mark_auth_unavailable
+            if status_provider is not None
+            else None
+        ),
     )
 
 
@@ -1310,7 +1410,9 @@ async def close_runtime_resources(runtime: RuntimeContext) -> None:
         await _aclose(owned)
 
 
-def _unique_aclose_targets(*objects: _SupportsAclose | None) -> tuple[_SupportsAclose, ...]:
+def _unique_aclose_targets(
+    *objects: _SupportsAclose | None,
+) -> tuple[_SupportsAclose, ...]:
     seen: set[int] = set()
     unique: list[_SupportsAclose] = []
     for obj in objects:
@@ -1350,7 +1452,12 @@ def _clock() -> datetime:
     return datetime.now(UTC)
 
 
-__all__ = ["RuntimeContext", "RuntimeToolInvoker", "build_runtime", "close_runtime_resources"]
+__all__ = [
+    "RuntimeContext",
+    "RuntimeToolInvoker",
+    "build_runtime",
+    "close_runtime_resources",
+]
 
 
 @runtime_checkable

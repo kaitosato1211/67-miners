@@ -28,8 +28,8 @@ Run `harnyx-miner-local-eval`, collect the reports, and decide the next move.
 uv run --package harnyx-miner harnyx-miner-local-eval --agent-path ./agent.py
 ```
 
-   If a report does not explain a weak or failed task, pin its batch and capture
-   DEBUG logs. Prefer `target-only` when diagnosing only the target artifact:
+If a report does not explain a weak or failed task, pin its batch and capture
+DEBUG logs. Prefer `target-only` when diagnosing only the target artifact:
 
 ```bash
 LOG_LEVEL=DEBUG uv run --package harnyx-miner harnyx-miner-local-eval \

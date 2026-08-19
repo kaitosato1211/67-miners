@@ -9,7 +9,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-from harnyx_commons.llm.provider_types import OPENROUTER_PROVIDER, parse_custom_openai_compatible_target
+from harnyx_commons.llm.provider_types import (
+    OPENROUTER_PROVIDER,
+    parse_custom_openai_compatible_target,
+)
 from harnyx_commons.llm.retry_utils import RetryPolicy
 from harnyx_miner_sdk.llm import (
     LlmChoice,
@@ -56,7 +59,9 @@ class AbstractLlmRequest(ToolLlmRequest, ABC):
 
     def __post_init__(self) -> None:
         if self.internal_metadata is not None and "use_case" in self.internal_metadata:
-            raise ValueError("LLM request use_case must be provided via the typed use_case field")
+            raise ValueError(
+                "LLM request use_case must be provided via the typed use_case field"
+            )
         if self.use_case is None:
             return
         normalized_use_case = self.use_case.strip()
@@ -76,9 +81,13 @@ class GroundedLlmRequest(AbstractLlmRequest):
     def __post_init__(self) -> None:  # pragma: no cover - simple guard
         super().__post_init__()
         if not supports_grounded_requests(provider=self.provider, model=self.model):
-            raise ValueError(f"grounded mode not supported for provider/model '{self.provider}:{self.model}'")
+            raise ValueError(
+                f"grounded mode not supported for provider/model '{self.provider}:{self.model}'"
+            )
         if self.tools and _is_vertex_claude_model(self.model):
-            raise ValueError("grounded requests with additional tools are not supported for Vertex Claude models")
+            raise ValueError(
+                "grounded requests with additional tools are not supported for Vertex Claude models"
+            )
         if self.model.startswith("gpt-5") and self.temperature is not None:
             raise ValueError("gpt-5 models do not support temperature parameter")
 
@@ -96,10 +105,14 @@ class LlmRequest(AbstractLlmRequest):
         if self.output_mode == "structured" and self.output_schema is None:
             raise ValueError("structured output requires output_schema")
         if self.output_mode != "structured" and self.output_schema is not None:
-            raise ValueError("output_schema is only allowed with structured output_mode")
+            raise ValueError(
+                "output_schema is only allowed with structured output_mode"
+            )
         if self.output_schema is not None:
             schema_type = self.output_schema
-            if not isinstance(schema_type, type) or not issubclass(schema_type, BaseModel):
+            if not isinstance(schema_type, type) or not issubclass(
+                schema_type, BaseModel
+            ):
                 raise ValueError("output_schema must be a Pydantic BaseModel subclass")
         if self.model.startswith("gpt-5") and self.temperature is not None:
             raise ValueError("gpt-5 models do not support temperature parameter")
@@ -146,7 +159,9 @@ def supports_grounded_requests(*, provider: str, model: str) -> bool:
 
 
 def supports_grounded_additional_tools(*, provider: str, model: str) -> bool:
-    return supports_grounded_requests(provider=provider, model=model) and not _is_vertex_claude_model(model)
+    return supports_grounded_requests(
+        provider=provider, model=model
+    ) and not _is_vertex_claude_model(model)
 
 
 def supports_tool_result_messages(*, provider: str, model: str) -> bool:

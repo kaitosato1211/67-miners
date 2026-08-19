@@ -3,28 +3,43 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr
 
-from harnyx_commons.llm.providers.chutes import ChutesEmbeddingUsage, ChutesTextEmbeddingResponse
-from harnyx_commons.llm.providers.openrouter import OpenRouterEmbeddingResponse, OpenRouterEmbeddingUsage
+from harnyx_commons.llm.providers.chutes import (
+    ChutesEmbeddingUsage,
+    ChutesTextEmbeddingResponse,
+)
+from harnyx_commons.llm.providers.openrouter import (
+    OpenRouterEmbeddingResponse,
+    OpenRouterEmbeddingUsage,
+)
 from harnyx_commons.tools.embedding_models import (
     QWEN3_CHUTES_EMBEDDING_MODEL,
     QWEN3_OPENROUTER_EMBEDDING_MODEL,
     EmbedTextRequest,
     parse_miner_selected_embedding_provider_model,
 )
-from harnyx_commons.tools.invocation_clients import ChutesEmbeddingProvider, OpenRouterEmbeddingProvider
+from harnyx_commons.tools.invocation_clients import (
+    ChutesEmbeddingProvider,
+    OpenRouterEmbeddingProvider,
+)
 
 pytestmark = pytest.mark.anyio("asyncio")
 
 
 def test_miner_selected_embedding_provider_model_sets_are_provider_namespaces() -> None:
-    assert parse_miner_selected_embedding_provider_model(
-        provider="chutes",
-        model=QWEN3_CHUTES_EMBEDDING_MODEL,
-    ).model == QWEN3_CHUTES_EMBEDDING_MODEL
-    assert parse_miner_selected_embedding_provider_model(
-        provider="openrouter",
-        model=QWEN3_OPENROUTER_EMBEDDING_MODEL,
-    ).model == QWEN3_OPENROUTER_EMBEDDING_MODEL
+    assert (
+        parse_miner_selected_embedding_provider_model(
+            provider="chutes",
+            model=QWEN3_CHUTES_EMBEDDING_MODEL,
+        ).model
+        == QWEN3_CHUTES_EMBEDDING_MODEL
+    )
+    assert (
+        parse_miner_selected_embedding_provider_model(
+            provider="openrouter",
+            model=QWEN3_OPENROUTER_EMBEDDING_MODEL,
+        ).model
+        == QWEN3_OPENROUTER_EMBEDDING_MODEL
+    )
     with pytest.raises(ValueError, match="not supported"):
         parse_miner_selected_embedding_provider_model(
             provider="chutes",
@@ -35,11 +50,17 @@ def test_miner_selected_embedding_provider_model_sets_are_provider_namespaces() 
             provider="openrouter",
             model=QWEN3_CHUTES_EMBEDDING_MODEL,
         )
-async def test_chutes_embedding_provider_formats_query_instruction(monkeypatch: pytest.MonkeyPatch) -> None:
+
+
+async def test_chutes_embedding_provider_formats_query_instruction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured: dict[str, object] = {}
 
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> ChutesTextEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> ChutesTextEmbeddingResponse:
             captured["texts"] = texts
             return ChutesTextEmbeddingResponse(
                 vectors=((0.1, 0.2, 0.3),),
@@ -110,11 +131,15 @@ async def test_chutes_embedding_provider_applies_effective_request_timeout_to_mo
     assert captured["timeout_seconds"] == expected_provider_timeout
 
 
-async def test_chutes_embedding_provider_leaves_document_text_unformatted(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_chutes_embedding_provider_leaves_document_text_unformatted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured: dict[str, object] = {}
 
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> ChutesTextEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> ChutesTextEmbeddingResponse:
             captured["texts"] = texts
             return ChutesTextEmbeddingResponse(
                 vectors=((0.4, 0.5, 0.6),),
@@ -140,7 +165,9 @@ async def test_chutes_embedding_provider_allows_missing_usage_tokens_when_elapse
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> ChutesTextEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> ChutesTextEmbeddingResponse:
             _ = texts
             return ChutesTextEmbeddingResponse(vectors=((0.4, 0.5, 0.6),))
 
@@ -167,7 +194,9 @@ async def test_openrouter_embedding_provider_posts_native_model_and_settles_stat
     captured: dict[str, object] = {}
 
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> OpenRouterEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> OpenRouterEmbeddingResponse:
             captured["texts"] = texts
             return OpenRouterEmbeddingResponse(
                 vectors=((0.7, 0.8, 0.9),),
@@ -175,7 +204,9 @@ async def test_openrouter_embedding_provider_posts_native_model_and_settles_stat
                 usage=OpenRouterEmbeddingUsage(prompt_tokens=12, total_tokens=12),
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(
@@ -215,7 +246,9 @@ async def test_openrouter_embedding_provider_applies_request_timeout_to_model_cl
                 model=QWEN3_OPENROUTER_EMBEDDING_MODEL,
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=300.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=300.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     await provider.embed_text(
@@ -235,7 +268,9 @@ async def test_openrouter_embedding_provider_prefers_provider_returned_cost_and_
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> OpenRouterEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> OpenRouterEmbeddingResponse:
             _ = texts
             return OpenRouterEmbeddingResponse(
                 vectors=((0.7, 0.8, 0.9),),
@@ -249,7 +284,9 @@ async def test_openrouter_embedding_provider_prefers_provider_returned_cost_and_
                 model="Qwen/Qwen3-Embedding-8B",
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(
@@ -280,15 +317,21 @@ async def test_openrouter_embedding_provider_falls_back_for_malformed_provider_c
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> OpenRouterEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> OpenRouterEmbeddingResponse:
             _ = texts
             return OpenRouterEmbeddingResponse(
                 vectors=((0.7, 0.8, 0.9),),
                 model="Qwen/Qwen3-Embedding-8B",
-                usage=OpenRouterEmbeddingUsage(prompt_tokens=12, total_tokens=12, cost="invalid"),
+                usage=OpenRouterEmbeddingUsage(
+                    prompt_tokens=12, total_tokens=12, cost="invalid"
+                ),
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(
@@ -326,7 +369,9 @@ async def test_openrouter_embedding_provider_forwards_provider_extra(
                 usage=OpenRouterEmbeddingUsage(prompt_tokens=12, total_tokens=12),
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(
@@ -343,7 +388,9 @@ async def test_openrouter_embedding_provider_forwards_provider_extra(
         "Instruct: Given a web search query, retrieve relevant passages that answer the query\n"
         "Query:find subnet incentives",
     )
-    assert captured["extra"] == {"provider": {"only": ["nebius"], "allow_fallbacks": False}}
+    assert captured["extra"] == {
+        "provider": {"only": ["nebius"], "allow_fallbacks": False}
+    }
     assert result.actual_cost_provider == "openrouter"
 
 
@@ -351,7 +398,9 @@ async def test_openrouter_embedding_provider_settles_zero_token_cache_hit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> OpenRouterEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> OpenRouterEmbeddingResponse:
             _ = texts
             return OpenRouterEmbeddingResponse(
                 vectors=((0.7, 0.8, 0.9),),
@@ -359,7 +408,9 @@ async def test_openrouter_embedding_provider_settles_zero_token_cache_hit(
                 usage=OpenRouterEmbeddingUsage(prompt_tokens=0, total_tokens=0),
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(
@@ -383,7 +434,9 @@ async def test_openrouter_embedding_provider_returns_vectors_when_usage_is_unava
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> OpenRouterEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> OpenRouterEmbeddingResponse:
             _ = texts
             return OpenRouterEmbeddingResponse(
                 vectors=((0.7, 0.8, 0.9),),
@@ -391,7 +444,9 @@ async def test_openrouter_embedding_provider_returns_vectors_when_usage_is_unava
                 id="gen-emb-unavailable",
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(
@@ -425,7 +480,9 @@ async def test_openrouter_embedding_provider_uses_provider_cost_without_usage_to
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> OpenRouterEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> OpenRouterEmbeddingResponse:
             _ = texts
             return OpenRouterEmbeddingResponse(
                 vectors=((0.7, 0.8, 0.9),),
@@ -433,7 +490,9 @@ async def test_openrouter_embedding_provider_uses_provider_cost_without_usage_to
                 usage=OpenRouterEmbeddingUsage(cost=0.0042),
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(
@@ -455,7 +514,9 @@ async def test_openrouter_embedding_provider_marks_cost_unavailable_without_usab
     provider_cost: float | str | None,
 ) -> None:
     class _FakeClient:
-        async def embed_many(self, texts: tuple[str, ...], **_: object) -> OpenRouterEmbeddingResponse:
+        async def embed_many(
+            self, texts: tuple[str, ...], **_: object
+        ) -> OpenRouterEmbeddingResponse:
             _ = texts
             return OpenRouterEmbeddingResponse(
                 vectors=((0.7, 0.8, 0.9),),
@@ -463,7 +524,9 @@ async def test_openrouter_embedding_provider_marks_cost_unavailable_without_usab
                 usage=OpenRouterEmbeddingUsage(cost=provider_cost),
             )
 
-    provider = OpenRouterEmbeddingProvider(api_key=SecretStr("test-key"), timeout_seconds=1.0)
+    provider = OpenRouterEmbeddingProvider(
+        api_key=SecretStr("test-key"), timeout_seconds=1.0
+    )
     monkeypatch.setattr(provider, "_client_for", lambda **_: _FakeClient())
 
     result = await provider.embed_text(

@@ -35,10 +35,14 @@ class _FakeSandboxClient(SandboxClient):
         return None
 
 
-def test_docker_sandbox_manager_writes_diagnostics_when_docker_run_fails(tmp_path: Path) -> None:
+def test_docker_sandbox_manager_writes_diagnostics_when_docker_run_fails(
+    tmp_path: Path,
+) -> None:
     commands: list[list[str]] = []
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         del kwargs
         commands.append(args)
         raise subprocess.CalledProcessError(
@@ -62,13 +66,17 @@ def test_docker_sandbox_manager_writes_diagnostics_when_docker_run_fails(tmp_pat
     assert "super-secret" not in raised_message
     assert "/state/agent.py" not in raised_message
     assert commands == [_expected_docker_run(options)]
-    docker_run_result = json.loads((tmp_path / "docker-run-result.json").read_text(encoding="utf-8"))
+    docker_run_result = json.loads(
+        (tmp_path / "docker-run-result.json").read_text(encoding="utf-8")
+    )
     assert docker_run_result["stderr"] == (
         "docker error includes <redacted> and <redacted> while binding 0.0.0.0:8000"
     )
     error_text = (tmp_path / "error.txt").read_text(encoding="utf-8")
     assert error_text.startswith("CalledProcessError:")
-    assert "0.0.0.0" in error_text  # noqa: S104 - verifying diagnostic text preserves bind address
+    assert (
+        "0.0.0.0" in error_text
+    )  # noqa: S104 - verifying diagnostic text preserves bind address
     assert "8000" in error_text
     assert "super-secret" not in error_text
     assert "/state/agent.py" not in error_text
@@ -77,7 +85,9 @@ def test_docker_sandbox_manager_writes_diagnostics_when_docker_run_fails(tmp_pat
     assert "SECRET_TOKEN=<redacted>" in docker_run
     assert "/state/agent.py" not in docker_run
     assert "super-secret" not in docker_run
-    sandbox_options = json.loads((tmp_path / "sandbox-options.json").read_text(encoding="utf-8"))
+    sandbox_options = json.loads(
+        (tmp_path / "sandbox-options.json").read_text(encoding="utf-8")
+    )
     assert sandbox_options["env"] == {
         "AGENT_PATH": "<redacted>",
         "SANDBOX_HOST": "0.0.0.0",  # noqa: S104 - verifying diagnostic snapshot preserves sandbox host
@@ -96,17 +106,25 @@ def test_docker_sandbox_manager_writes_diagnostics_when_docker_run_fails(tmp_pat
 def test_docker_sandbox_manager_times_out_docker_run(tmp_path: Path) -> None:
     observed_timeout: float | None = None
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         nonlocal observed_timeout
         if args[:3] == ["docker", "ps", "-aq"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="", stderr=""
+            )
         observed_timeout = kwargs["timeout"]
         raise subprocess.TimeoutExpired(cmd=args, timeout=observed_timeout)
 
     options = _sandbox_options(tmp_path)
-    manager = DockerSandboxManager(command_runner=command_runner, command_timeout_seconds=3.5)
+    manager = DockerSandboxManager(
+        command_runner=command_runner, command_timeout_seconds=3.5
+    )
 
-    with pytest.raises(SandboxStartError, match="remote creation remains uncertain") as raised:
+    with pytest.raises(
+        SandboxStartError, match="remote creation remains uncertain"
+    ) as raised:
         manager.start(options)
 
     assert observed_timeout == 3.5
@@ -119,10 +137,14 @@ def test_docker_sandbox_manager_writes_diagnostics_when_docker_pull_retries_exha
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("harnyx_commons.sandbox.docker.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr(
+        "harnyx_commons.sandbox.docker.time.sleep", lambda _seconds: None
+    )
     commands: list[list[str]] = []
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         del kwargs
         commands.append(list(args))
         if args[:2] == ["docker", "pull"]:
@@ -142,7 +164,9 @@ def test_docker_sandbox_manager_writes_diagnostics_when_docker_pull_retries_exha
         manager.start(options)
 
     assert commands == [["docker", "pull", options.image]] * 3
-    pull_result = json.loads((tmp_path / "docker-pull-result.json").read_text(encoding="utf-8"))
+    pull_result = json.loads(
+        (tmp_path / "docker-pull-result.json").read_text(encoding="utf-8")
+    )
     assert pull_result == {
         "returncode": 1,
         "stdout": "pull stdout mentions <redacted>",
@@ -152,21 +176,29 @@ def test_docker_sandbox_manager_writes_diagnostics_when_docker_pull_retries_exha
     assert "docker pull failed after 3 attempts" in error_text
     assert "super-secret" not in error_text
     assert "/state/agent.py" not in error_text
-    assert (tmp_path / "docker-pull.txt").read_text(encoding="utf-8") == f"docker pull {options.image}"
+    assert (tmp_path / "docker-pull.txt").read_text(
+        encoding="utf-8"
+    ) == f"docker pull {options.image}"
     assert not (tmp_path / "docker-inspect.json").exists()
     assert not (tmp_path / "docker-logs.txt").exists()
     assert not (tmp_path / "docker-run-result.json").exists()
     _assert_private_mode(tmp_path / "docker-pull-result.json", 0o600)
 
 
-def test_docker_sandbox_manager_writes_inspect_and_logs_before_cleanup(tmp_path: Path) -> None:
+def test_docker_sandbox_manager_writes_inspect_and_logs_before_cleanup(
+    tmp_path: Path,
+) -> None:
     commands: list[list[str]] = []
     container_id = "sandbox-container-1"
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         commands.append(args)
         if args[:2] == ["docker", "run"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout=f"{container_id}\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout=f"{container_id}\n", stderr=""
+            )
         if args == ["docker", "inspect", container_id]:
             assert kwargs["capture_output"] is True
             assert "stderr" not in kwargs
@@ -189,9 +221,13 @@ def test_docker_sandbox_manager_writes_inspect_and_logs_before_cleanup(tmp_path:
                 stderr=stderr,
             )
         if args[:2] == ["docker", "stop"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="", stderr=""
+            )
         if args[:2] == ["docker", "rm"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="", stderr=""
+            )
         raise AssertionError(f"unexpected command: {args}")
 
     options = _sandbox_options(tmp_path, wait_for_healthz=True, healthz_timeout=0.0)
@@ -233,11 +269,15 @@ def test_docker_sandbox_manager_writes_private_diagnostic_command_error_files(
     error_path = tmp_path / "docker-inspect.json.error.txt"
     _precreate_public_file(error_path)
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         del kwargs
         commands.append(args)
         if args[:2] == ["docker", "run"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout=f"{container_id}\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout=f"{container_id}\n", stderr=""
+            )
         if args == ["docker", "inspect", container_id]:
             raise subprocess.CalledProcessError(
                 returncode=1,
@@ -246,11 +286,17 @@ def test_docker_sandbox_manager_writes_private_diagnostic_command_error_files(
                 stderr="inspect failed",
             )
         if args == ["docker", "logs", container_id]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="sandbox log line\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="sandbox log line\n", stderr=""
+            )
         if args[:2] == ["docker", "stop"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="", stderr=""
+            )
         if args[:2] == ["docker", "rm"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="", stderr=""
+            )
         raise AssertionError(f"unexpected command: {args}")
 
     options = _sandbox_options(tmp_path, wait_for_healthz=True, healthz_timeout=0.0)
@@ -267,23 +313,37 @@ def test_docker_sandbox_manager_writes_private_diagnostic_command_error_files(
     _assert_private_mode(error_path, 0o600)
 
 
-def test_docker_sandbox_manager_removes_container_when_stop_fails(tmp_path: Path) -> None:
+def test_docker_sandbox_manager_removes_container_when_stop_fails(
+    tmp_path: Path,
+) -> None:
     commands: list[list[str]] = []
     container_id = "sandbox-container-1"
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         del kwargs
         commands.append(args)
         if args[:2] == ["docker", "run"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout=f"{container_id}\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout=f"{container_id}\n", stderr=""
+            )
         if args == ["docker", "inspect", container_id]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="[]\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="[]\n", stderr=""
+            )
         if args == ["docker", "logs", container_id]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="sandbox log line\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="sandbox log line\n", stderr=""
+            )
         if args[:2] == ["docker", "stop"]:
-            raise subprocess.CalledProcessError(returncode=1, cmd=args, stderr="stop failed")
+            raise subprocess.CalledProcessError(
+                returncode=1, cmd=args, stderr="stop failed"
+            )
         if args == ["docker", "rm", "-f", container_id]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="", stderr=""
+            )
         raise AssertionError(f"unexpected command: {args}")
 
     options = _sandbox_options(tmp_path, wait_for_healthz=True, healthz_timeout=0.0)
@@ -298,15 +358,21 @@ def test_docker_sandbox_manager_removes_container_when_stop_fails(tmp_path: Path
     assert ["docker", "rm", "-f", container_id] in commands
 
 
-def test_docker_sandbox_manager_publishes_allocated_port_on_client_host(tmp_path: Path) -> None:
+def test_docker_sandbox_manager_publishes_allocated_port_on_client_host(
+    tmp_path: Path,
+) -> None:
     commands: list[list[str]] = []
     container_id = "sandbox-container-1"
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         del kwargs
         commands.append(args)
         if args[:2] == ["docker", "run"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout=f"{container_id}\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout=f"{container_id}\n", stderr=""
+            )
         if args == ["docker", "port", container_id, "8000"]:
             return subprocess.CompletedProcess(
                 args=args,
@@ -328,15 +394,21 @@ def test_docker_sandbox_manager_publishes_allocated_port_on_client_host(tmp_path
     assert commands[0] == _expected_docker_run(options)
 
 
-def test_docker_sandbox_manager_binds_allocated_port_when_configured(tmp_path: Path) -> None:
+def test_docker_sandbox_manager_binds_allocated_port_when_configured(
+    tmp_path: Path,
+) -> None:
     commands: list[list[str]] = []
     container_id = "sandbox-container-1"
 
-    def command_runner(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def command_runner(
+        args: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
         del kwargs
         commands.append(args)
         if args[:2] == ["docker", "run"]:
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout=f"{container_id}\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout=f"{container_id}\n", stderr=""
+            )
         if args == ["docker", "port", container_id, "8000"]:
             return subprocess.CompletedProcess(
                 args=args,

@@ -27,16 +27,22 @@ def test_upload_agent_rejects_missing_query_before_wallet_or_http(
     monkeypatch.setattr(
         submit_module.bt,
         "Wallet",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("wallet should not be reached")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("wallet should not be reached")
+        ),
     )
     monkeypatch.setattr(
         submit_module.httpx,
         "Client",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("http client should not be reached")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("http client should not be reached")
+        ),
     )
 
     with pytest.raises(RuntimeError, match="agent did not register entrypoint 'query'"):
-        submit_module._upload_agent(agent_path=agent_path, wallet_name="wallet", hotkey_name="hotkey")
+        submit_module._upload_agent(
+            agent_path=agent_path, wallet_name="wallet", hotkey_name="hotkey"
+        )
 
 
 def test_upload_agent_rejects_invalid_query_signature_before_wallet_or_http(
@@ -54,16 +60,22 @@ def test_upload_agent_rejects_invalid_query_signature_before_wallet_or_http(
     monkeypatch.setattr(
         submit_module.bt,
         "Wallet",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("wallet should not be reached")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("wallet should not be reached")
+        ),
     )
     monkeypatch.setattr(
         submit_module.httpx,
         "Client",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("http client should not be reached")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("http client should not be reached")
+        ),
     )
 
     with pytest.raises(TypeError, match="query entrypoint parameter"):
-        submit_module._upload_agent(agent_path=agent_path, wallet_name="wallet", hotkey_name="hotkey")
+        submit_module._upload_agent(
+            agent_path=agent_path, wallet_name="wallet", hotkey_name="hotkey"
+        )
 
 
 def test_upload_agent_rejects_oversized_agent_before_wallet_or_http(
@@ -75,13 +87,19 @@ def test_upload_agent_rejects_oversized_agent_before_wallet_or_http(
     monkeypatch.setattr(
         submit_module.bt,
         "Wallet",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("wallet should not be reached")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("wallet should not be reached")
+        ),
     )
     monkeypatch.setattr(
         submit_module.httpx,
         "Client",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("http client should not be reached")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("http client should not be reached")
+        ),
     )
 
     with pytest.raises(ValueError, match=str(MAX_AGENT_BYTES)):
-        submit_module._upload_agent(agent_path=agent_path, wallet_name="wallet", hotkey_name="hotkey")
+        submit_module._upload_agent(
+            agent_path=agent_path, wallet_name="wallet", hotkey_name="hotkey"
+        )

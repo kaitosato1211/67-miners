@@ -103,7 +103,9 @@ class FakeResponse:
 
 
 @pytest.mark.parametrize("code", [500, 502, 503, 504, "500"])
-def test_vertex_classify_stream_error_preserves_server_retry_policy(code: int | str) -> None:
+def test_vertex_classify_stream_error_preserves_server_retry_policy(
+    code: int | str,
+) -> None:
     exc = OpenAiStreamError(
         message="temporarily unavailable",
         error_type="server_error",
@@ -120,7 +122,13 @@ def test_vertex_classify_stream_error_preserves_server_retry_policy(code: int | 
 def test_vertex_classify_google_api_error_retries_transient_codes(code: int) -> None:
     exc = errors.APIError(
         code,
-        {"error": {"code": code, "message": "temporary failure", "status": "TRANSIENT"}},
+        {
+            "error": {
+                "code": code,
+                "message": "temporary failure",
+                "status": "TRANSIENT",
+            }
+        },
     )
 
     retryable, reason = VertexLlmProvider._classify_exception(exc)
@@ -132,7 +140,13 @@ def test_vertex_classify_google_api_error_retries_transient_codes(code: int) -> 
 def test_vertex_classify_google_api_error_does_not_retry_client_errors() -> None:
     exc = errors.APIError(
         400,
-        {"error": {"code": 400, "message": "bad request", "status": "INVALID_ARGUMENT"}},
+        {
+            "error": {
+                "code": 400,
+                "message": "bad request",
+                "status": "INVALID_ARGUMENT",
+            }
+        },
     )
 
     retryable, reason = VertexLlmProvider._classify_exception(exc)
@@ -147,10 +161,14 @@ def anthropic_clients(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
 
     class _FailingMessages:
         async def create(self, **kwargs: Any) -> Any:
-            raise AssertionError(f"unexpected AsyncAnthropicVertex.messages.create call: {kwargs!r}")
+            raise AssertionError(
+                f"unexpected AsyncAnthropicVertex.messages.create call: {kwargs!r}"
+            )
 
         def stream(self, **kwargs: Any) -> Any:
-            raise AssertionError(f"unexpected AsyncAnthropicVertex.messages.stream call: {kwargs!r}")
+            raise AssertionError(
+                f"unexpected AsyncAnthropicVertex.messages.stream call: {kwargs!r}"
+            )
 
     class _FakeAsyncAnthropicVertex:
         def __init__(self, **kwargs: Any) -> None:
@@ -176,7 +194,9 @@ def _patch_google_client(
     response_factory: Callable[[], Any] = FakeResponse,
 ) -> None:
     class _FakeAsyncModels:
-        async def generate_content(self, *, model: str, contents: Any, config: Any) -> Any:
+        async def generate_content(
+            self, *, model: str, contents: Any, config: Any
+        ) -> Any:
             latest = {
                 "model": model,
                 "contents": contents,
@@ -185,14 +205,18 @@ def _patch_google_client(
             captured["model_call"] = latest
             return response_factory()
 
-        async def generate_content_stream(self, *, model: str, contents: Any, config: Any) -> Any:
+        async def generate_content_stream(
+            self, *, model: str, contents: Any, config: Any
+        ) -> Any:
             latest = {
                 "model": model,
                 "contents": contents,
                 "config": config,
             }
             captured["model_stream_call"] = latest
-            captured["model_stream_call_count"] = int(captured.get("model_stream_call_count", 0)) + 1
+            captured["model_stream_call_count"] = (
+                int(captured.get("model_stream_call_count", 0)) + 1
+            )
 
             async def _stream() -> Any:
                 response = response_factory()
@@ -217,7 +241,9 @@ def _patch_google_client(
         def close(self) -> None:
             captured["google_sync_closed"] = True
 
-    monkeypatch.setattr("harnyx_commons.llm.providers.vertex.provider.genai.Client", _FakeClient)
+    monkeypatch.setattr(
+        "harnyx_commons.llm.providers.vertex.provider.genai.Client", _FakeClient
+    )
 
 
 def _patch_vertex_maas_http_client(
@@ -283,7 +309,10 @@ def _patch_vertex_maas_http_client(
         async def aclose(self) -> None:
             captured["http_closed"] = True
 
-    monkeypatch.setattr("harnyx_commons.llm.providers.vertex.provider.httpx.AsyncClient", _FakeAsyncHttpClient)
+    monkeypatch.setattr(
+        "harnyx_commons.llm.providers.vertex.provider.httpx.AsyncClient",
+        _FakeAsyncHttpClient,
+    )
 
 
 def _patch_vertex_maas_http_client_stream_sequence(
@@ -333,7 +362,10 @@ def _patch_vertex_maas_http_client_stream_sequence(
         async def aclose(self) -> None:
             captured["http_closed"] = True
 
-    monkeypatch.setattr("harnyx_commons.llm.providers.vertex.provider.httpx.AsyncClient", _FakeAsyncHttpClient)
+    monkeypatch.setattr(
+        "harnyx_commons.llm.providers.vertex.provider.httpx.AsyncClient",
+        _FakeAsyncHttpClient,
+    )
     return state
 
 
@@ -440,7 +472,11 @@ async def test_vertex_provider_invokes_generative_model(
     assert isinstance(response.metadata["ttft_ms"], float)
     assert response.metadata["ttft_ms"] >= 0.0
 
-    records = [record for record in caplog.records if record.message == "llm.vertex.stream.ttft"]
+    records = [
+        record
+        for record in caplog.records
+        if record.message == "llm.vertex.stream.ttft"
+    ]
     assert records
     data = records[0].__dict__["data"]
     assert data["branch"] == "gemini"
@@ -487,7 +523,9 @@ async def test_vertex_provider_retries_empty_gemini_stream(
 
 def test_vertex_classify_empty_stream_protocol_error_retries() -> None:
     retryable, reason = VertexLlmProvider._classify_exception(
-        _VertexProviderProtocolError("vertex streaming generation returned no response chunks")
+        _VertexProviderProtocolError(
+            "vertex streaming generation returned no response chunks"
+        )
     )
 
     assert retryable is True
@@ -590,13 +628,15 @@ async def test_vertex_provider_gemini_stream_aggregates_text_and_metadata(
                                     "text": "world",
                                 }
                             ]
-                        }
+                        },
                     }
                 ],
             }
 
     captured: dict[str, Any] = {}
-    _patch_google_client(monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()])
+    _patch_google_client(
+        monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()]
+    )
 
     provider = VertexLlmProvider(
         project="demo-project",
@@ -626,8 +666,13 @@ async def test_vertex_provider_gemini_stream_aggregates_text_and_metadata(
     assert response.metadata["web_search_queries"] == ("harnyx subnet",)
     raw_response = response.metadata["raw_response"]
     assert raw_response["text"] == "Hello world"
-    assert raw_response["candidates"][0]["grounding_metadata"]["web_search_queries"] == ["harnyx subnet"]
-    assert raw_response["candidates"][0]["content"]["parts"][0]["thought_signature"] == "sig-1"
+    assert raw_response["candidates"][0]["grounding_metadata"][
+        "web_search_queries"
+    ] == ["harnyx subnet"]
+    assert (
+        raw_response["candidates"][0]["content"]["parts"][0]["thought_signature"]
+        == "sig-1"
+    )
     assert raw_response["candidates"][0]["finish_reason"] == "STOP"
 
 
@@ -767,7 +812,9 @@ async def test_vertex_provider_gemini_stream_preserves_reasoning_chunk_boundarie
             }
 
     captured: dict[str, Any] = {}
-    _patch_google_client(monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()])
+    _patch_google_client(
+        monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()]
+    )
 
     provider = VertexLlmProvider(
         project="demo-project",
@@ -869,7 +916,9 @@ async def test_vertex_provider_gemini_stream_dedupes_repeated_search_queries(
             }
 
     captured: dict[str, Any] = {}
-    _patch_google_client(monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()])
+    _patch_google_client(
+        monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()]
+    )
 
     provider = VertexLlmProvider(
         project="demo-project",
@@ -964,10 +1013,14 @@ async def test_vertex_provider_gemini_stream_merges_snapshot_tool_calls(
         candidates = [_ChunkTwoCandidate()]
 
         def model_dump(self, *, mode: str = "python") -> dict[str, Any]:
-            return {"candidates": [{"content": {"parts": [{}]}, "finish_reason": "STOP"}]}
+            return {
+                "candidates": [{"content": {"parts": [{}]}, "finish_reason": "STOP"}]
+            }
 
     captured: dict[str, Any] = {}
-    _patch_google_client(monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()])
+    _patch_google_client(
+        monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()]
+    )
 
     provider = VertexLlmProvider(
         project="demo-project",
@@ -1065,10 +1118,14 @@ async def test_vertex_provider_gemini_stream_overwrites_partial_tool_call_same_i
         candidates = [_ChunkTwoCandidate()]
 
         def model_dump(self, *, mode: str = "python") -> dict[str, Any]:
-            return {"candidates": [{"content": {"parts": [{}]}, "finish_reason": "STOP"}]}
+            return {
+                "candidates": [{"content": {"parts": [{}]}, "finish_reason": "STOP"}]
+            }
 
     captured: dict[str, Any] = {}
-    _patch_google_client(monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()])
+    _patch_google_client(
+        monkeypatch, captured, response_factory=lambda: [_ChunkOne(), _ChunkTwo()]
+    )
 
     provider = VertexLlmProvider(
         project="demo-project",
@@ -1151,7 +1208,9 @@ async def test_vertex_maas_gpt_oss_routes_to_chat_completions(
         location="us-central1",
         timeout=30.0,
     )
-    monkeypatch.setattr(provider, "_vertex_maas_access_token", _async_return("access-token"))
+    monkeypatch.setattr(
+        provider, "_vertex_maas_access_token", _async_return("access-token")
+    )
 
     request = LlmRequest(
         provider="vertex",
@@ -1196,9 +1255,16 @@ async def test_vertex_maas_gpt_oss_routes_to_chat_completions(
     assert response.metadata["ttft_ms"] >= 0.0
     assert response.metadata["actual_cost_provider"] == "vertex"
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.000001173)
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "static_pricing"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "static_pricing"
+    )
 
-    records = [record for record in caplog.records if record.message == "llm.vertex.stream.ttft"]
+    records = [
+        record
+        for record in caplog.records
+        if record.message == "llm.vertex.stream.ttft"
+    ]
     assert records
     data = records[0].__dict__["data"]
     assert data["branch"] == "vertex_maas_openai"
@@ -1242,13 +1308,20 @@ async def test_vertex_maas_keeps_reasoning_tokens_unavailable_when_usage_omits_t
         location="us-central1",
         timeout=30.0,
     )
-    monkeypatch.setattr(provider, "_vertex_maas_access_token", _async_return("access-token"))
+    monkeypatch.setattr(
+        provider, "_vertex_maas_access_token", _async_return("access-token")
+    )
 
     response = await provider.invoke(
         LlmRequest(
             provider="vertex",
             model="publishers/openai/models/gpt-oss-120b-maas",
-            messages=(LlmMessage(role="user", content=(LlmMessageContentPart.input_text("What is 7 times 8?"),)),),
+            messages=(
+                LlmMessage(
+                    role="user",
+                    content=(LlmMessageContentPart.input_text("What is 7 times 8?"),),
+                ),
+            ),
             temperature=0.0,
             max_output_tokens=64,
             reasoning_effort="high",
@@ -1264,7 +1337,9 @@ async def test_vertex_maas_keeps_reasoning_tokens_unavailable_when_usage_omits_t
     assert response.usage.reasoning_tokens is None
 
 
-async def test_vertex_provider_routes_maas_models_to_chat_completions(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_provider_routes_maas_models_to_chat_completions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {}
     _patch_google_client(monkeypatch, captured)
@@ -1275,7 +1350,9 @@ async def test_vertex_provider_routes_maas_models_to_chat_completions(monkeypatc
         location="us-central1",
         timeout=30.0,
     )
-    monkeypatch.setattr(provider, "_vertex_maas_access_token", _async_return("access-token"))
+    monkeypatch.setattr(
+        provider, "_vertex_maas_access_token", _async_return("access-token")
+    )
 
     request = LlmRequest(
         provider="vertex",
@@ -1299,11 +1376,27 @@ async def test_vertex_provider_routes_maas_models_to_chat_completions(monkeypatc
 @pytest.mark.parametrize(
     ("model", "expected_location", "expected_host"),
     (
-        ("deepseek-ai/deepseek-v3.1-maas", "us-west2", "https://us-west2-aiplatform.googleapis.com"),
-        ("deepseek-ai/deepseek-v3.2-maas", "global", "https://aiplatform.googleapis.com"),
-        ("publishers/openai/models/gpt-oss-120b-maas", "global", "https://aiplatform.googleapis.com"),
+        (
+            "deepseek-ai/deepseek-v3.1-maas",
+            "us-west2",
+            "https://us-west2-aiplatform.googleapis.com",
+        ),
+        (
+            "deepseek-ai/deepseek-v3.2-maas",
+            "global",
+            "https://aiplatform.googleapis.com",
+        ),
+        (
+            "publishers/openai/models/gpt-oss-120b-maas",
+            "global",
+            "https://aiplatform.googleapis.com",
+        ),
         ("zai-org/glm-5-maas", "global", "https://aiplatform.googleapis.com"),
-        ("publishers/qwen/models/qwen3-next-80b-a3b-instruct-maas", "global", "https://aiplatform.googleapis.com"),
+        (
+            "publishers/qwen/models/qwen3-next-80b-a3b-instruct-maas",
+            "global",
+            "https://aiplatform.googleapis.com",
+        ),
     ),
 )
 async def test_vertex_maas_chat_completions_uses_model_location(
@@ -1317,8 +1410,12 @@ async def test_vertex_maas_chat_completions_uses_model_location(
     _patch_google_client(monkeypatch, captured)
     _patch_vertex_maas_http_client(monkeypatch, captured)
 
-    provider = VertexLlmProvider(project="demo-project", location="us-west4", timeout=30.0)
-    monkeypatch.setattr(provider, "_vertex_maas_access_token", _async_return("access-token"))
+    provider = VertexLlmProvider(
+        project="demo-project", location="us-west4", timeout=30.0
+    )
+    monkeypatch.setattr(
+        provider, "_vertex_maas_access_token", _async_return("access-token")
+    )
 
     await provider.invoke(
         LlmRequest(
@@ -1340,7 +1437,9 @@ async def test_vertex_maas_chat_completions_uses_model_location(
     assert f"/locations/{expected_location}/" in http_call["url"]
 
 
-async def test_vertex_provider_raw_response_metadata_is_json_safe(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_provider_raw_response_metadata_is_json_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     thought_signature = "ZmFrZS10aG91Z2h0LXNpZw=="
 
@@ -1408,16 +1507,20 @@ async def test_vertex_provider_raw_response_metadata_is_json_safe(monkeypatch: p
     assert response.metadata is not None
     raw_response = response.metadata["raw_response"]
     assert isinstance(raw_response, dict)
-    signature_value = raw_response["candidates"][0]["content"]["parts"][0]["thought_signature"]
-    assert isinstance(signature_value, str)
-    assert signature_value == thought_signature
-    payload_signature = response.payload["metadata"]["raw_response"]["candidates"][0]["content"]["parts"][0][
+    signature_value = raw_response["candidates"][0]["content"]["parts"][0][
         "thought_signature"
     ]
+    assert isinstance(signature_value, str)
+    assert signature_value == thought_signature
+    payload_signature = response.payload["metadata"]["raw_response"]["candidates"][0][
+        "content"
+    ]["parts"][0]["thought_signature"]
     assert payload_signature == thought_signature
 
 
-async def test_vertex_provider_normalizes_assistant_and_tool_roles(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_provider_normalizes_assistant_and_tool_roles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {}
     _patch_google_client(monkeypatch, captured)
@@ -1493,7 +1596,9 @@ def test_vertex_codec_rejects_assistant_replay_state_it_cannot_serialize() -> No
                 LlmMessage(
                     role="assistant",
                     content=(LlmMessageContentPart.input_text("answer"),),
-                    reasoning_details=({"type": "reasoning.encrypted", "data": "opaque"},),
+                    reasoning_details=(
+                        {"type": "reasoning.encrypted", "data": "opaque"},
+                    ),
                 ),
             )
         )
@@ -1509,7 +1614,9 @@ def test_vertex_tool_choice_none_disables_function_calling() -> None:
 
 def test_vertex_resolve_thinking_config_returns_none_when_effort_is_null() -> None:
     assert supports_thinking_config(model="gemini-3-pro-preview")
-    config = resolve_thinking_config(model="gemini-3-pro-preview", reasoning_effort=None)
+    config = resolve_thinking_config(
+        model="gemini-3-pro-preview", reasoning_effort=None
+    )
     assert config is None
 
 
@@ -1528,7 +1635,9 @@ def test_normalize_reasoning_effort_rejects_non_positive_budgets() -> None:
 
 
 def test_vertex_resolve_thinking_config_sets_level_with_include_thoughts() -> None:
-    config = resolve_thinking_config(model="gemini-3-pro-preview", reasoning_effort="high")
+    config = resolve_thinking_config(
+        model="gemini-3-pro-preview", reasoning_effort="high"
+    )
     assert config is not None
     assert config.include_thoughts is True
     assert config.thinking_level is not None
@@ -1542,24 +1651,36 @@ def test_vertex_resolve_thinking_config_rejects_numeric_budget() -> None:
 
 def test_vertex_resolve_thinking_config_rejects_gemini_models_before_3() -> None:
     assert not supports_thinking_config(model="gemini-2.5-pro")
-    with pytest.raises(ValueError, match="Vertex Gemini models earlier than 3 are not supported"):
+    with pytest.raises(
+        ValueError, match="Vertex Gemini models earlier than 3 are not supported"
+    ):
         resolve_thinking_config(model="gemini-2.5-pro", reasoning_effort=None)
 
 
-async def test_vertex_provider_rejects_gemini_models_before_3(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_provider_rejects_gemini_models_before_3(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     _patch_google_client(monkeypatch, {})
-    provider = VertexLlmProvider(project="demo-project", location="us-central1", timeout=30.0)
+    provider = VertexLlmProvider(
+        project="demo-project", location="us-central1", timeout=30.0
+    )
     request = LlmRequest(
         provider="vertex",
         model="gemini-2.5-pro",
-        messages=(LlmMessage(role="user", content=(LlmMessageContentPart.input_text("hello"),)),),
+        messages=(
+            LlmMessage(
+                role="user", content=(LlmMessageContentPart.input_text("hello"),)
+            ),
+        ),
         temperature=None,
         max_output_tokens=64,
     )
 
     try:
-        with pytest.raises(ValueError, match="Vertex Gemini models earlier than 3 are not supported"):
+        with pytest.raises(
+            ValueError, match="Vertex Gemini models earlier than 3 are not supported"
+        ):
             provider._build_generation_config(
                 request,
                 system_instruction=None,
@@ -1570,7 +1691,9 @@ async def test_vertex_provider_rejects_gemini_models_before_3(monkeypatch: pytes
         await provider.aclose()
 
 
-def test_vertex_codec_build_choices_separates_thought_text_from_assistant_output() -> None:
+def test_vertex_codec_build_choices_separates_thought_text_from_assistant_output() -> (
+    None
+):
     class _ThoughtPart:
         text = "deliberation"
         function_call = None
@@ -1628,7 +1751,10 @@ def test_vertex_codec_build_choices_preserves_signature_only_text_as_output() ->
     choices = build_choices(_Response())
     message = choices[0].message
 
-    assert tuple(part.text for part in message.content) == ("deliberation", "final answer")
+    assert tuple(part.text for part in message.content) == (
+        "deliberation",
+        "final answer",
+    )
     assert message.reasoning is None
 
 
@@ -1659,9 +1785,13 @@ async def test_vertex_maas_openai_stream_retries_truncated_json_then_succeeds(
         ),
     )
 
-    provider = VertexLlmProvider(project="demo-project", location="global", timeout=30.0)
+    provider = VertexLlmProvider(
+        project="demo-project", location="global", timeout=30.0
+    )
     provider._retry_policy = RetryPolicy(attempts=2, initial_ms=0, max_ms=0, jitter=0.0)
-    monkeypatch.setattr(provider, "_vertex_maas_access_token", _async_return("access-token"))
+    monkeypatch.setattr(
+        provider, "_vertex_maas_access_token", _async_return("access-token")
+    )
 
     request = LlmRequest(
         provider="vertex",
@@ -1710,10 +1840,15 @@ def test_vertex_maas_chat_payload_supports_structured_output() -> None:
         reasoning_effort="high",
     )
 
-    payload = _VertexMaasChatRequest.from_request(request).model_dump(mode="python", exclude_none=True)
+    payload = _VertexMaasChatRequest.from_request(request).model_dump(
+        mode="python", exclude_none=True
+    )
 
     assert payload["response_format"]["type"] == "json_schema"
-    assert payload["response_format"]["json_schema"]["name"] == "_StructuredPairwisePreference"
+    assert (
+        payload["response_format"]["json_schema"]["name"]
+        == "_StructuredPairwisePreference"
+    )
     assert payload["reasoning_effort"] == "high"
     assert "temperature" not in payload
 
@@ -1741,7 +1876,9 @@ def _basic_vertex_maas_request(
 
 
 def test_vertex_maas_thinking_omitted_is_noop() -> None:
-    payload = _VertexMaasChatRequest.from_request(_basic_vertex_maas_request()).model_dump(
+    payload = _VertexMaasChatRequest.from_request(
+        _basic_vertex_maas_request()
+    ).model_dump(
         mode="python",
         exclude_none=True,
     )
@@ -1750,7 +1887,9 @@ def test_vertex_maas_thinking_omitted_is_noop() -> None:
     assert "reasoning_effort" not in payload
 
 
-def test_vertex_maas_deepseek_thinking_enabled_and_disabled_use_template_kwargs() -> None:
+def test_vertex_maas_deepseek_thinking_enabled_and_disabled_use_template_kwargs() -> (
+    None
+):
     enabled = _VertexMaasChatRequest.from_request(
         _basic_vertex_maas_request(thinking=LlmThinkingConfig(enabled=True))
     ).model_dump(mode="python", exclude_none=True)
@@ -1764,7 +1903,9 @@ def test_vertex_maas_deepseek_thinking_enabled_and_disabled_use_template_kwargs(
     assert "reasoning_effort" not in disabled
 
 
-def test_vertex_maas_glm_thinking_disabled_uses_enable_thinking_template_kwarg() -> None:
+def test_vertex_maas_glm_thinking_disabled_uses_enable_thinking_template_kwarg() -> (
+    None
+):
     payload = _VertexMaasChatRequest.from_request(
         _basic_vertex_maas_request(
             model="zai-org/glm-5-maas",
@@ -1776,7 +1917,9 @@ def test_vertex_maas_glm_thinking_disabled_uses_enable_thinking_template_kwarg()
     assert "reasoning_effort" not in payload
 
 
-def test_vertex_maas_reasoning_effort_derives_template_thinking_and_suppresses_raw_effort() -> None:
+def test_vertex_maas_reasoning_effort_derives_template_thinking_and_suppresses_raw_effort() -> (
+    None
+):
     payload = _VertexMaasChatRequest.from_request(
         _basic_vertex_maas_request(
             model="zai-org/glm-5-maas",
@@ -1841,7 +1984,9 @@ def test_vertex_maas_response_payload_maps_reasoning_tool_calls_and_usage() -> N
                             "text": '{"preferred_position":"first"}',
                         }
                     ],
-                    "reasoning_content": [{"text": "I should prefer the first answer."}],
+                    "reasoning_content": [
+                        {"text": "I should prefer the first answer."}
+                    ],
                     "tool_calls": [
                         {
                             "id": "call-1",
@@ -1943,7 +2088,9 @@ def test_vertex_maas_deepseek_v31_strips_truncated_inline_reasoning() -> None:
     assert VertexLlmProvider._verify_response(response) == (False, True, "empty_output")
 
 
-def test_vertex_maas_deepseek_v31_keeps_delimiterless_length_content_as_answer() -> None:
+def test_vertex_maas_deepseek_v31_keeps_delimiterless_length_content_as_answer() -> (
+    None
+):
     payload = {
         "id": "chatcmpl-v31-delimiterless-truncated",
         "model": "deepseek-ai/deepseek-v3.1-maas",
@@ -2010,7 +2157,9 @@ def test_openai_stream_state_deduplicates_vertex_reasoning_keys_per_event() -> N
     payload = _VertexMaasChatResponse.from_stream_state(state)
     assert payload.raw_payload() == {
         "id": "chatcmpl-123",
-        "choices": [{"index": 0, "message": {"content": "", "reasoning_content": "step"}}],
+        "choices": [
+            {"index": 0, "message": {"content": "", "reasoning_content": "step"}}
+        ],
         "usage": None,
     }
 
@@ -2041,8 +2190,12 @@ def test_openai_stream_state_preserves_vertex_multipart_join_semantics() -> None
     merged = state.merge_event(
         event=event,
         reasoning_keys=("reasoning_content", "reasoning"),
-        normalize_content_fragment=lambda value: normalize_openai_text_fragments(value, multipart_joiner="\n\n"),
-        normalize_reasoning_fragment=lambda value: normalize_openai_text_fragments(value, multipart_joiner="\n\n"),
+        normalize_content_fragment=lambda value: normalize_openai_text_fragments(
+            value, multipart_joiner="\n\n"
+        ),
+        normalize_reasoning_fragment=lambda value: normalize_openai_text_fragments(
+            value, multipart_joiner="\n\n"
+        ),
     )
 
     assert merged is True
@@ -2075,11 +2228,11 @@ def test_vertex_maas_response_payload_preserves_multi_event_interleaving() -> No
                         "content": "first ",
                         "reasoning_content": "think-1",
                         "tool_calls": [
-                                {
-                                    "index": 0,
-                                    "id": "call-1",
-                                    "type": "function",
-                                    "function": {
+                            {
+                                "index": 0,
+                                "id": "call-1",
+                                "type": "function",
+                                "function": {
                                     "name": "lookup",
                                     "arguments": '{"q":',
                                 },
@@ -2148,7 +2301,10 @@ def test_vertex_maas_openai_chat_model_name_strips_publisher_prefix() -> None:
         vertex_maas_openai_chat_model_name("publishers/openai/models/gpt-oss-120b-maas")
         == "openai/gpt-oss-120b-maas"
     )
-    assert vertex_maas_openai_chat_model_name("openai/gpt-oss-120b-maas") == "openai/gpt-oss-120b-maas"
+    assert (
+        vertex_maas_openai_chat_model_name("openai/gpt-oss-120b-maas")
+        == "openai/gpt-oss-120b-maas"
+    )
 
 
 def test_vertex_verify_response_still_rejects_reasoning_only_output() -> None:
@@ -2173,7 +2329,9 @@ def test_vertex_verify_response_still_rejects_reasoning_only_output() -> None:
     assert VertexLlmProvider._verify_response(response) == (False, True, "empty_output")
 
 
-async def test_vertex_provider_routes_claude_models_to_anthropic(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_provider_routes_claude_models_to_anthropic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {"vertex_calls": 0, "anthropic_calls": 0}
     _patch_google_client(monkeypatch, captured)
@@ -2313,11 +2471,18 @@ async def test_vertex_claude_stream_default_reconstructs_final_response(
     assert captured_stream_kwargs["timeout"] == pytest.approx(300.0)
     assert response.raw_text == "ok"
     assert response.metadata is not None
-    assert response.metadata["raw_response"] == {"id": "claude-stream-response", "mode": "json"}
+    assert response.metadata["raw_response"] == {
+        "id": "claude-stream-response",
+        "mode": "json",
+    }
     assert isinstance(response.metadata["ttft_ms"], float)
     assert response.metadata["ttft_ms"] >= 0.0
 
-    records = [record for record in caplog.records if record.message == "llm.vertex.stream.ttft"]
+    records = [
+        record
+        for record in caplog.records
+        if record.message == "llm.vertex.stream.ttft"
+    ]
     assert records
     data = records[0].__dict__["data"]
     assert data["branch"] == "claude"
@@ -2325,7 +2490,9 @@ async def test_vertex_claude_stream_default_reconstructs_final_response(
     assert data["ttft_ms"] >= 0.0
 
 
-async def test_vertex_claude_thinking_forces_temperature_one(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_claude_thinking_forces_temperature_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {}
     _patch_google_client(monkeypatch, captured)
@@ -2391,7 +2558,11 @@ async def test_vertex_claude_thinking_forces_temperature_one(monkeypatch: pytest
         LlmRequest(
             provider="vertex",
             model="/anthropic/models/claude-sonnet-4-5@20250929",
-            messages=(LlmMessage(role="user", content=(LlmMessageContentPart.input_text("hello"),)),),
+            messages=(
+                LlmMessage(
+                    role="user", content=(LlmMessageContentPart.input_text("hello"),)
+                ),
+            ),
             temperature=0.2,
             max_output_tokens=2048,
             reasoning_effort="1024",
@@ -2399,7 +2570,10 @@ async def test_vertex_claude_thinking_forces_temperature_one(monkeypatch: pytest
     )
 
     assert captured_stream_kwargs["temperature"] == pytest.approx(1.0)
-    assert captured_stream_kwargs["thinking"] == {"type": "enabled", "budget_tokens": 1024}
+    assert captured_stream_kwargs["thinking"] == {
+        "type": "enabled",
+        "budget_tokens": 1024,
+    }
 
 
 def test_vertex_claude_response_maps_thinking_text_without_reasoning_tokens() -> None:
@@ -2439,7 +2613,9 @@ async def test_vertex_maas_payload_forces_stream_even_when_extra_overrides() -> 
         extra={"stream": False},
     )
 
-    payload = _VertexMaasChatRequest.from_request(request).model_dump(mode="python", exclude_none=True)
+    payload = _VertexMaasChatRequest.from_request(request).model_dump(
+        mode="python", exclude_none=True
+    )
 
     assert payload["stream"] is True
     assert payload["stream_options"] == {
@@ -2472,7 +2648,9 @@ async def test_vertex_provider_aclose_closes_owned_clients(
     assert anthropic_clients[0].closed is True
 
 
-def test_vertex_provider_writes_base64_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_vertex_provider_writes_base64_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {}
 
@@ -2516,19 +2694,28 @@ def test_vertex_provider_writes_base64_credentials(monkeypatch: pytest.MonkeyPat
                 return None
 
             class _Models:
-                async def generate_content(self, *, model: str, contents: Any, config: Any) -> FakeResponse:
+                async def generate_content(
+                    self, *, model: str, contents: Any, config: Any
+                ) -> FakeResponse:
                     return FakeResponse()
 
-    monkeypatch.setattr("harnyx_commons.llm.providers.vertex.credentials.ServiceAccountCredentials", FakeCredentials)
-    monkeypatch.setattr("harnyx_commons.llm.providers.vertex.provider.genai.Client", FakeClient)
+    monkeypatch.setattr(
+        "harnyx_commons.llm.providers.vertex.credentials.ServiceAccountCredentials",
+        FakeCredentials,
+    )
+    monkeypatch.setattr(
+        "harnyx_commons.llm.providers.vertex.provider.genai.Client", FakeClient
+    )
 
-    service_account_payload = json.dumps({
-        "type": "service_account",
-        "client_email": "vertex@test-project.iam.gserviceaccount.com",
-        "private_key_id": "abc123",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
-        "token_uri": "https://oauth2.googleapis.com/token",
-    })
+    service_account_payload = json.dumps(
+        {
+            "type": "service_account",
+            "client_email": "vertex@test-project.iam.gserviceaccount.com",
+            "private_key_id": "abc123",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
+    )
     encoded = base64.b64encode(service_account_payload.encode()).decode()
 
     VertexLlmProvider(
@@ -2539,7 +2726,9 @@ def test_vertex_provider_writes_base64_credentials(monkeypatch: pytest.MonkeyPat
     )
 
 
-async def test_vertex_provider_injects_google_search_tool(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_provider_injects_google_search_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {}
     _patch_google_client(monkeypatch, captured)
@@ -2574,7 +2763,9 @@ async def test_vertex_provider_injects_google_search_tool(monkeypatch: pytest.Mo
     assert config.thinking_config is None
 
 
-async def test_vertex_provider_includes_provider_native_grounded_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_provider_includes_provider_native_grounded_tools(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {}
     _patch_google_client(monkeypatch, captured)
@@ -2604,7 +2795,9 @@ async def test_vertex_provider_includes_provider_native_grounded_tools(monkeypat
                         "external_api": {
                             "api_spec": "ELASTIC_SEARCH",
                             "endpoint": "https://elastic.example.com",
-                            "api_auth": {"api_key_config": {"api_key_string": "ApiKey test"}},
+                            "api_auth": {
+                                "api_key_config": {"api_key_string": "ApiKey test"}
+                            },
                             "elastic_search_params": {
                                 "index": "feed-eval-alias",
                                 "search_template": "feed_eval_hybrid_v1",
@@ -2632,7 +2825,9 @@ async def test_vertex_provider_includes_provider_native_grounded_tools(monkeypat
     assert external_api.elastic_search_params.search_template == "feed_eval_hybrid_v1"
 
 
-async def test_vertex_serializes_input_tool_result_as_function_response(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_vertex_serializes_input_tool_result_as_function_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     captured: dict[str, Any] = {}
     _patch_google_client(monkeypatch, captured)

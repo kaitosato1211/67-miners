@@ -20,7 +20,12 @@ from harnyx_commons.tools.api import (
 )
 from harnyx_commons.tools.proxy import ToolInvocationError, ToolProxy
 from harnyx_miner_sdk._internal.tool_invoker import bind_tool_invoker
-from harnyx_miner_sdk.llm import LlmInputImageData, LlmInputImagePart, LlmInputTextPart, LlmMessage
+from harnyx_miner_sdk.llm import (
+    LlmInputImageData,
+    LlmInputImagePart,
+    LlmInputTextPart,
+    LlmMessage,
+)
 from harnyx_miner_sdk.sandbox_headers import SESSION_ID_HEADER
 from harnyx_miner_sdk.tools import proxy as proxy_module
 
@@ -92,7 +97,9 @@ async def test_tool_proxy_invokes_endpoint_with_token() -> None:
 
 
 async def test_tool_proxy_raises_on_http_error() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover - executed via proxy
+    def handler(
+        request: httpx.Request,
+    ) -> httpx.Response:  # pragma: no cover - executed via proxy
         return httpx.Response(500)
 
     transport = httpx.MockTransport(handler)
@@ -142,7 +149,9 @@ async def test_search_web_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -155,7 +164,11 @@ async def test_search_web_helper_invokes_tool_proxy() -> None:
     assert result.results[0].url == "https://example.com"
     payload = captured["payload"]
     assert payload["tool"] == "search_web"
-    assert payload["kwargs"] == {"provider": "parallel", "search_queries": ["harnyx", "subnet"], "num": 3}
+    assert payload["kwargs"] == {
+        "provider": "parallel",
+        "search_queries": ["harnyx", "subnet"],
+        "num": 3,
+    }
 
 
 async def test_search_web_helper_normalizes_plain_string_query() -> None:
@@ -183,7 +196,9 @@ async def test_search_web_helper_normalizes_plain_string_query() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -194,7 +209,11 @@ async def test_search_web_helper_normalizes_plain_string_query() -> None:
     assert result.receipt_id == "r2"
     payload = captured["payload"]
     assert payload["tool"] == "search_web"
-    assert payload["kwargs"] == {"provider": "parallel", "search_queries": ["harnyx subnet"], "num": 3}
+    assert payload["kwargs"] == {
+        "provider": "parallel",
+        "search_queries": ["harnyx subnet"],
+        "num": 3,
+    }
 
 
 async def test_search_web_helper_invokes_tool_proxy_with_timeout() -> None:
@@ -215,11 +234,15 @@ async def test_search_web_helper_invokes_tool_proxy_with_timeout() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
-            result = await search_web("harnyx subnet", provider="parallel", num=3, timeout=5)
+            result = await search_web(
+                "harnyx subnet", provider="parallel", num=3, timeout=5
+            )
     finally:
         await proxy.aclose()
 
@@ -252,7 +275,9 @@ async def test_search_web_helper_forwards_validated_provider_extra() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -271,7 +296,9 @@ async def test_search_web_helper_forwards_validated_provider_extra() -> None:
     }
 
 
-async def test_search_web_helper_rejects_generated_provider_output_before_proxy_call() -> None:
+async def test_search_web_helper_rejects_generated_provider_output_before_proxy_call() -> (
+    None
+):
     def handler(_request: httpx.Request) -> httpx.Response:
         raise AssertionError("invalid provider_extra must fail before transport")
 
@@ -279,7 +306,9 @@ async def test_search_web_helper_rejects_generated_provider_output_before_proxy_
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -317,7 +346,9 @@ async def test_embed_text_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -372,7 +403,9 @@ async def test_embed_text_helper_forwards_openrouter_provider_extra() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -381,7 +414,9 @@ async def test_embed_text_helper_forwards_openrouter_provider_extra() -> None:
                 input_type="query",
                 provider="openrouter",
                 model="qwen/qwen3-embedding-8b",
-                provider_extra={"provider": {"only": ["nebius"], "allow_fallbacks": False}},
+                provider_extra={
+                    "provider": {"only": ["nebius"], "allow_fallbacks": False}
+                },
             )
     finally:
         await proxy.aclose()
@@ -395,15 +430,21 @@ async def test_embed_text_helper_forwards_openrouter_provider_extra() -> None:
     }
 
 
-async def test_embed_text_helper_rejects_chutes_provider_extra_before_proxy_call() -> None:
+async def test_embed_text_helper_rejects_chutes_provider_extra_before_proxy_call() -> (
+    None
+):
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("embed_text should reject chutes provider_extra before invoking the tool proxy")
+        raise AssertionError(
+            "embed_text should reject chutes provider_extra before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -421,13 +462,17 @@ async def test_embed_text_helper_rejects_chutes_provider_extra_before_proxy_call
 
 async def test_search_web_helper_rejects_removed_start_pagination() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("search_web should reject unsupported start before invoking the tool proxy")
+        raise AssertionError(
+            "search_web should reject unsupported start before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -476,7 +521,9 @@ async def test_tooling_info_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -508,7 +555,9 @@ async def test_tooling_info_helper_invokes_tool_proxy_with_timeout() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -539,7 +588,9 @@ async def test_test_tool_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -572,7 +623,9 @@ async def test_test_tool_helper_invokes_tool_proxy_with_timeout() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -597,7 +650,13 @@ async def test_fetch_page_helper_invokes_tool_proxy() -> None:
             json={
                 "receipt_id": "page-1",
                 "response": {
-                    "data": [{"url": "https://example.com", "content": "page body", "title": "Example"}]
+                    "data": [
+                        {
+                            "url": "https://example.com",
+                            "content": "page body",
+                            "title": "Example",
+                        }
+                    ]
                 },
                 "results": [
                     {
@@ -622,7 +681,9 @@ async def test_fetch_page_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -648,7 +709,13 @@ async def test_fetch_page_helper_invokes_tool_proxy_with_timeout() -> None:
             json={
                 "receipt_id": "page-1",
                 "response": {
-                    "data": [{"url": "https://example.com", "content": "page body", "title": "Example"}]
+                    "data": [
+                        {
+                            "url": "https://example.com",
+                            "content": "page body",
+                            "title": "Example",
+                        }
+                    ]
                 },
                 "results": [
                     {
@@ -673,18 +740,26 @@ async def test_fetch_page_helper_invokes_tool_proxy_with_timeout() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
-            result = await fetch_page("https://example.com", provider="parallel", timeout=5)
+            result = await fetch_page(
+                "https://example.com", provider="parallel", timeout=5
+            )
     finally:
         await proxy.aclose()
 
     assert result.receipt_id == "page-1"
     payload = captured["payload"]
     assert payload["tool"] == "fetch_page"
-    assert payload["kwargs"] == {"provider": "parallel", "url": "https://example.com", "timeout": 5.0}
+    assert payload["kwargs"] == {
+        "provider": "parallel",
+        "url": "https://example.com",
+        "timeout": 5.0,
+    }
 
 
 async def _call_search_web_with_timeout(timeout: object) -> object:
@@ -722,19 +797,25 @@ async def _call_test_tool_with_timeout(timeout: object) -> object:
         _call_test_tool_with_timeout,
     ],
 )
-@pytest.mark.parametrize("timeout", [0, -1.0, float("nan"), float("inf"), float("-inf"), "5", True])
+@pytest.mark.parametrize(
+    "timeout", [0, -1.0, float("nan"), float("inf"), float("-inf"), "5", True]
+)
 async def test_tool_helpers_reject_invalid_timeout_values(
     invoke_helper: Callable[[object], Awaitable[object]],
     timeout: object,
 ) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("tool helper should reject invalid timeout before invoking the tool proxy")
+        raise AssertionError(
+            "tool helper should reject invalid timeout before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -769,7 +850,11 @@ async def test_llm_chat_helper_invokes_tool_proxy() -> None:
                             },
                         }
                     ],
-                    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    "usage": {
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                     "citations": [],
                 },
                 "results": [
@@ -793,7 +878,9 @@ async def test_llm_chat_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -842,7 +929,11 @@ async def test_llm_chat_helper_invokes_tool_proxy_with_timeout() -> None:
                             },
                         }
                     ],
-                    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    "usage": {
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 },
             ),
         )
@@ -851,7 +942,9 @@ async def test_llm_chat_helper_invokes_tool_proxy_with_timeout() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -893,7 +986,11 @@ async def test_llm_chat_helper_forwards_openrouter_provider_extra() -> None:
                             },
                         }
                     ],
-                    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    "usage": {
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 },
             ),
         )
@@ -902,7 +999,9 @@ async def test_llm_chat_helper_forwards_openrouter_provider_extra() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -922,7 +1021,9 @@ async def test_llm_chat_helper_forwards_openrouter_provider_extra() -> None:
     assert payload["kwargs"]["provider_extra"] == {"provider": {"only": ["cerebras"]}}
 
 
-async def test_llm_chat_helper_normalizes_ai_gateway_provider_extra_to_provider_options() -> None:
+async def test_llm_chat_helper_normalizes_ai_gateway_provider_extra_to_provider_options() -> (
+    None
+):
     captured: dict[str, dict[str, object]] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -942,7 +1043,11 @@ async def test_llm_chat_helper_normalizes_ai_gateway_provider_extra_to_provider_
                             },
                         }
                     ],
-                    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    "usage": {
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 },
             ),
         )
@@ -951,7 +1056,9 @@ async def test_llm_chat_helper_normalizes_ai_gateway_provider_extra_to_provider_
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -968,18 +1075,26 @@ async def test_llm_chat_helper_normalizes_ai_gateway_provider_extra_to_provider_
     payload = captured["payload"]
     assert payload["tool"] == "llm_chat"
     assert payload["kwargs"]["provider"] == "ai_gateway"
-    assert payload["kwargs"]["provider_extra"] == {"providerOptions": {"gateway": {"only": ["cerebras"]}}}
+    assert payload["kwargs"]["provider_extra"] == {
+        "providerOptions": {"gateway": {"only": ["cerebras"]}}
+    }
 
 
-async def test_llm_chat_helper_rejects_chutes_provider_extra_before_proxy_call() -> None:
+async def test_llm_chat_helper_rejects_chutes_provider_extra_before_proxy_call() -> (
+    None
+):
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("llm_chat should reject chutes provider_extra before invoking the tool proxy")
+        raise AssertionError(
+            "llm_chat should reject chutes provider_extra before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -996,13 +1111,17 @@ async def test_llm_chat_helper_rejects_chutes_provider_extra_before_proxy_call()
 
 async def test_llm_chat_helper_rejects_thinking_effort_and_budget() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("llm_chat should reject invalid thinking before invoking the tool proxy")
+        raise AssertionError(
+            "llm_chat should reject invalid thinking before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -1019,13 +1138,17 @@ async def test_llm_chat_helper_rejects_thinking_effort_and_budget() -> None:
 
 async def test_llm_chat_helper_rejects_coerced_thinking_scalars() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("llm_chat should reject invalid thinking before invoking the tool proxy")
+        raise AssertionError(
+            "llm_chat should reject invalid thinking before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -1060,7 +1183,11 @@ async def test_llm_chat_helper_serializes_complete_tool_loop_request() -> None:
                             },
                         }
                     ],
-                    "usage": {"prompt_tokens": 2, "completion_tokens": 2, "total_tokens": 4},
+                    "usage": {
+                        "prompt_tokens": 2,
+                        "completion_tokens": 2,
+                        "total_tokens": 4,
+                    },
                 },
             ),
         )
@@ -1069,7 +1196,9 @@ async def test_llm_chat_helper_serializes_complete_tool_loop_request() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     messages = [
         {"role": "user", "content": "Weather in Paris?"},
@@ -1109,7 +1238,10 @@ async def test_llm_chat_helper_serializes_complete_tool_loop_request() -> None:
                 model="openai/gpt-oss-20b",
                 messages=messages,
                 tools=tools,
-                tool_choice={"type": "function", "function": {"name": "lookup_weather"}},
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "lookup_weather"},
+                },
                 parallel_tool_calls=True,
                 max_tokens=512,
             )
@@ -1119,21 +1251,30 @@ async def test_llm_chat_helper_serializes_complete_tool_loop_request() -> None:
     kwargs = captured["payload"]["kwargs"]
     assert kwargs["messages"] == messages
     assert kwargs["tools"] == tools
-    assert kwargs["tool_choice"] == {"type": "function", "function": {"name": "lookup_weather"}}
+    assert kwargs["tool_choice"] == {
+        "type": "function",
+        "function": {"name": "lookup_weather"},
+    }
     assert kwargs["parallel_tool_calls"] is True
     assert kwargs["max_output_tokens"] == 512
     assert "max_tokens" not in kwargs
 
 
-async def test_llm_chat_helper_rejects_typed_message_parts_it_cannot_serialize() -> None:
+async def test_llm_chat_helper_rejects_typed_message_parts_it_cannot_serialize() -> (
+    None
+):
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("unsupported typed message parts must fail before proxy I/O")
+        raise AssertionError(
+            "unsupported typed message parts must fail before proxy I/O"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -1146,7 +1287,11 @@ async def test_llm_chat_helper_rejects_typed_message_parts_it_cannot_serialize()
                             role="user",
                             content=(
                                 LlmInputTextPart(text="Describe this image."),
-                                LlmInputImagePart(data=LlmInputImageData(url="https://example.com/image.png")),
+                                LlmInputImagePart(
+                                    data=LlmInputImageData(
+                                        url="https://example.com/image.png"
+                                    )
+                                ),
                             ),
                         )
                     ],
@@ -1159,7 +1304,9 @@ async def test_llm_chat_helper_rejects_typed_message_parts_it_cannot_serialize()
     ("field", "value"),
     (("include", ["sources"]), ("response_format", "json")),
 )
-async def test_llm_chat_helper_rejects_removed_fields_before_proxy_io(field: str, value: object) -> None:
+async def test_llm_chat_helper_rejects_removed_fields_before_proxy_io(
+    field: str, value: object
+) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise AssertionError("removed llm_chat fields must fail before proxy I/O")
 
@@ -1167,7 +1314,9 @@ async def test_llm_chat_helper_rejects_removed_fields_before_proxy_io(field: str
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):

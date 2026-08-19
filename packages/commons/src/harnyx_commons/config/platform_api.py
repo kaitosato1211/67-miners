@@ -19,7 +19,9 @@ class PlatformApiSettings(BaseSettings):
     )
 
     platform_base_url: str | None = Field(default=None, alias="PLATFORM_BASE_URL")
-    validator_public_base_url: str | None = Field(default=None, alias="VALIDATOR_PUBLIC_BASE_URL")
+    validator_public_base_url: str | None = Field(
+        default=None, alias="VALIDATOR_PUBLIC_BASE_URL"
+    )
 
 
 __all__ = ["PlatformApiSettings"]

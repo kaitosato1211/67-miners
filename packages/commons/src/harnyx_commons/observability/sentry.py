@@ -46,10 +46,16 @@ def configure_sentry_sdk_from_env(
     dotenv_env = _dotenv_bootstrap_env()
     _configure_sentry_sdk(
         dsn=_clean_optional(_bootstrap_env_value(dsn_env_var, dotenv_env)) or "",
-        environment=_clean_optional(_bootstrap_env_value("SENTRY_ENVIRONMENT", dotenv_env)),
+        environment=_clean_optional(
+            _bootstrap_env_value("SENTRY_ENVIRONMENT", dotenv_env)
+        ),
         release=_clean_optional(_bootstrap_env_value("SENTRY_RELEASE", dotenv_env)),
-        traces_sample_rate=_clean_sample_rate(_bootstrap_env_value("SENTRY_TRACES_SAMPLE_RATE", dotenv_env)),
-        send_default_pii=_clean_bool(_bootstrap_env_value("SENTRY_SEND_DEFAULT_PII", dotenv_env)),
+        traces_sample_rate=_clean_sample_rate(
+            _bootstrap_env_value("SENTRY_TRACES_SAMPLE_RATE", dotenv_env)
+        ),
+        send_default_pii=_clean_bool(
+            _bootstrap_env_value("SENTRY_SEND_DEFAULT_PII", dotenv_env)
+        ),
         enable_logs=_clean_bool(_bootstrap_env_value("SENTRY_ENABLE_LOGS", dotenv_env)),
         debug=_clean_bool(_bootstrap_env_value("SENTRY_DEBUG", dotenv_env)),
         before_send=before_send,
@@ -100,7 +106,12 @@ def capture_exception(
     cleaned_extras = _clean_scope_payload(extras)
     cleaned_fingerprint = _clean_fingerprint(fingerprint)
 
-    if not cleaned_tags and not cleaned_context and not cleaned_extras and cleaned_fingerprint is None:
+    if (
+        not cleaned_tags
+        and not cleaned_context
+        and not cleaned_extras
+        and cleaned_fingerprint is None
+    ):
         _capture_exception(exc)
         return
 

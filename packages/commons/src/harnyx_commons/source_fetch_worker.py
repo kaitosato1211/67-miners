@@ -31,7 +31,9 @@ def main() -> None:
     except SourceFetchError as exc:
         _write_error(exc.code, str(exc))
     except BaseException as exc:
-        _write_error("source_unavailable", f"source fetch failed: {type(exc).__name__}: {exc}")
+        _write_error(
+            "source_unavailable", f"source fetch failed: {type(exc).__name__}: {exc}"
+        )
 
 
 def _write(payload: bytes) -> None:
@@ -42,7 +44,9 @@ def _write(payload: bytes) -> None:
 
 def _write_error(code: str, message: str) -> None:
     try:
-        payload = json.dumps({"code": code[:64], "message": message[:2_000]}).encode("utf-8")
+        payload = json.dumps({"code": code[:64], "message": message[:2_000]}).encode(
+            "utf-8"
+        )
     except BaseException:
         payload = b'{"code":"source_unavailable","message":"source fetch failed"}'
     _write(b"E" + payload)

@@ -34,7 +34,9 @@ from harnyx_commons.llm.provider_types import BEDROCK_PROVIDER
 from harnyx_commons.llm.providers.chutes import ChutesTextEmbeddingClient
 from harnyx_commons.llm.providers.openrouter import OpenRouterEmbeddingClient
 from harnyx_commons.llm.schema import AbstractLlmRequest, LlmResponse
-from harnyx_commons.platform_tool_proxy import platform_tool_proxy_effective_provider_timeout_seconds
+from harnyx_commons.platform_tool_proxy import (
+    platform_tool_proxy_effective_provider_timeout_seconds,
+)
 from harnyx_commons.tools.desearch import DeSearchClient
 from harnyx_commons.tools.embedding_models import (
     QWEN3_DEFAULT_QUERY_INSTRUCTION,
@@ -101,7 +103,9 @@ def build_tool_invocation_clients(
     return ToolInvocationClients(
         search_client=search_client,
         ai_search_client=ai_search_client,
-        search_provider_registry=CachedWebSearchProviderRegistry(llm_settings=llm_settings),
+        search_provider_registry=CachedWebSearchProviderRegistry(
+            llm_settings=llm_settings
+        ),
         llm_provider_registry=provider_registry,
         tool_llm_provider=(
             build_optional_tool_llm_provider(llm_settings, provider_registry)
@@ -109,14 +113,18 @@ def build_tool_invocation_clients(
             else None
         ),
         embedding_provider=build_optional_tool_embedding_provider(llm_settings),
-        embedding_provider_registry=CachedEmbeddingProviderRegistry(llm_settings=llm_settings),
+        embedding_provider_registry=CachedEmbeddingProviderRegistry(
+            llm_settings=llm_settings
+        ),
     )
 
 
 def validate_tool_invocation_provider_policy(llm_settings: LlmSettings) -> None:
     if llm_settings.tool_llm_provider == BEDROCK_PROVIDER:
         raise ValueError("TOOL_LLM_PROVIDER='bedrock' is not supported")
-    for provider_name in llm_settings.llm_model_provider_overrides.get("tool", {}).values():
+    for provider_name in llm_settings.llm_model_provider_overrides.get(
+        "tool", {}
+    ).values():
         if provider_name == BEDROCK_PROVIDER:
             raise ValueError("TOOL_LLM_PROVIDER='bedrock' is not supported")
 
@@ -127,7 +135,9 @@ def build_optional_tool_llm_provider(
 ) -> LlmProviderPort | None:
     if llm_settings.tool_llm_provider is None:
         return None
-    return LazyLlmProvider(lambda: build_tool_llm_provider(llm_settings, provider_registry))
+    return LazyLlmProvider(
+        lambda: build_tool_llm_provider(llm_settings, provider_registry)
+    )
 
 
 def build_tool_llm_provider(
@@ -144,8 +154,12 @@ def build_tool_llm_provider(
     )
 
 
-def build_optional_tool_embedding_provider(llm_settings: LlmSettings) -> EmbeddingProviderPort | None:
-    provider = parse_miner_selected_embedding_provider(llm_settings.tool_embedding_provider)
+def build_optional_tool_embedding_provider(
+    llm_settings: LlmSettings,
+) -> EmbeddingProviderPort | None:
+    provider = parse_miner_selected_embedding_provider(
+        llm_settings.tool_embedding_provider
+    )
     api_key = _embedding_api_key(provider=provider, llm_settings=llm_settings)
     if not api_key.get_secret_value().strip():
         return None
@@ -165,7 +179,9 @@ def build_miner_paid_embedding_provider(
 ) -> EmbeddingProviderPort:
     provider_name = _parse_embedding_provider(provider)
     explicit_key = _validated_api_key(api_key, provider=provider_name)
-    timeout_seconds = _effective_client_timeout(llm_settings.llm_timeout_seconds, timeout)
+    timeout_seconds = _effective_client_timeout(
+        llm_settings.llm_timeout_seconds, timeout
+    )
     match provider_name:
         case "chutes":
             return ChutesEmbeddingProvider(
@@ -173,12 +189,16 @@ def build_miner_paid_embedding_provider(
                 timeout_seconds=timeout_seconds,
             )
         case "openrouter":
-            return OpenRouterEmbeddingProvider(api_key=explicit_key, timeout_seconds=timeout_seconds)
+            return OpenRouterEmbeddingProvider(
+                api_key=explicit_key, timeout_seconds=timeout_seconds
+            )
     raise AssertionError(f"unsupported parsed embedding provider: {provider_name}")
 
 
 class CachedWebSearchProviderRegistry:
-    def __init__(self, *, llm_settings: LlmSettings, include_payloads_in_logs: bool = True) -> None:
+    def __init__(
+        self, *, llm_settings: LlmSettings, include_payloads_in_logs: bool = True
+    ) -> None:
         self._llm_settings = llm_settings
         self._include_payloads_in_logs = include_payloads_in_logs
         self._cache: dict[SearchProviderName, WebSearchProviderPort] = {}
@@ -187,7 +207,9 @@ class CachedWebSearchProviderRegistry:
         provider_name = parse_search_provider_name(provider)
         search_provider = self._cache.get(provider_name)
         if search_provider is None:
-            _require_configured_search_credential(provider=provider_name, llm_settings=self._llm_settings)
+            _require_configured_search_credential(
+                provider=provider_name, llm_settings=self._llm_settings
+            )
             search_provider = build_web_search_provider_for_name(
                 self._llm_settings,
                 provider_name,
@@ -226,7 +248,9 @@ class CachedEmbeddingProviderRegistry:
         provider_name = parse_miner_selected_embedding_provider(provider)
         embedding_provider = self._cache.get(provider_name)
         if embedding_provider is None:
-            api_key = _embedding_api_key(provider=provider_name, llm_settings=self._llm_settings)
+            api_key = _embedding_api_key(
+                provider=provider_name, llm_settings=self._llm_settings
+            )
             if not api_key.get_secret_value().strip():
                 raise ProviderCredentialUnavailableError(provider_name)
             embedding_provider = build_miner_paid_embedding_provider(
@@ -252,7 +276,9 @@ class CachedEmbeddingProviderRegistry:
 def build_web_search_provider(llm_settings: LlmSettings) -> WebSearchProviderPort:
     if llm_settings.search_provider is None:
         raise RuntimeError("SEARCH_PROVIDER must be configured")
-    return build_web_search_provider_for_name(llm_settings, llm_settings.search_provider)
+    return build_web_search_provider_for_name(
+        llm_settings, llm_settings.search_provider
+    )
 
 
 def build_web_search_provider_for_name(
@@ -351,7 +377,9 @@ def build_miner_paid_web_search_provider(
             timeout=_effective_client_timeout(TAVILY.timeout_seconds, timeout),
             max_concurrent=None,
         )
-    raise AssertionError(f"unsupported parsed miner-paid search provider: {provider_name}")
+    raise AssertionError(
+        f"unsupported parsed miner-paid search provider: {provider_name}"
+    )
 
 
 def build_miner_paid_ai_search_provider(
@@ -394,7 +422,10 @@ def _build_optional_search_clients(
         )
         return client, ai_client
     if llm_settings.search_provider not in AI_SEARCH_PROVIDER_NAMES:
-        return LazyWebSearchProvider(lambda: build_web_search_provider(llm_settings)), None
+        return (
+            LazyWebSearchProvider(lambda: build_web_search_provider(llm_settings)),
+            None,
+        )
     client = LazySearchProvider(lambda: build_web_search_provider(llm_settings))
     return client, client
 
@@ -411,7 +442,9 @@ def _validated_api_key(api_key: SecretStr | str, *, provider: str) -> SecretStr:
     return SecretStr(normalized)
 
 
-def _embedding_api_key(*, provider: EmbeddingProviderName, llm_settings: LlmSettings) -> SecretStr:
+def _embedding_api_key(
+    *, provider: EmbeddingProviderName, llm_settings: LlmSettings
+) -> SecretStr:
     match provider:
         case "chutes":
             return llm_settings.chutes_api_key
@@ -420,7 +453,9 @@ def _embedding_api_key(*, provider: EmbeddingProviderName, llm_settings: LlmSett
     raise AssertionError(f"unsupported parsed embedding provider: {provider}")
 
 
-def _require_configured_search_credential(*, provider: SearchProviderName, llm_settings: LlmSettings) -> None:
+def _require_configured_search_credential(
+    *, provider: SearchProviderName, llm_settings: LlmSettings
+) -> None:
     api_key = {
         "desearch": llm_settings.desearch_api_key_value,
         "parallel": llm_settings.parallel_api_key_value,
@@ -432,8 +467,12 @@ def _require_configured_search_credential(*, provider: SearchProviderName, llm_s
         raise ProviderCredentialUnavailableError(provider)
 
 
-def _effective_client_timeout(default_timeout: float, requested_timeout: float | None) -> float:
-    return platform_tool_proxy_effective_provider_timeout_seconds(default_timeout, requested_timeout)
+def _effective_client_timeout(
+    default_timeout: float, requested_timeout: float | None
+) -> float:
+    return platform_tool_proxy_effective_provider_timeout_seconds(
+        default_timeout, requested_timeout
+    )
 
 
 class LazyLlmProvider(LlmProviderPort):
@@ -520,16 +559,22 @@ class ChutesEmbeddingProvider(EmbeddingProviderPort):
         request: EmbedTextRequest,
     ) -> EmbeddingProviderResult:
         if request.provider != "chutes":
-            raise ValueError(f"embedding provider {request.provider!r} is not supported")
+            raise ValueError(
+                f"embedding provider {request.provider!r} is not supported"
+            )
         client = self._client_for(model=request.model, dimensions=request.dimensions)
         started_at = time.perf_counter()
         provider_response = await client.embed_many(
             _format_embedding_texts(request),
-            timeout_seconds=_effective_client_timeout(self._timeout_seconds, request.timeout),
+            timeout_seconds=_effective_client_timeout(
+                self._timeout_seconds, request.timeout
+            ),
         )
         elapsed_seconds = time.perf_counter() - started_at
         if len(provider_response.vectors) != len(request.texts):
-            raise RuntimeError("embedding response count does not match request text count")
+            raise RuntimeError(
+                "embedding response count does not match request text count"
+            )
 
         usage = None
         if provider_response.usage is not None:
@@ -538,7 +583,9 @@ class ChutesEmbeddingProvider(EmbeddingProviderPort):
                 total_tokens=provider_response.usage.total_tokens,
             )
 
-        cost_usd = price_embedding(request.provider, request.model, elapsed_seconds=elapsed_seconds)
+        cost_usd = price_embedding(
+            request.provider, request.model, elapsed_seconds=elapsed_seconds
+        )
         pricing = MINER_TOOL_EMBEDDING_PRICING[request.provider][request.model]
         response = EmbedTextResponse(
             provider=request.provider,
@@ -579,7 +626,9 @@ class ChutesEmbeddingProvider(EmbeddingProviderPort):
         if errors:
             raise ExceptionGroup("cached embedding provider cleanup failed", errors)
 
-    def _client_for(self, *, model: str, dimensions: int | None) -> ChutesTextEmbeddingClient:
+    def _client_for(
+        self, *, model: str, dimensions: int | None
+    ) -> ChutesTextEmbeddingClient:
         key = (model, dimensions)
         client = self._clients.get(key)
         if client is None:
@@ -604,13 +653,23 @@ class OpenRouterEmbeddingProvider(EmbeddingProviderPort):
         request: EmbedTextRequest,
     ) -> EmbeddingProviderResult:
         if request.provider != "openrouter":
-            raise ValueError(f"embedding provider {request.provider!r} is not supported")
+            raise ValueError(
+                f"embedding provider {request.provider!r} is not supported"
+            )
         client = self._client_for(model=request.model, dimensions=request.dimensions)
         formatted_texts = _format_embedding_texts(request)
-        request_extra = request.provider_extra.to_request_extra() if request.provider_extra is not None else None
-        timeout_seconds = _effective_client_timeout(self._timeout_seconds, request.timeout)
+        request_extra = (
+            request.provider_extra.to_request_extra()
+            if request.provider_extra is not None
+            else None
+        )
+        timeout_seconds = _effective_client_timeout(
+            self._timeout_seconds, request.timeout
+        )
         if request_extra is None:
-            provider_response = await client.embed_many(formatted_texts, timeout_seconds=timeout_seconds)
+            provider_response = await client.embed_many(
+                formatted_texts, timeout_seconds=timeout_seconds
+            )
         else:
             provider_response = await client.embed_many(
                 formatted_texts,
@@ -618,7 +677,9 @@ class OpenRouterEmbeddingProvider(EmbeddingProviderPort):
                 timeout_seconds=timeout_seconds,
             )
         if len(provider_response.vectors) != len(request.texts):
-            raise RuntimeError("embedding response count does not match request text count")
+            raise RuntimeError(
+                "embedding response count does not match request text count"
+            )
 
         provider_usage = provider_response.usage
         usage = (
@@ -632,7 +693,11 @@ class OpenRouterEmbeddingProvider(EmbeddingProviderPort):
         input_tokens = (
             None
             if usage is None
-            else usage.prompt_tokens if usage.prompt_tokens is not None else usage.total_tokens
+            else (
+                usage.prompt_tokens
+                if usage.prompt_tokens is not None
+                else usage.total_tokens
+            )
         )
         provider_cost_value = None if provider_usage is None else provider_usage.cost
         provider_cost = normalized_provider_cost(
@@ -669,7 +734,9 @@ class OpenRouterEmbeddingProvider(EmbeddingProviderPort):
             if provider_usage is not None and provider_usage.cost_details is not None:
                 evidence["provider_cost_details"] = provider_usage.cost_details
         elif input_tokens is not None:
-            cost_usd = price_embedding(request.provider, request.model, input_tokens=input_tokens)
+            cost_usd = price_embedding(
+                request.provider, request.model, input_tokens=input_tokens
+            )
             pricing = MINER_TOOL_EMBEDDING_PRICING[request.provider][request.model]
             evidence = {
                 "settlement_source": "static_pricing",
@@ -689,15 +756,19 @@ class OpenRouterEmbeddingProvider(EmbeddingProviderPort):
                 "provider_cost_status": (
                     "missing" if provider_cost_value is None else "malformed"
                 ),
-                "usage_status": "missing" if provider_usage is None else "tokens_missing",
+                "usage_status": (
+                    "missing" if provider_usage is None else "tokens_missing"
+                ),
                 **routing_evidence,
             }
-        evidence.update({
-            "provider": request.provider,
-            "model": request.model,
-            "input_type": request.input_type,
-            "text_count": len(request.texts),
-        })
+        evidence.update(
+            {
+                "provider": request.provider,
+                "model": request.model,
+                "input_type": request.input_type,
+                "text_count": len(request.texts),
+            }
+        )
         return EmbeddingProviderResult(
             response=response,
             actual_cost_usd=cost_usd,
@@ -716,7 +787,9 @@ class OpenRouterEmbeddingProvider(EmbeddingProviderPort):
         if errors:
             raise ExceptionGroup("cached embedding provider cleanup failed", errors)
 
-    def _client_for(self, *, model: str, dimensions: int | None) -> OpenRouterEmbeddingClient:
+    def _client_for(
+        self, *, model: str, dimensions: int | None
+    ) -> OpenRouterEmbeddingClient:
         key = (model, dimensions)
         client = self._clients.get(key)
         if client is None:
@@ -737,7 +810,9 @@ def _format_embedding_texts(request: EmbedTextRequest) -> tuple[str, ...]:
     return tuple(f"Instruct: {instruction}\nQuery:{text}" for text in request.texts)
 
 
-def _parse_embedding_provider(raw: EmbeddingProviderName | str) -> EmbeddingProviderName:
+def _parse_embedding_provider(
+    raw: EmbeddingProviderName | str,
+) -> EmbeddingProviderName:
     return parse_miner_selected_embedding_provider(raw)
 
 

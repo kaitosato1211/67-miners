@@ -16,8 +16,13 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from harnyx_commons.config.external_client import ExternalClientRetrySettings
 from harnyx_commons.errors import ToolProviderError, ToolProviderFailureCode
 from harnyx_commons.llm.retry_utils import RetryPolicy, backoff_ms
-from harnyx_commons.platform_tool_proxy import platform_tool_proxy_effective_provider_timeout_seconds
-from harnyx_commons.tools.provider_billing import ProviderBillingMetadata, SearchProviderResult
+from harnyx_commons.platform_tool_proxy import (
+    platform_tool_proxy_effective_provider_timeout_seconds,
+)
+from harnyx_commons.tools.provider_billing import (
+    ProviderBillingMetadata,
+    SearchProviderResult,
+)
 from harnyx_commons.tools.search_models import (
     FetchPageRequest,
     FetchPageResponse,
@@ -26,7 +31,10 @@ from harnyx_commons.tools.search_models import (
     SearchWebSearchRequest,
     SearchWebSearchResponse,
 )
-from harnyx_miner_sdk.tools.search_provider_extra import FirecrawlFetchExtra, FirecrawlSearchExtra
+from harnyx_miner_sdk.tools.search_provider_extra import (
+    FirecrawlFetchExtra,
+    FirecrawlSearchExtra,
+)
 
 _LOGGER = logging.getLogger("harnyx_commons.tools.firecrawl.calls")
 _RETRYABLE_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
@@ -122,7 +130,9 @@ class _FirecrawlScrapeDataPayload(BaseModel):
 
     markdown: str | None = None
     raw_html: str | None = Field(default=None, alias="rawHtml")
-    metadata: _FirecrawlScrapeMetadataPayload = Field(default_factory=_FirecrawlScrapeMetadataPayload)
+    metadata: _FirecrawlScrapeMetadataPayload = Field(
+        default_factory=_FirecrawlScrapeMetadataPayload
+    )
 
     @field_validator("markdown", "raw_html")
     @classmethod
@@ -158,11 +168,17 @@ class FirecrawlClient:
             raise ValueError("Firecrawl API key must be provided")
         self._owns_client = client is None
         self._timeout = timeout
-        self._client = client or httpx.AsyncClient(base_url=base_url.rstrip("/"), timeout=timeout)
+        self._client = client or httpx.AsyncClient(
+            base_url=base_url.rstrip("/"), timeout=timeout
+        )
         self._api_key = api_key
         self._retry_policy = retry_policy or ExternalClientRetrySettings().retry_policy
         self._include_payloads_in_logs = include_payloads_in_logs
-        self._semaphore = asyncio.Semaphore(max_concurrent) if max_concurrent and max_concurrent > 0 else None
+        self._semaphore = (
+            asyncio.Semaphore(max_concurrent)
+            if max_concurrent and max_concurrent > 0
+            else None
+        )
 
     async def search_web(
         self,
@@ -193,11 +209,15 @@ class FirecrawlClient:
             if not parsed.success:
                 raise ValueError("Firecrawl search response reported failure")
         except (ValidationError, ValueError) as exc:
-            raise ToolProviderError("tool provider response invalid", provider="firecrawl", billing=billing) from exc
+            raise ToolProviderError(
+                "tool provider response invalid", provider="firecrawl", billing=billing
+            ) from exc
         return SearchProviderResult(
             response=SearchWebSearchResponse(
                 data=[
-                    SearchWebResult(link=item.url, title=item.title, snippet=item.description)
+                    SearchWebResult(
+                        link=item.url, title=item.title, snippet=item.description
+                    )
                     for item in parsed.data.web
                 ],
             ),
@@ -225,7 +245,11 @@ class FirecrawlClient:
             parsed = _FirecrawlScrapeResponsePayload.model_validate(raw)
             if not parsed.success:
                 raise ValueError("Firecrawl scrape response reported failure")
-            result_url = parsed.data.metadata.source_url or parsed.data.metadata.url or request.url
+            result_url = (
+                parsed.data.metadata.source_url
+                or parsed.data.metadata.url
+                or request.url
+            )
             content_by_format = {
                 "markdown": parsed.data.markdown,
                 "rawHtml": parsed.data.raw_html,
@@ -245,7 +269,9 @@ class FirecrawlClient:
                     )
                 )
         except (ValidationError, ValueError) as exc:
-            raise ToolProviderError("tool provider response invalid", provider="firecrawl", billing=billing) from exc
+            raise ToolProviderError(
+                "tool provider response invalid", provider="firecrawl", billing=billing
+            ) from exc
         return SearchProviderResult(
             response=FetchPageResponse(data=results),
             billing=billing,
@@ -262,13 +288,19 @@ class FirecrawlClient:
         *,
         requested_timeout: float | None,
     ) -> dict[str, Any]:
-        timeout = platform_tool_proxy_effective_provider_timeout_seconds(self._timeout, requested_timeout)
+        timeout = platform_tool_proxy_effective_provider_timeout_seconds(
+            self._timeout, requested_timeout
+        )
         if self._semaphore is None:
-            return await self._post_with_retries(path, payload, timeout=timeout, wait_ms=0.0)
+            return await self._post_with_retries(
+                path, payload, timeout=timeout, wait_ms=0.0
+            )
         wait_started = time.perf_counter()
         async with self._semaphore:
             wait_ms = (time.perf_counter() - wait_started) * 1000
-            return await self._post_with_retries(path, payload, timeout=timeout, wait_ms=wait_ms)
+            return await self._post_with_retries(
+                path, payload, timeout=timeout, wait_ms=wait_ms
+            )
 
     async def _post_with_retries(
         self,
@@ -284,7 +316,10 @@ class FirecrawlClient:
             try:
                 response = await self._client.post(
                     path,
-                    headers={"authorization": f"Bearer {self._api_key}", "content-type": "application/json"},
+                    headers={
+                        "authorization": f"Bearer {self._api_key}",
+                        "content-type": "application/json",
+                    },
                     json=dict(payload),
                     timeout=timeout,
                 )
@@ -297,24 +332,33 @@ class FirecrawlClient:
                         provider="firecrawl",
                     ) from exc
                 if not isinstance(raw, dict):
-                    raise ToolProviderError("tool provider response invalid", provider="firecrawl")
+                    raise ToolProviderError(
+                        "tool provider response invalid", provider="firecrawl"
+                    )
                 log_data: dict[str, object] = {
                     "path": path,
                     "status_code": response.status_code,
                     "attempts": attempt + 1,
                     "retry_reasons": tuple(reasons),
-                    "latency_ms_total": round((time.perf_counter() - started) * 1000, 2),
+                    "latency_ms_total": round(
+                        (time.perf_counter() - started) * 1000, 2
+                    ),
                     "wait_ms": round(wait_ms, 2),
                 }
                 extra: dict[str, object] = {"data": log_data}
                 if self._include_payloads_in_logs:
-                    extra["json_fields"] = {"request": {"path": path, "json": dict(payload)}}
+                    extra["json_fields"] = {
+                        "request": {"path": path, "json": dict(payload)}
+                    }
                 _LOGGER.info("firecrawl.request.complete", extra=extra)
                 return raw
             except httpx.HTTPStatusError as exc:
                 status = exc.response.status_code
                 reasons.append(f"http_{status}")
-                if status not in _RETRYABLE_STATUSES or attempt + 1 >= self._retry_policy.attempts:
+                if (
+                    status not in _RETRYABLE_STATUSES
+                    or attempt + 1 >= self._retry_policy.attempts
+                ):
                     raise ToolProviderError(
                         "tool provider failed",
                         failure_code=(
@@ -325,18 +369,26 @@ class FirecrawlClient:
                         provider="firecrawl",
                         http_status=status,
                     ) from exc
-                await asyncio.sleep(_retry_delay_seconds(exc.response, attempt, self._retry_policy))
+                await asyncio.sleep(
+                    _retry_delay_seconds(exc.response, attempt, self._retry_policy)
+                )
             except httpx.HTTPError as exc:
                 reasons.append(exc.__class__.__name__)
                 if attempt + 1 >= self._retry_policy.attempts:
-                    raise ToolProviderError("tool provider failed", provider="firecrawl") from exc
+                    raise ToolProviderError(
+                        "tool provider failed", provider="firecrawl"
+                    ) from exc
                 await asyncio.sleep(backoff_ms(attempt, self._retry_policy) / 1000)
         raise ToolProviderError("tool provider failed", provider="firecrawl")
 
 
-def _billing_from_raw(raw: Mapping[str, Any], *, service: str) -> ProviderBillingMetadata:
+def _billing_from_raw(
+    raw: Mapping[str, Any], *, service: str
+) -> ProviderBillingMetadata:
     parsed = _FirecrawlBillingPayload.model_validate(raw)
-    return _billing(service=service, request_id=parsed.request_id, credits_used=parsed.credits_used)
+    return _billing(
+        service=service, request_id=parsed.request_id, credits_used=parsed.credits_used
+    )
 
 
 def _billing(
@@ -347,14 +399,20 @@ def _billing(
 ) -> ProviderBillingMetadata:
     return ProviderBillingMetadata(
         actual_cost_provider="firecrawl",
-        source="response_body" if request_id is not None or credits_used is not None else "missing_provider_metadata",
+        source=(
+            "response_body"
+            if request_id is not None or credits_used is not None
+            else "missing_provider_metadata"
+        ),
         provider_request_id=request_id,
         usage_count=credits_used,
         service=service,
     )
 
 
-def _retry_delay_seconds(response: httpx.Response, attempt: int, policy: RetryPolicy) -> float:
+def _retry_delay_seconds(
+    response: httpx.Response, attempt: int, policy: RetryPolicy
+) -> float:
     if response.status_code == 429:
         retry_after = response.headers.get("retry-after")
         if retry_after is not None:

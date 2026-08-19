@@ -22,7 +22,9 @@ def _request_json(request: httpx.Request) -> object:
 
 
 @pytest.mark.anyio("asyncio")
-async def test_http_sandbox_client_retries_connect_error_with_same_session_and_connection_close() -> None:
+async def test_http_sandbox_client_retries_connect_error_with_same_session_and_connection_close() -> (
+    None
+):
     session_id = uuid4()
     requests: list[httpx.Request] = []
 
@@ -36,7 +38,9 @@ async def test_http_sandbox_client_retries_connect_error_with_same_session_and_c
         base_url="http://sandbox.local",
         transport=httpx.MockTransport(handler),
     ) as http_client:
-        result = await HttpSandboxClient("http://sandbox.local", client=http_client).invoke(
+        result = await HttpSandboxClient(
+            "http://sandbox.local", client=http_client
+        ).invoke(
             "query",
             payload={"question": "hello"},
             context={"trace": "same"},
@@ -47,7 +51,9 @@ async def test_http_sandbox_client_retries_connect_error_with_same_session_and_c
     assert result == {"answer": "ok"}
     assert len(requests) == 2
     assert {request.url.path for request in requests} == {"/entry/query"}
-    assert {request.headers[SESSION_ID_HEADER] for request in requests} == {str(session_id)}
+    assert {request.headers[SESSION_ID_HEADER] for request in requests} == {
+        str(session_id)
+    }
     assert {request.headers["Connection"] for request in requests} == {"close"}
     assert [_request_json(request) for request in requests] == [
         {"payload": {"question": "hello"}, "context": {"trace": "same"}},
@@ -60,7 +66,9 @@ async def test_http_sandbox_client_retries_connect_error_with_same_session_and_c
     "exception_factory",
     [
         lambda request: httpx.ReadError("lost response", request=request),
-        lambda request: httpx.RemoteProtocolError("remote disconnected", request=request),
+        lambda request: httpx.RemoteProtocolError(
+            "remote disconnected", request=request
+        ),
         lambda request: httpx.WriteError("write failed", request=request),
     ],
     ids=["read", "remote-protocol", "write"],
@@ -89,7 +97,10 @@ async def test_http_sandbox_client_does_not_retry_errors_that_may_have_reached_s
 
     assert len(requests) == 1
     assert exc_info.value.status_code == 0
-    assert exc_info.value.detail_exception == type(exception_factory(requests[-1])).__name__
+    assert (
+        exc_info.value.detail_exception
+        == type(exception_factory(requests[-1])).__name__
+    )
     assert exc_info.value.remote_state_uncertain is True
 
 
@@ -139,7 +150,13 @@ async def test_http_sandbox_client_does_not_retry_sandbox_http_status_error() ->
         requests.append(request)
         return httpx.Response(
             status_code=500,
-            json={"detail": {"code": "UnhandledException", "exception": "ValueError", "error": "boom"}},
+            json={
+                "detail": {
+                    "code": "UnhandledException",
+                    "exception": "ValueError",
+                    "error": "boom",
+                }
+            },
         )
 
     async with httpx.AsyncClient(
@@ -165,7 +182,11 @@ async def test_http_sandbox_client_does_not_retry_sandbox_http_status_error() ->
 @pytest.mark.parametrize(
     "response",
     [
-        httpx.Response(status_code=200, content=b"{not-json", headers={"content-type": "application/json"}),
+        httpx.Response(
+            status_code=200,
+            content=b"{not-json",
+            headers={"content-type": "application/json"},
+        ),
         httpx.Response(status_code=200, json={"result": []}),
     ],
     ids=["malformed-json", "non-object-result"],
@@ -196,7 +217,9 @@ async def test_http_sandbox_client_distinguishes_unexpected_post_response_proces
     def fail_after_response(_value: object) -> dict[str, object]:
         raise RuntimeError("unexpected local parser failure")
 
-    monkeypatch.setattr(docker_module, "_parse_sandbox_invoke_result", fail_after_response)
+    monkeypatch.setattr(
+        docker_module, "_parse_sandbox_invoke_result", fail_after_response
+    )
     async with httpx.AsyncClient(
         base_url="http://sandbox.local",
         transport=httpx.MockTransport(lambda _request: response),
@@ -217,13 +240,21 @@ async def test_http_sandbox_client_preserves_failed_response_settlement_on_proce
 ) -> None:
     response = httpx.Response(
         status_code=500,
-        json={"detail": {"code": "UnhandledException", "exception": "ValueError", "error": "boom"}},
+        json={
+            "detail": {
+                "code": "UnhandledException",
+                "exception": "ValueError",
+                "error": "boom",
+            }
+        },
     )
 
     def fail_after_response(_value: object) -> object:
         raise RuntimeError("unexpected failed-response parser failure")
 
-    monkeypatch.setattr(docker_module, "_parse_sandbox_response_detail", fail_after_response)
+    monkeypatch.setattr(
+        docker_module, "_parse_sandbox_response_detail", fail_after_response
+    )
     async with httpx.AsyncClient(
         base_url="http://sandbox.local",
         transport=httpx.MockTransport(lambda _request: response),
@@ -273,7 +304,9 @@ async def test_http_sandbox_client_metadata_only_failure_omits_raw_detail_and_ca
     assert exc_info.value.detail_code == "UnhandledException"
     assert exc_info.value.detail_error is None
     assert exc_info.value.__cause__ is None
-    serialized = repr(exc_info.value) + repr([record.__dict__ for record in caplog.records])
+    serialized = repr(exc_info.value) + repr(
+        [record.__dict__ for record in caplog.records]
+    )
     assert "sandbox-response-sentinel" not in serialized
 
 

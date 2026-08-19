@@ -7,7 +7,11 @@ import pytest
 from pydantic import ValidationError
 
 from harnyx_commons.domain.session import ProviderCredentialSource
-from harnyx_commons.errors import ProviderCredentialUnavailableError, ToolProviderError, ToolProviderFailureCode
+from harnyx_commons.errors import (
+    ProviderCredentialUnavailableError,
+    ToolProviderError,
+    ToolProviderFailureCode,
+)
 from harnyx_commons.infrastructure.state.receipt_log import InMemoryReceiptLog
 from harnyx_commons.llm.provider import LlmProviderConfigurationError, LlmProviderError
 from harnyx_commons.llm.retry_utils import RetryPolicy
@@ -19,9 +23,14 @@ from harnyx_commons.llm.schema import (
     LlmResponse,
     LlmUsage,
 )
-from harnyx_commons.platform_tool_proxy import platform_tool_proxy_provider_timeout_seconds
+from harnyx_commons.platform_tool_proxy import (
+    platform_tool_proxy_provider_timeout_seconds,
+)
 from harnyx_commons.tools.executor import ToolInvocationContext, ToolInvocationOutput
-from harnyx_commons.tools.runtime_invoker import DEFAULT_TOOL_LLM_TIMEOUT_SECONDS, RuntimeToolInvoker
+from harnyx_commons.tools.runtime_invoker import (
+    DEFAULT_TOOL_LLM_TIMEOUT_SECONDS,
+    RuntimeToolInvoker,
+)
 
 pytestmark = pytest.mark.anyio("asyncio")
 
@@ -92,11 +101,15 @@ async def test_platform_credential_session_resolves_requested_provider_without_m
     miner_resolver_calls: list[str] = []
     platform_resolver_calls: list[str] = []
 
-    async def miner_resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingLlmProvider:
+    async def miner_resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingLlmProvider:
         miner_resolver_calls.append(provider)
         return _CapturingLlmProvider()
 
-    async def platform_resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingLlmProvider:
+    async def platform_resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingLlmProvider:
         platform_resolver_calls.append(provider)
         return platform_provider
 
@@ -119,18 +132,24 @@ async def test_platform_credential_session_resolves_requested_provider_without_m
 
     assert len(platform_provider.requests) == 1
     assert platform_provider.requests[0].include_payloads_in_observability is False
-    assert platform_provider.requests[0].timeout_seconds == platform_tool_proxy_provider_timeout_seconds(
+    assert platform_provider.requests[
+        0
+    ].timeout_seconds == platform_tool_proxy_provider_timeout_seconds(
         DEFAULT_TOOL_LLM_TIMEOUT_SECONDS
     )
     assert platform_resolver_calls == [provider]
     assert miner_resolver_calls == []
 
 
-async def test_context_free_session_uses_matching_direct_provider_without_resolver() -> None:
+async def test_context_free_session_uses_matching_direct_provider_without_resolver() -> (
+    None
+):
     direct_provider = _CapturingLlmProvider()
     resolver_calls: list[str] = []
 
-    def resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingLlmProvider:
+    def resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingLlmProvider:
         resolver_calls.append(provider)
         return _CapturingLlmProvider()
 
@@ -155,12 +174,16 @@ async def test_context_free_session_uses_matching_direct_provider_without_resolv
     assert resolver_calls == []
 
 
-async def test_miner_credential_session_uses_miner_resolver_without_direct_fallback() -> None:
+async def test_miner_credential_session_uses_miner_resolver_without_direct_fallback() -> (
+    None
+):
     direct_provider = _CapturingLlmProvider()
     miner_provider = _CapturingLlmProvider()
     resolver_calls: list[str] = []
 
-    def resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingLlmProvider:
+    def resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingLlmProvider:
         resolver_calls.append(provider)
         return miner_provider
 
@@ -188,7 +211,9 @@ async def test_miner_credential_session_uses_miner_resolver_without_direct_fallb
 
 
 async def test_platform_credential_source_error_is_mapped_at_invoker_boundary() -> None:
-    def resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingLlmProvider:
+    def resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingLlmProvider:
         raise ProviderCredentialUnavailableError(provider)
 
     invoker = RuntimeToolInvoker(
@@ -213,10 +238,14 @@ async def test_platform_credential_source_error_is_mapped_at_invoker_boundary() 
     assert exc_info.value.__cause__ is None
 
 
-async def test_platform_credential_session_does_not_fallback_when_provider_is_missing() -> None:
+async def test_platform_credential_session_does_not_fallback_when_provider_is_missing() -> (
+    None
+):
     resolver_calls: list[str] = []
 
-    async def miner_resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingLlmProvider:
+    async def miner_resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingLlmProvider:
         resolver_calls.append(provider)
         return _CapturingLlmProvider()
 
@@ -242,10 +271,14 @@ async def test_platform_credential_session_does_not_fallback_when_provider_is_mi
     assert resolver_calls == []
 
 
-async def test_platform_llm_authentication_status_is_preserved_as_typed_failure() -> None:
+async def test_platform_llm_authentication_status_is_preserved_as_typed_failure() -> (
+    None
+):
     class AuthenticationFailureProvider:
         async def invoke(self, request: LlmRequest) -> LlmResponse:
-            response = httpx.Response(401, request=httpx.Request("POST", "https://provider.test/v1/chat"))
+            response = httpx.Response(
+                401, request=httpx.Request("POST", "https://provider.test/v1/chat")
+            )
             try:
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
@@ -342,10 +375,14 @@ async def test_platform_search_missing_credential_is_typed() -> None:
     assert exc_info.value.provider == "parallel"
 
 
-async def test_platform_embedding_authentication_status_is_preserved_as_typed_failure() -> None:
+async def test_platform_embedding_authentication_status_is_preserved_as_typed_failure() -> (
+    None
+):
     class AuthenticationFailureProvider:
         async def embed_text(self, request) -> None:
-            response = httpx.Response(401, request=httpx.Request("POST", "https://provider.test/v1/embed"))
+            response = httpx.Response(
+                401, request=httpx.Request("POST", "https://provider.test/v1/embed")
+            )
             response.raise_for_status()
 
     invoker = RuntimeToolInvoker(
@@ -371,7 +408,9 @@ async def test_platform_embedding_authentication_status_is_preserved_as_typed_fa
     assert exc_info.value.http_status == 401
 
 
-async def test_runtime_invoker_lowers_openrouter_provider_extra_to_request_extra() -> None:
+async def test_runtime_invoker_lowers_openrouter_provider_extra_to_request_extra() -> (
+    None
+):
     llm_provider = _CapturingLlmProvider()
     invoker = RuntimeToolInvoker(
         InMemoryReceiptLog(),
@@ -430,7 +469,9 @@ async def test_runtime_invoker_sets_single_attempt_retry_policy_for_llm_chat() -
     )
 
 
-async def test_runtime_invoker_normalizes_ai_gateway_provider_extra_to_provider_options() -> None:
+async def test_runtime_invoker_normalizes_ai_gateway_provider_extra_to_provider_options() -> (
+    None
+):
     llm_provider = _CapturingLlmProvider()
     invoker = RuntimeToolInvoker(
         InMemoryReceiptLog(),
@@ -476,7 +517,9 @@ async def test_runtime_invoker_rejects_chutes_provider_extra() -> None:
         )
 
 
-async def test_runtime_invoker_lowers_complete_tool_loop_without_routing_policy() -> None:
+async def test_runtime_invoker_lowers_complete_tool_loop_without_routing_policy() -> (
+    None
+):
     llm_provider = _CapturingLlmProvider()
     invoker = RuntimeToolInvoker(
         InMemoryReceiptLog(),
@@ -506,7 +549,11 @@ async def test_runtime_invoker_lowers_complete_tool_loop_without_routing_policy(
                     ],
                     "reasoning_details": reasoning_details,
                 },
-                {"role": "tool", "tool_call_id": "call-1", "content": '{"temperature":19}'},
+                {
+                    "role": "tool",
+                    "tool_call_id": "call-1",
+                    "content": '{"temperature":19}',
+                },
             ],
             "tools": [
                 {
@@ -525,14 +572,19 @@ async def test_runtime_invoker_lowers_complete_tool_loop_without_routing_policy(
     assert request.messages[1].tool_calls[0].id == "call-1"
     assert request.messages[1].reasoning_details == tuple(reasoning_details)
     assert request.messages[2].content[0].tool_call_id == "call-1"
-    assert request.tool_choice == {"type": "function", "function": {"name": "lookup_weather"}}
+    assert request.tool_choice == {
+        "type": "function",
+        "function": {"name": "lookup_weather"},
+    }
     assert request.parallel_tool_calls is True
     assert request.extra == {"provider": {"only": ["cerebras"]}}
     assert "require_parameters" not in request.extra["provider"]
 
 
 @pytest.mark.parametrize("field", ("include", "response_format"))
-async def test_runtime_invoker_rejects_removed_fields_before_provider(field: str) -> None:
+async def test_runtime_invoker_rejects_removed_fields_before_provider(
+    field: str,
+) -> None:
     llm_provider = _CapturingLlmProvider()
     invoker = RuntimeToolInvoker(
         InMemoryReceiptLog(),

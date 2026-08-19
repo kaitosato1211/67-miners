@@ -10,7 +10,12 @@ from uuid import UUID
 
 from harnyx_commons.application.ports.receipt_log import ReceiptLogPort
 from harnyx_commons.domain.session import Session
-from harnyx_commons.domain.tool_call import StartedToolCall, ToolCall, ToolCallOutcome, ToolExecutionFacts
+from harnyx_commons.domain.tool_call import (
+    StartedToolCall,
+    ToolCall,
+    ToolCallOutcome,
+    ToolExecutionFacts,
+)
 
 
 class InMemoryReceiptLog(ReceiptLogPort):
@@ -52,9 +57,13 @@ class InMemoryReceiptLog(ReceiptLogPort):
             if pending is None:
                 return None
             if receipt.session_id != pending.session_id:
-                raise RuntimeError("completed receipt session does not match pending receipt")
+                raise RuntimeError(
+                    "completed receipt session does not match pending receipt"
+                )
             if receipt.tool != pending.tool:
-                raise RuntimeError("completed receipt tool does not match pending receipt")
+                raise RuntimeError(
+                    "completed receipt tool does not match pending receipt"
+                )
             try:
                 settlement = settle_usage()
             except BaseException:
@@ -147,5 +156,6 @@ class InMemoryReceiptLog(ReceiptLogPort):
         receipt_ids.discard(receipt_id)
         if not receipt_ids:
             self._pending_by_session.pop(pending.session_id, None)
+
 
 __all__ = ["InMemoryReceiptLog"]

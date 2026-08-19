@@ -34,10 +34,17 @@ def test_tool_usage_from_llm_usage_splits_gemini_grounding_from_tokens() -> None
 
     assert summary.search_tool_cost == pytest.approx(0.028)
     assert summary.llm_cost == pytest.approx(0.0104)
-    assert summary.reference_total_cost_usd == pytest.approx(summary.search_tool_cost + summary.llm_cost)
-    assert summary.reference_cost_by_provider["vertex"] == pytest.approx(summary.reference_total_cost_usd)
+    assert summary.reference_total_cost_usd == pytest.approx(
+        summary.search_tool_cost + summary.llm_cost
+    )
+    assert summary.reference_cost_by_provider["vertex"] == pytest.approx(
+        summary.reference_total_cost_usd
+    )
     assert summary.actual_total_cost_usd is None
-    assert summary.llm.providers["vertex"]["gemini-3-pro-preview"].usage.reasoning_tokens == 200
+    assert (
+        summary.llm.providers["vertex"]["gemini-3-pro-preview"].usage.reasoning_tokens
+        == 200
+    )
 
 
 def test_unknown_pricing_keeps_grounding_cost_and_zero_token_cost() -> None:
@@ -71,7 +78,10 @@ def test_tool_usage_from_llm_usage_coalesces_unavailable_reasoning_tokens() -> N
     )
 
     assert summary.llm.reasoning_tokens == 0
-    assert summary.llm.providers["vertex"]["gemini-3-pro-preview"].usage.reasoning_tokens == 0
+    assert (
+        summary.llm.providers["vertex"]["gemini-3-pro-preview"].usage.reasoning_tokens
+        == 0
+    )
 
 
 def test_merge_tool_usage_summaries_combines_provider_model_usage() -> None:
@@ -163,11 +173,15 @@ def test_merge_tool_usage_summaries_preserves_asymmetric_known_actual_costs() ->
     assert merged.embedding.actual_cost == pytest.approx(0.04)
     assert merged.llm.actual_cost == pytest.approx(0.18)
     assert merged.actual_total_cost_usd == pytest.approx(0.31)
-    assert merged.llm.providers["vertex"]["gemini-2.5-pro"].actual_cost == pytest.approx(0.18)
+    assert merged.llm.providers["vertex"][
+        "gemini-2.5-pro"
+    ].actual_cost == pytest.approx(0.18)
     assert merged.llm.providers["vertex"]["gemini-2.5-flash"].actual_cost is None
 
 
-def test_complete_cost_merge_marks_known_prefix_unavailable_without_losing_usage() -> None:
+def test_complete_cost_merge_marks_known_prefix_unavailable_without_losing_usage() -> (
+    None
+):
     """Future failure: one unreported provider bill must make the containing aggregate explicitly incomplete."""
     known = _usage_summary(
         provider="vertex",
@@ -221,7 +235,9 @@ def test_complete_cost_merge_uses_reported_zero_identity() -> None:
         actual_search_cost=0.09,
     )
 
-    merged = merge_complete_actual_cost_usage(known_zero_actual_cost_tool_usage(), known)
+    merged = merge_complete_actual_cost_usage(
+        known_zero_actual_cost_tool_usage(), known
+    )
 
     assert merged.actual_total_cost_usd == pytest.approx(0.27)
     assert merged.llm.actual_cost == pytest.approx(0.18)
@@ -245,8 +261,16 @@ def _usage_summary(
 ) -> ToolUsageSummary:
     actual_total = None
     actual_by_provider: dict[str, float] = {}
-    if actual_llm_cost is not None or actual_search_cost is not None or actual_embedding_cost is not None:
-        actual_total = (actual_llm_cost or 0.0) + (actual_search_cost or 0.0) + (actual_embedding_cost or 0.0)
+    if (
+        actual_llm_cost is not None
+        or actual_search_cost is not None
+        or actual_embedding_cost is not None
+    ):
+        actual_total = (
+            (actual_llm_cost or 0.0)
+            + (actual_search_cost or 0.0)
+            + (actual_embedding_cost or 0.0)
+        )
         actual_by_provider[provider] = actual_total
     return ToolUsageSummary(
         search_tool=SearchToolUsageSummary(

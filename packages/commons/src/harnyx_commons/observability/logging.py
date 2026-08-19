@@ -55,7 +55,9 @@ def _structured_payload(record: logging.LogRecord) -> dict[str, Any]:
         ),
     }
     if record.exc_info:
-        payload["exception"] = "".join(traceback.format_exception(*record.exc_info)).rstrip("\n")
+        payload["exception"] = "".join(
+            traceback.format_exception(*record.exc_info)
+        ).rstrip("\n")
     if record.stack_info:
         payload["stack_info"] = str(record.stack_info)
     if sanitized_data is not None:
@@ -83,7 +85,9 @@ class ExtrasFormatter(logging.Formatter):
         record_data = record_dict.get("data")
 
         if _should_emit_json_payload():
-            return json.dumps(_structured_payload(record), sort_keys=True, separators=(",", ":"))
+            return json.dumps(
+                _structured_payload(record), sort_keys=True, separators=(",", ":")
+            )
 
         formatted = super().format(record)
         if record_data:
@@ -98,7 +102,9 @@ class ExtrasFormatter(logging.Formatter):
 class CloudJsonSanitizer(logging.Filter):
     """Make json_fields/data JSON-serializable before Cloud Logging ships them."""
 
-    def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover - thin wrapper
+    def filter(
+        self, record: logging.LogRecord
+    ) -> bool:  # pragma: no cover - thin wrapper
         record_dict = record.__dict__
         sanitized_data: Any | None = None
         if "data" in record_dict:
@@ -121,7 +127,9 @@ class OtelContextLogFilter(logging.Filter):
         super().__init__()
         self._gcp_project_id = gcp_project_id.strip() if gcp_project_id else None
 
-    def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover - thin wrapper
+    def filter(
+        self, record: logging.LogRecord
+    ) -> bool:  # pragma: no cover - thin wrapper
         record_dict = record.__dict__
         json_fields = record_dict.get("json_fields")
 
@@ -194,7 +202,9 @@ def build_log_config(
             "building cloud logging handler",
             extra={"data": {"project": gcp_project, "log_name": cloud_log_name}},
         )
-        cloud_handler = _cloud_logging_handler(gcp_project, cloud_log_name, cloud_log_labels)
+        cloud_handler = _cloud_logging_handler(
+            gcp_project, cloud_log_name, cloud_log_labels
+        )
 
     loggers = _logger_definitions(extra_loggers, cloud_handler_name)
 
@@ -281,7 +291,9 @@ def _formatters() -> dict[str, Any]:
     }
 
 
-def _handlers(cloud_handler_name: str | None, cloud_handler: dict[str, Any] | None) -> dict[str, Any]:
+def _handlers(
+    cloud_handler_name: str | None, cloud_handler: dict[str, Any] | None
+) -> dict[str, Any]:
     handlers: dict[str, Any] = {
         "console": {
             "class": "logging.StreamHandler",
@@ -297,7 +309,9 @@ def _handlers(cloud_handler_name: str | None, cloud_handler: dict[str, Any] | No
     return handlers
 
 
-def _root_logger(root_level_env: str, root_default: str, cloud_handler_name: str | None) -> dict[str, Any]:
+def _root_logger(
+    root_level_env: str, root_default: str, cloud_handler_name: str | None
+) -> dict[str, Any]:
     return {
         "level": _level(root_level_env, root_default),
         "handlers": _handler_list(cloud_handler_name),
@@ -329,8 +343,12 @@ def _cloud_logging_handler(
             "data": {
                 "project": project,
                 "log_name": log_name,
-                "service_account_b64_present": bool(service_account_b64 and service_account_b64.strip()),
-                "service_account_b64_len": len(service_account_b64) if service_account_b64 else 0,
+                "service_account_b64_present": bool(
+                    service_account_b64 and service_account_b64.strip()
+                ),
+                "service_account_b64_len": (
+                    len(service_account_b64) if service_account_b64 else 0
+                ),
             }
         },
     )
@@ -352,7 +370,12 @@ def _cloud_logging_handler(
     )
     logger.debug(
         "created google cloud logging client",
-        extra={"data": {"project": project, "elapsed_s": round(time.monotonic() - start, 3)}},
+        extra={
+            "data": {
+                "project": project,
+                "elapsed_s": round(time.monotonic() - start, 3),
+            }
+        },
     )
     return {
         "level": "INFO",
@@ -373,7 +396,7 @@ def _filters(*, gcp_project_id: str | None) -> dict[str, Any]:
         },
         "cloud_json_sanitizer": {
             "()": CloudJsonSanitizer,
-        }
+        },
     }
 
 
@@ -389,7 +412,9 @@ def _sanitize_for_json(value: Any, depth: int = 10, max_items: int = 200) -> Any
     if isinstance(value, (bytes, bytearray)):
         return f"<bytes len={len(value)}>"
 
-    if isinstance(value, (types.BuiltinFunctionType, types.FunctionType, types.MethodType)):
+    if isinstance(
+        value, (types.BuiltinFunctionType, types.FunctionType, types.MethodType)
+    ):
         return f"<callable {value.__name__}>"
     if callable(value):
         return f"<callable {value.__class__.__name__}>"
@@ -513,7 +538,9 @@ _PACKAGE_LOGGER_ROOTS: tuple[str, ...] = (
 )
 
 
-def _reset_package_logger_levels(*, root_level: int, explicit_loggers: set[str]) -> None:
+def _reset_package_logger_levels(
+    *, root_level: int, explicit_loggers: set[str]
+) -> None:
     """Restore our package loggers after bittensor silences third parties."""
 
     for root_name in _PACKAGE_LOGGER_ROOTS:
@@ -530,4 +557,9 @@ def _reset_package_logger_levels(*, root_level: int, explicit_loggers: set[str])
                 break
 
 
-__all__ = ["ExtrasFormatter", "build_log_config", "configure_logging", "shutdown_logging"]
+__all__ = [
+    "ExtrasFormatter",
+    "build_log_config",
+    "configure_logging",
+    "shutdown_logging",
+]

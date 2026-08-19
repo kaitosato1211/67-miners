@@ -7,7 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from harnyx_commons.errors import ToolProviderError
 from harnyx_commons.llm.retry_utils import RetryPolicy
-from harnyx_commons.tools.provider_billing import ProviderBillingMetadata, SearchProviderResult
+from harnyx_commons.tools.provider_billing import (
+    ProviderBillingMetadata,
+    SearchProviderResult,
+)
 from harnyx_commons.tools.search_http import JsonSearchProviderClient
 from harnyx_commons.tools.search_models import (
     FetchPageRequest,
@@ -17,7 +20,10 @@ from harnyx_commons.tools.search_models import (
     SearchWebSearchRequest,
     SearchWebSearchResponse,
 )
-from harnyx_miner_sdk.tools.search_provider_extra import TavilyFetchExtra, TavilySearchExtra
+from harnyx_miner_sdk.tools.search_provider_extra import (
+    TavilyFetchExtra,
+    TavilySearchExtra,
+)
 
 
 class _TavilyUsage(BaseModel):
@@ -82,7 +88,8 @@ class TavilyClient:
     ) -> SearchProviderResult[SearchWebSearchResponse]:
         if request.num == 0:
             return SearchProviderResult(
-                response=SearchWebSearchResponse(data=[]), billing=_billing(service="search")
+                response=SearchWebSearchResponse(data=[]),
+                billing=_billing(service="search"),
             )
         extra = request.provider_extra or TavilySearchExtra()
         if not isinstance(extra, TavilySearchExtra):
@@ -98,15 +105,21 @@ class TavilyClient:
         }
         if request.num is not None:
             payload["max_results"] = min(request.num, 20)
-        raw = await self._http.post_json("/search", payload, requested_timeout=request.timeout)
+        raw = await self._http.post_json(
+            "/search", payload, requested_timeout=request.timeout
+        )
         try:
             parsed = _TavilySearchResponse.model_validate(raw)
         except ValidationError as exc:
-            raise ToolProviderError("tool provider response invalid", provider="tavily") from exc
+            raise ToolProviderError(
+                "tool provider response invalid", provider="tavily"
+            ) from exc
         return SearchProviderResult(
             response=SearchWebSearchResponse(
                 data=[
-                    SearchWebResult(link=item.url, title=item.title, snippet=item.content)
+                    SearchWebResult(
+                        link=item.url, title=item.title, snippet=item.content
+                    )
                     for item in parsed.results
                 ]
             ),
@@ -137,7 +150,9 @@ class TavilyClient:
         try:
             parsed = _TavilyExtractResponse.model_validate(raw)
         except ValidationError as exc:
-            raise ToolProviderError("tool provider response invalid", provider="tavily") from exc
+            raise ToolProviderError(
+                "tool provider response invalid", provider="tavily"
+            ) from exc
         if len(parsed.results) != 1 or not parsed.results[0].raw_content.strip():
             raise ToolProviderError("tool provider response invalid", provider="tavily")
         item = parsed.results[0]

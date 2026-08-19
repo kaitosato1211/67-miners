@@ -154,7 +154,9 @@ def parse_miner_selected_llm_provider_model(
         raise ValueError(
             f"model {selected_model!r} is not supported for miner-selected provider {selected_provider!r}"
         )
-    return MinerSelectedLlmProviderModel(provider=selected_provider, model=selected_model)
+    return MinerSelectedLlmProviderModel(
+        provider=selected_provider, model=selected_model
+    )
 
 
 # Verified provider/model thinking controls. This capability registry is
@@ -178,11 +180,15 @@ MODEL_THINKING_CAPABILITIES: Mapping[
     },
     "google/gemma-4-31B-turbo-TEE": {
         "chutes": ModelThinkingCapability("chat_template_kwargs.enable_thinking"),
-        "custom-openai-compatible": ModelThinkingCapability("chat_template_kwargs.enable_thinking"),
+        "custom-openai-compatible": ModelThinkingCapability(
+            "chat_template_kwargs.enable_thinking"
+        ),
     },
     "Qwen/Qwen3.6-27B-TEE": {
         "chutes": ModelThinkingCapability("chat_template_kwargs.enable_thinking"),
-        "custom-openai-compatible": ModelThinkingCapability("chat_template_kwargs.enable_thinking"),
+        "custom-openai-compatible": ModelThinkingCapability(
+            "chat_template_kwargs.enable_thinking"
+        ),
     },
     "Qwen/Qwen3.8-27B-TEE": {
         "chutes": ModelThinkingCapability("chat_template_kwargs.enable_thinking"),
@@ -202,8 +208,7 @@ TOOL_MODEL_THINKING_CAPABILITIES: Mapping[
 }
 
 _NORMALIZED_TOOL_MODELS: Mapping[str, ToolModelName] = {
-    model.lower(): model
-    for model in ALLOWED_TOOL_MODELS
+    model.lower(): model for model in ALLOWED_TOOL_MODELS
 }
 
 _NORMALIZED_THINKING_CAPABILITY_MODELS: Mapping[str, str] = {

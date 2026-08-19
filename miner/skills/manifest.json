@@ -39,14 +39,23 @@
       "description": "Seed a miner iteration from current champion context exposed through public MCP.",
       "when_to_use": "When starting from scratch or comparing a local candidate against current champion behavior.",
       "inputs": ["get_champion", "get_benchmark", "get_miner_script"],
-      "outputs": ["champion context", "optional baseline script", "local-eval fallback"]
+      "outputs": [
+        "champion context",
+        "optional baseline script",
+        "local-eval fallback"
+      ]
     },
     {
       "name": "configure-before-submit",
       "path": "configure-before-submit/SKILL.md",
       "description": "Check and update miner config before submitting a script.",
       "when_to_use": "Before uploading an artifact that needs provider credentials or intentional retry behavior.",
-      "inputs": ["wallet name", "hotkey name", "provider credentials", "optional retry count"],
+      "inputs": [
+        "wallet name",
+        "hotkey name",
+        "provider credentials",
+        "optional retry count"
+      ],
       "outputs": ["verified config state", "config commands used"]
     },
     {
@@ -54,7 +63,12 @@
       "path": "submit-and-confirm/SKILL.md",
       "description": "Submit a miner artifact and confirm platform acceptance.",
       "when_to_use": "After local evaluation justifies uploading agent.py.",
-      "inputs": ["agent path", "wallet name", "hotkey name", "PLATFORM_BASE_URL"],
+      "inputs": [
+        "agent path",
+        "wallet name",
+        "hotkey name",
+        "PLATFORM_BASE_URL"
+      ],
       "outputs": ["artifact_id", "content_hash", "submission evidence"]
     },
     {
@@ -62,8 +76,17 @@
       "path": "monitor-batch/SKILL.md",
       "description": "Monitor waiting, running, and completed miner-task batches without overreading public visibility.",
       "when_to_use": "After submission, while waiting for cutoff eligibility, running progress, or completed batch visibility.",
-      "inputs": ["artifact_id", "content_hash", "submitted_at", "batch id when known"],
-      "outputs": ["batch status", "eligibility assessment", "next monitoring action"]
+      "inputs": [
+        "artifact_id",
+        "content_hash",
+        "submitted_at",
+        "batch id when known"
+      ],
+      "outputs": [
+        "batch status",
+        "eligibility assessment",
+        "next monitoring action"
+      ]
     },
     {
       "name": "inspect-completed-results",
@@ -71,7 +94,11 @@
       "description": "Inspect completed batch comparison and artifact-scoped result rows.",
       "when_to_use": "After a source batch is completed and artifact/result rows are public.",
       "inputs": ["batch_id", "artifact_id"],
-      "outputs": ["aggregate comparison", "artifact result rows", "attempt details"]
+      "outputs": [
+        "aggregate comparison",
+        "artifact result rows",
+        "attempt details"
+      ]
     },
     {
       "name": "diagnose-score",
@@ -86,7 +113,13 @@
       "path": "preserve-debug-evidence/SKILL.md",
       "description": "Record the identifiers and observations needed before changing workflow direction.",
       "when_to_use": "Before switching hypotheses, changing config, or starting a new iteration after platform diagnosis.",
-      "inputs": ["artifact_id", "content_hash", "batch_id", "task_id examples", "observed errors"],
+      "inputs": [
+        "artifact_id",
+        "content_hash",
+        "batch_id",
+        "task_id examples",
+        "observed errors"
+      ],
       "outputs": ["debug evidence bundle"]
     }
   ]

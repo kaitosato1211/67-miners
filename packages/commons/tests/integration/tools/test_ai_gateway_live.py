@@ -71,7 +71,10 @@ async def test_miner_paid_ai_gateway_groq_selection_live() -> None:
     assert response.metadata is not None
     assert response.metadata["actual_cost_provider"] == "ai_gateway"
     assert response.metadata["actual_cost_usd"] >= 0.0
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "provider_returned"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "provider_returned"
+    )
     raw_response = response.metadata["raw_response"]
     assert raw_response["providerMetadata"]["gateway"]["cost"]
 
@@ -110,7 +113,9 @@ async def test_miner_paid_ai_gateway_inkling_live() -> None:
     assert response.metadata["actual_cost_usd"] >= 0.0
     message = response.choices[0].message
     assert message.reasoning, "Inkling must expose a reasoning trace through AI Gateway"
-    assert message.reasoning_details, "Inkling must expose reasoning details through AI Gateway"
+    assert (
+        message.reasoning_details
+    ), "Inkling must expose reasoning details through AI Gateway"
     assert response.usage.reasoning_tokens is not None
     assert response.usage.reasoning_tokens > 0
 
@@ -150,13 +155,19 @@ async def test_ai_gateway_cerebras_gemma_reasoning_live() -> None:
 
     assert response.raw_text
     assert response.metadata is not None
-    routing = response.metadata["raw_response"]["providerMetadata"]["gateway"]["routing"]
+    routing = response.metadata["raw_response"]["providerMetadata"]["gateway"][
+        "routing"
+    ]
     assert routing["resolvedProvider"] == "cerebras"
     assert routing["finalProvider"] == "cerebras"
     message = response.choices[0].message
     reasoning = message.reasoning
-    assert reasoning, "Gemma 4 must expose a reasoning trace through AI Gateway on Cerebras"
-    assert message.reasoning_details, "Gemma 4 must expose reasoning details through AI Gateway on Cerebras"
+    assert (
+        reasoning
+    ), "Gemma 4 must expose a reasoning trace through AI Gateway on Cerebras"
+    assert (
+        message.reasoning_details
+    ), "Gemma 4 must expose reasoning details through AI Gateway on Cerebras"
     assert response.usage.reasoning_tokens is not None
     assert response.usage.reasoning_tokens > 0
 
@@ -199,7 +210,10 @@ async def test_ai_gateway_two_turn_function_tool_loop_live() -> None:
         first = await provider.invoke(
             LlmRequest(
                 messages=(user_message,),
-                tool_choice={"type": "function", "function": {"name": "lookup_weather"}},
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "lookup_weather"},
+                },
                 **common,
             )
         )
@@ -260,7 +274,11 @@ async def test_new_ai_gateway_model_exact_route_contract_live(model: str) -> Non
     direct_messages = (
         LlmMessage(
             role="user",
-            content=(LlmMessageContentPart.input_text('Think briefly, then reply with only "ok".'),),
+            content=(
+                LlmMessageContentPart.input_text(
+                    'Think briefly, then reply with only "ok".'
+                ),
+            ),
         ),
     )
     user_message = LlmMessage(
@@ -282,7 +300,10 @@ async def test_new_ai_gateway_model_exact_route_contract_live(model: str) -> Non
             LlmRequest(
                 messages=(user_message,),
                 tools=(tool,),
-                tool_choice={"type": "function", "function": {"name": "lookup_weather"}},
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "lookup_weather"},
+                },
                 **common,
             )
         )

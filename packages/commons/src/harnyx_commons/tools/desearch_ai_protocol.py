@@ -55,8 +55,12 @@ _LEGACY_RESULTS_KEYS: tuple[str, ...] = (
 
 
 def parse_desearch_ai_response(raw: object) -> DeSearchAiDocsResponse:
-    raw_mapping = _require_object_mapping(raw, label="desearch ai search response must be a JSON object")
-    return DESEARCH_AI_DOCS_RESPONSE_ADAPTER.validate_python(_normalize_desearch_ai_response(raw_mapping))
+    raw_mapping = _require_object_mapping(
+        raw, label="desearch ai search response must be a JSON object"
+    )
+    return DESEARCH_AI_DOCS_RESPONSE_ADAPTER.validate_python(
+        _normalize_desearch_ai_response(raw_mapping)
+    )
 
 
 def _normalize_desearch_ai_response(raw: Mapping[str, object]) -> dict[str, object]:
@@ -70,21 +74,29 @@ def _normalize_desearch_ai_response(raw: Mapping[str, object]) -> dict[str, obje
             continue
         saw_known_shape = True
         saw_result_family = True
-        items = _normalize_link_results(raw[key], label=f"desearch ai search field '{key}'")
+        items = _normalize_link_results(
+            raw[key], label=f"desearch ai search field '{key}'"
+        )
         normalized[key] = items
         aggregated_results.extend(items)
 
     if "results" in raw:
         saw_known_shape = True
         saw_result_family = True
-        aggregated_results.extend(_normalize_link_results(raw["results"], label="desearch ai search field 'results'"))
+        aggregated_results.extend(
+            _normalize_link_results(
+                raw["results"], label="desearch ai search field 'results'"
+            )
+        )
 
     for key, value in raw.items():
         if not key.endswith("_search_results"):
             continue
         saw_known_shape = True
         saw_result_family = True
-        envelope = _require_object_mapping(value, label=f"desearch ai search field '{key}' must be an object")
+        envelope = _require_object_mapping(
+            value, label=f"desearch ai search field '{key}' must be an object"
+        )
         aggregated_results.extend(
             _normalize_link_results(
                 envelope.get("organic_results"),
@@ -113,7 +125,10 @@ def _normalize_link_results(value: object, *, label: str) -> list[dict[str, str]
         return []
     if not isinstance(value, list):
         raise TypeError(f"{label} must be a JSON array")
-    return [_normalize_link_result(item, label=f"{label}[{index}]") for index, item in enumerate(value)]
+    return [
+        _normalize_link_result(item, label=f"{label}[{index}]")
+        for index, item in enumerate(value)
+    ]
 
 
 def _normalize_link_result(value: object, *, label: str) -> dict[str, str]:

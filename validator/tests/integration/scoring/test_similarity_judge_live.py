@@ -6,10 +6,16 @@ from uuid import uuid4
 import pytest
 
 from harnyx_commons.llm.provider import LlmProviderPort, LlmRetryExhaustedError
-from harnyx_commons.llm.provider_factory import build_cached_llm_provider_registry, build_routed_llm_provider
+from harnyx_commons.llm.provider_factory import (
+    build_cached_llm_provider_registry,
+    build_routed_llm_provider,
+)
 from harnyx_commons.llm.schema import AbstractLlmRequest, LlmResponse
 from harnyx_commons.miner_task_similarity import SimilarityJudgeRequest
-from harnyx_validator.application.similarity_judge import SimilarityJudge, SimilarityJudgeConfig
+from harnyx_validator.application.similarity_judge import (
+    SimilarityJudge,
+    SimilarityJudgeConfig,
+)
 from harnyx_validator.runtime import bootstrap
 from harnyx_validator.runtime.settings import Settings
 
@@ -113,11 +119,11 @@ async def test_similarity_judge_live_supports_production_provider_contract(
         update={
             "llm": base_settings.llm.model_copy(
                 update={
-                    "openai_compatible_endpoints_json": json.dumps([_gemma_cloud_run_endpoint_config()]),
+                    "openai_compatible_endpoints_json": json.dumps(
+                        [_gemma_cloud_run_endpoint_config()]
+                    ),
                     "llm_model_provider_overrides_json": json.dumps(
-                        {
-                            "duplication_detection": route_overrides
-                        }
+                        {"duplication_detection": route_overrides}
                     ),
                     "similarity_llm_model_override": model,
                 }
@@ -196,7 +202,9 @@ async def test_similarity_judge_live_supports_production_provider_contract(
     assert llm_request.provider == settings.llm.similarity_llm_provider
     assert llm_request.model == similarity_route.model
     assert llm_request.reasoning_effort == "high"
-    assert llm_request.max_output_tokens == settings.llm.similarity_llm_max_output_tokens
+    assert (
+        llm_request.max_output_tokens == settings.llm.similarity_llm_max_output_tokens
+    )
     assert llm_request.timeout_seconds == settings.llm.similarity_llm_timeout_seconds
     assert llm_request.retry_policy == settings.llm.similarity_llm_retry_policy
     assert llm_request.thinking is None

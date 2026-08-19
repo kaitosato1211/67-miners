@@ -56,7 +56,9 @@ class ValidatorResourceUsageProvider:
 
         memory_used_bytes = _read_process_rss_bytes()
         memory_total_bytes = _read_total_memory_bytes()
-        disk_total_bytes, disk_used_bytes, disk_percent = _read_disk_usage(self.disk_usage_path)
+        disk_total_bytes, disk_used_bytes, disk_percent = _read_disk_usage(
+            self.disk_usage_path
+        )
         return ValidatorResourceUsageSnapshot(
             captured_at=datetime.now(UTC),
             cpu_percent=cpu_percent,
@@ -149,7 +151,9 @@ def _read_cgroup_v2_cpu_quota_cores(cpu_max_path: Path) -> float | None:
     return quota / period
 
 
-def _read_cgroup_v1_cpu_quota_cores(quota_path: Path, period_path: Path) -> float | None:
+def _read_cgroup_v1_cpu_quota_cores(
+    quota_path: Path, period_path: Path
+) -> float | None:
     try:
         quota = int(quota_path.read_text(encoding="utf-8").strip())
         period = int(period_path.read_text(encoding="utf-8").strip())
@@ -211,12 +215,16 @@ def _read_cgroup_memberships() -> tuple[tuple[str, frozenset[str], PurePosixPath
         controllers_raw, separator, path_raw = rest.partition(":")
         if not separator:
             continue
-        controllers = frozenset(segment for segment in controllers_raw.split(",") if segment)
+        controllers = frozenset(
+            segment for segment in controllers_raw.split(",") if segment
+        )
         memberships.append((hierarchy_id, controllers, PurePosixPath(path_raw or "/")))
     return tuple(memberships)
 
 
-def _read_cgroup_mounts() -> tuple[tuple[str, Path, PurePosixPath, frozenset[str]], ...]:
+def _read_cgroup_mounts() -> (
+    tuple[tuple[str, Path, PurePosixPath, frozenset[str]], ...]
+):
     try:
         lines = _PROC_SELF_MOUNTINFO_PATH.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -234,7 +242,9 @@ def _read_cgroup_mounts() -> tuple[tuple[str, Path, PurePosixPath, frozenset[str
         mount_point = Path(_unescape_mountinfo_path(parts[4]))
         fstype = parts[separator_index + 1]
         super_options = parts[separator_index + 3]
-        controllers = frozenset(segment for segment in super_options.split(",") if segment)
+        controllers = frozenset(
+            segment for segment in super_options.split(",") if segment
+        )
         mounts.append((fstype, mount_point, mount_root, controllers))
     return tuple(mounts)
 
@@ -252,7 +262,9 @@ def _cgroup_path_candidates(
     return tuple(paths)
 
 
-def _relative_cgroup_path(cgroup_path: PurePosixPath, mount_root: PurePosixPath) -> PurePosixPath:
+def _relative_cgroup_path(
+    cgroup_path: PurePosixPath, mount_root: PurePosixPath
+) -> PurePosixPath:
     try:
         return cgroup_path.relative_to(mount_root)
     except ValueError:

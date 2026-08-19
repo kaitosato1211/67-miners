@@ -10,7 +10,11 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
-    from harnyx_commons.llm.schema import LlmResponse, PostprocessRecovery, PostprocessResult
+    from harnyx_commons.llm.schema import (
+        LlmResponse,
+        PostprocessRecovery,
+        PostprocessResult,
+    )
 
 _CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
 _ZERO_WIDTH_RE = re.compile("[\u200b\u200c\u200d\ufeff]")
@@ -64,7 +68,9 @@ def _build_recovery(
     )
 
 
-def pydantic_postprocessor(model: type[BaseModel]) -> Callable[[LlmResponse], PostprocessResult]:
+def pydantic_postprocessor(
+    model: type[BaseModel],
+) -> Callable[[LlmResponse], PostprocessResult]:
     """Build a postprocessor that parses first-choice text into a Pydantic model."""
 
     def _postprocess(response: LlmResponse) -> PostprocessResult:
@@ -101,7 +107,9 @@ def pydantic_postprocessor(model: type[BaseModel]) -> Callable[[LlmResponse], Po
                 processed=None,
                 recovery=_build_recovery(reason=reason),
             )
-        return PostprocessResult(ok=True, retryable=False, reason=None, processed=parsed)
+        return PostprocessResult(
+            ok=True, retryable=False, reason=None, processed=parsed
+        )
 
     return _postprocess
 

@@ -31,8 +31,12 @@ class ToolBudgetSnapshot:
         if self.session_remaining_budget_usd < 0.0:
             raise ValueError("session_remaining_budget_usd must be non-negative")
         if self.session_hard_limit_usd < self.session_budget_usd:
-            raise ValueError("session_hard_limit_usd must be greater than or equal to session_budget_usd")
-        expected_remaining = max(self.session_budget_usd - self.session_used_budget_usd, 0.0)
+            raise ValueError(
+                "session_hard_limit_usd must be greater than or equal to session_budget_usd"
+            )
+        expected_remaining = max(
+            self.session_budget_usd - self.session_used_budget_usd, 0.0
+        )
         if abs(self.session_remaining_budget_usd - expected_remaining) > 1e-9:
             raise ValueError(
                 "session_remaining_budget_usd must equal "

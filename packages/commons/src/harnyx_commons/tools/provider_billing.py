@@ -36,7 +36,9 @@ class SearchProviderResult(Generic[TSearchResponse]):
     billing: ProviderBillingMetadata
 
 
-def billing_evidence_payload(billing: ProviderBillingMetadata | None) -> JsonObject | None:
+def billing_evidence_payload(
+    billing: ProviderBillingMetadata | None,
+) -> JsonObject | None:
     if billing is None:
         return None
     return {

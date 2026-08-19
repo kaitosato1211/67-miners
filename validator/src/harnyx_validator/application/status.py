@@ -70,7 +70,9 @@ class BatchActivityTracker:
 
     def mark_artifact_started(self, batch_id: UUID, artifact_id: UUID) -> None:
         with self._lock:
-            activity = self._activity_by_batch.setdefault(batch_id, _MutableBatchActivity())
+            activity = self._activity_by_batch.setdefault(
+                batch_id, _MutableBatchActivity()
+            )
             activity.active_artifact_ids.add(artifact_id)
             self._record_activity(activity, "artifact_started")
 
@@ -79,20 +81,28 @@ class BatchActivityTracker:
 
     def mark_artifact_finished(self, batch_id: UUID, artifact_id: UUID) -> None:
         with self._lock:
-            activity = self._activity_by_batch.setdefault(batch_id, _MutableBatchActivity())
+            activity = self._activity_by_batch.setdefault(
+                batch_id, _MutableBatchActivity()
+            )
             activity.active_artifact_ids.discard(artifact_id)
             self._record_activity(activity, "artifact_finished")
 
     def mark_task_session_started(self, batch_id: UUID) -> None:
         with self._lock:
-            activity = self._activity_by_batch.setdefault(batch_id, _MutableBatchActivity())
+            activity = self._activity_by_batch.setdefault(
+                batch_id, _MutableBatchActivity()
+            )
             activity.active_task_session_count += 1
             self._record_activity(activity, "task_session_started")
 
     def mark_task_session_finished(self, batch_id: UUID) -> None:
         with self._lock:
-            activity = self._activity_by_batch.setdefault(batch_id, _MutableBatchActivity())
-            activity.active_task_session_count = max(0, activity.active_task_session_count - 1)
+            activity = self._activity_by_batch.setdefault(
+                batch_id, _MutableBatchActivity()
+            )
+            activity.active_task_session_count = max(
+                0, activity.active_task_session_count - 1
+            )
             self._record_activity(activity, "task_session_finished")
 
     def snapshot(self, batch_id: UUID) -> BatchActivitySnapshot:
@@ -109,7 +119,9 @@ class BatchActivityTracker:
 
     def _mark(self, batch_id: UUID, stage: str) -> None:
         with self._lock:
-            activity = self._activity_by_batch.setdefault(batch_id, _MutableBatchActivity())
+            activity = self._activity_by_batch.setdefault(
+                batch_id, _MutableBatchActivity()
+            )
             self._record_activity(activity, stage)
 
     @staticmethod
@@ -133,13 +145,17 @@ class StatusProvider:
             status_value = "idle"
         return {
             "status": status_value,
-            "last_batch_id": str(self.state.last_batch_id) if self.state.last_batch_id else None,
+            "last_batch_id": (
+                str(self.state.last_batch_id) if self.state.last_batch_id else None
+            ),
             "last_started_at": self._iso(self.state.last_started_at),
             "last_completed_at": self._iso(self.state.last_completed_at),
             "running": self.state.running,
             "queued_batches": self.state.queued_batches,
             "last_error": self.state.last_error,
-            "last_weight_submission_at": self._iso(self.state.last_weight_submission_at),
+            "last_weight_submission_at": self._iso(
+                self.state.last_weight_submission_at
+            ),
             "last_weight_error": self.state.last_weight_error,
         }
 

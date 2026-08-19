@@ -12,15 +12,23 @@ from fastapi import FastAPI
 from harnyx_commons.observability.logging import shutdown_logging
 from harnyx_commons.observability.tracing import configure_tracing
 from harnyx_validator.infrastructure.http.middleware import request_logging_middleware
-from harnyx_validator.infrastructure.http.routes import add_control_routes, add_system_routes, add_tool_routes
+from harnyx_validator.infrastructure.http.routes import (
+    add_control_routes,
+    add_system_routes,
+    add_tool_routes,
+)
 from harnyx_validator.infrastructure.observability.logging import (
     configure_logging,
     enable_cloud_logging,
     init_logging,
 )
-from harnyx_validator.infrastructure.observability.sentry import configure_sentry_from_env
+from harnyx_validator.infrastructure.observability.sentry import (
+    configure_sentry_from_env,
+)
 from harnyx_validator.runtime.bootstrap import build_runtime, close_runtime_resources
-from harnyx_validator.runtime.registration_worker import create_registration_refresh_worker
+from harnyx_validator.runtime.registration_worker import (
+    create_registration_refresh_worker,
+)
 from harnyx_validator.runtime.settings import Settings
 from harnyx_validator.runtime.weight_worker import create_weight_worker
 from harnyx_validator.version import VALIDATOR_RELEASE_VERSION
@@ -31,7 +39,9 @@ _settings = Settings.load()
 configure_tracing(service_name="harnyx-validator")
 
 _COMPOSE_SMOKE_MARKER_ENV = "VALIDATOR_COMPOSE_SMOKE"
-_SMOKE_WEIGHT_WORKER_POLL_INTERVAL_ENV = "VALIDATOR_SMOKE_WEIGHT_WORKER_POLL_INTERVAL_SECONDS"
+_SMOKE_WEIGHT_WORKER_POLL_INTERVAL_ENV = (
+    "VALIDATOR_SMOKE_WEIGHT_WORKER_POLL_INTERVAL_SECONDS"
+)
 
 
 def _smoke_weight_worker_poll_interval_seconds() -> float | None:
@@ -43,7 +53,9 @@ def _smoke_weight_worker_poll_interval_seconds() -> float | None:
     try:
         value = float(raw_value)
     except ValueError as exc:
-        raise RuntimeError("smoke weight-worker poll interval must be a number") from exc
+        raise RuntimeError(
+            "smoke weight-worker poll interval must be a number"
+        ) from exc
     if value <= 0:
         raise RuntimeError("smoke weight-worker poll interval must be positive")
     return value
@@ -103,7 +115,9 @@ async def _stop_runtime_components(
         try:
             _registration_refresh_worker.stop(timeout=WORKER_STOP_TIMEOUT_SECONDS)
         except Exception:
-            logger.exception("failed stopping registration refresh worker during shutdown")
+            logger.exception(
+                "failed stopping registration refresh worker during shutdown"
+            )
     if weight_started:
         try:
             _weight_worker.stop(timeout=WORKER_STOP_TIMEOUT_SECONDS)
@@ -111,7 +125,9 @@ async def _stop_runtime_components(
             logger.exception("failed stopping weight worker during shutdown")
     if auth_started:
         try:
-            _runtime.inbound_auth_verifier.stop(timeout_seconds=WORKER_STOP_TIMEOUT_SECONDS)
+            _runtime.inbound_auth_verifier.stop(
+                timeout_seconds=WORKER_STOP_TIMEOUT_SECONDS
+            )
         except Exception:
             logger.exception("failed stopping inbound auth verifier during shutdown")
 
@@ -194,7 +210,9 @@ def main() -> None:
                 _runtime.status_provider.mark_platform_registration_succeeded()
             except Exception as exc:
                 _runtime.status_provider.mark_platform_registration_failed(str(exc))
-                logger.exception("validator platform registration failed during startup")
+                logger.exception(
+                    "validator platform registration failed during startup"
+                )
                 server.should_exit = True
                 await server_task
                 raise

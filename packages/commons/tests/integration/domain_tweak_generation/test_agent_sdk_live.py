@@ -9,7 +9,10 @@ from harnyx_commons.domain_tweak_generation import (
     PublicSourceFetcher,
 )
 from harnyx_commons.domain_tweak_generation.source_workspace import SourceWorkspace
-from harnyx_commons.llm.providers.vertex.credentials import cleanup_credentials_file, prepare_credentials
+from harnyx_commons.llm.providers.vertex.credentials import (
+    cleanup_credentials_file,
+    prepare_credentials,
+)
 
 pytestmark = [pytest.mark.integration, pytest.mark.expensive]
 

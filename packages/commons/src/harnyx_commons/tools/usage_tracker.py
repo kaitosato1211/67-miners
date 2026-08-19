@@ -125,7 +125,9 @@ class UsageTracker:
         )
 
     @staticmethod
-    def _normalize_usage(usage: ToolCallUsage | None, cost_usd: float | None) -> ToolCallUsage | None:
+    def _normalize_usage(
+        usage: ToolCallUsage | None, cost_usd: float | None
+    ) -> ToolCallUsage | None:
         if usage is None:
             return None
         if cost_usd is None and usage.cost_usd is not None:
@@ -216,7 +218,12 @@ def _resolve_one_cost_value(
         supplied.append(float(value))
     if not supplied:
         return None
-    if actual_cost_usd is not None and cost_usd is None and reference_cost_usd is None and usage_cost_usd is None:
+    if (
+        actual_cost_usd is not None
+        and cost_usd is None
+        and reference_cost_usd is None
+        and usage_cost_usd is None
+    ):
         raise ValueError("actual_cost_usd requires matching cost_usd")
 
     resolved = supplied[0]
@@ -226,7 +233,9 @@ def _resolve_one_cost_value(
         if value < 0.0:
             raise ValueError("cost_usd must be non-negative")
         if not isclose(value, resolved, rel_tol=0.0, abs_tol=1e-12):
-            raise ValueError("cost_usd, reference_cost_usd, and actual_cost_usd must match")
+            raise ValueError(
+                "cost_usd, reference_cost_usd, and actual_cost_usd must match"
+            )
     return resolved
 
 

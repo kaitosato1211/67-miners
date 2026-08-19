@@ -6,12 +6,19 @@ import pytest
 from pydantic import ValidationError
 
 from harnyx_commons.domain.session import ProviderCredentialSource
-from harnyx_commons.errors import ProviderCredentialUnavailableError, ToolProviderError, ToolProviderFailureCode
+from harnyx_commons.errors import (
+    ProviderCredentialUnavailableError,
+    ToolProviderError,
+    ToolProviderFailureCode,
+)
 from harnyx_commons.infrastructure.state.receipt_log import InMemoryReceiptLog
 from harnyx_commons.tools.embedding_models import EmbedTextRequest, EmbedTextResponse
 from harnyx_commons.tools.executor import ToolInvocationContext, ToolInvocationOutput
 from harnyx_commons.tools.ports import EmbeddingProviderResult
-from harnyx_commons.tools.runtime_invoker import DEFAULT_EMBEDDING_TOOL_TIMEOUT_SECONDS, RuntimeToolInvoker
+from harnyx_commons.tools.runtime_invoker import (
+    DEFAULT_EMBEDDING_TOOL_TIMEOUT_SECONDS,
+    RuntimeToolInvoker,
+)
 
 pytestmark = pytest.mark.anyio("asyncio")
 
@@ -82,11 +89,15 @@ async def test_platform_credential_session_resolves_requested_embedding_without_
     miner_resolver_calls: list[str] = []
     platform_resolver_calls: list[str] = []
 
-    def miner_resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingEmbeddingProvider:
+    def miner_resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingEmbeddingProvider:
         miner_resolver_calls.append(provider)
         return _CapturingEmbeddingProvider()
 
-    def platform_resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingEmbeddingProvider:
+    def platform_resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingEmbeddingProvider:
         platform_resolver_calls.append(provider)
         return platform_provider
 
@@ -111,14 +122,20 @@ async def test_platform_credential_session_resolves_requested_embedding_without_
     assert platform_resolver_calls == [provider]
     assert miner_resolver_calls == []
     assert len(platform_provider.requests) == 1
-    assert platform_provider.requests[0].timeout == DEFAULT_EMBEDDING_TOOL_TIMEOUT_SECONDS
+    assert (
+        platform_provider.requests[0].timeout == DEFAULT_EMBEDDING_TOOL_TIMEOUT_SECONDS
+    )
 
 
-async def test_context_free_embedding_uses_matching_direct_provider_without_resolver() -> None:
+async def test_context_free_embedding_uses_matching_direct_provider_without_resolver() -> (
+    None
+):
     direct_provider = _CapturingEmbeddingProvider()
     resolver_calls: list[str] = []
 
-    def resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingEmbeddingProvider:
+    def resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingEmbeddingProvider:
         resolver_calls.append(provider)
         return _CapturingEmbeddingProvider()
 
@@ -144,12 +161,16 @@ async def test_context_free_embedding_uses_matching_direct_provider_without_reso
     assert resolver_calls == []
 
 
-async def test_miner_credential_embedding_uses_miner_resolver_without_direct_fallback() -> None:
+async def test_miner_credential_embedding_uses_miner_resolver_without_direct_fallback() -> (
+    None
+):
     direct_provider = _CapturingEmbeddingProvider()
     miner_provider = _CapturingEmbeddingProvider()
     resolver_calls: list[str] = []
 
-    def resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingEmbeddingProvider:
+    def resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingEmbeddingProvider:
         resolver_calls.append(provider)
         return miner_provider
 
@@ -177,8 +198,12 @@ async def test_miner_credential_embedding_uses_miner_resolver_without_direct_fal
     assert direct_provider.requests == []
 
 
-async def test_platform_embedding_credential_source_error_is_mapped_at_invoker_boundary() -> None:
-    def resolver(provider: str, _context: ToolInvocationContext | None) -> _CapturingEmbeddingProvider:
+async def test_platform_embedding_credential_source_error_is_mapped_at_invoker_boundary() -> (
+    None
+):
+    def resolver(
+        provider: str, _context: ToolInvocationContext | None
+    ) -> _CapturingEmbeddingProvider:
         raise ProviderCredentialUnavailableError(provider)
 
     invoker = RuntimeToolInvoker(
@@ -219,7 +244,9 @@ async def test_runtime_invoker_lowers_openrouter_embedding_provider_extra() -> N
             "model": "qwen/qwen3-embedding-8b",
             "texts": ["What is Harnyx?"],
             "input_type": "query",
-            "provider_extra": {"provider": {"only": ["nebius"], "allow_fallbacks": False}},
+            "provider_extra": {
+                "provider": {"only": ["nebius"], "allow_fallbacks": False}
+            },
         },
     )
 
@@ -254,7 +281,9 @@ async def test_runtime_invoker_rejects_chutes_embedding_provider_extra() -> None
         )
 
 
-async def test_runtime_invoker_preserves_openrouter_embedding_when_cost_is_unavailable() -> None:
+async def test_runtime_invoker_preserves_openrouter_embedding_when_cost_is_unavailable() -> (
+    None
+):
     invoker = RuntimeToolInvoker(
         InMemoryReceiptLog(),
         embedding_provider=_UnavailableCostEmbeddingProvider(),

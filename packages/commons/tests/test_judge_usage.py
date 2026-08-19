@@ -63,7 +63,9 @@ def test_judge_usage_from_chutes_response_uses_actual_cost_metadata() -> None:
     assert summary.models[0].actual_cost_evidence == "pricing-cache"
 
 
-def test_judge_usage_keeps_model_reasoning_tokens_unavailable_and_coalesces_summary() -> None:
+def test_judge_usage_keeps_model_reasoning_tokens_unavailable_and_coalesces_summary() -> (
+    None
+):
     summary = judge_usage_from_response(
         _response(reasoning_tokens=None),
         default_provider="chutes",
@@ -99,7 +101,9 @@ def test_judge_usage_from_retried_response_uses_billable_response_count() -> Non
     assert summary.actual_cost_usd == pytest.approx(0.03)
 
 
-def test_judge_usage_from_retried_response_keeps_actual_cost_unavailable_without_total() -> None:
+def test_judge_usage_from_retried_response_keeps_actual_cost_unavailable_without_total() -> (
+    None
+):
     summary = judge_usage_from_response(
         _response(
             prompt_tokens=21,
@@ -165,8 +169,12 @@ def test_judge_usage_does_not_treat_raw_attempts_as_billable_calls() -> None:
 
 
 @pytest.mark.parametrize("metadata_key", ["actual_cost_usd", "actual_cost_usd_total"])
-@pytest.mark.parametrize("bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01])
-def test_judge_usage_rejects_invalid_actual_cost(metadata_key: str, bad_cost: object) -> None:
+@pytest.mark.parametrize(
+    "bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01]
+)
+def test_judge_usage_rejects_invalid_actual_cost(
+    metadata_key: str, bad_cost: object
+) -> None:
     with pytest.raises(JudgeUsageMetadataError, match="actual_cost_usd"):
         judge_usage_from_response(
             _response(metadata={metadata_key: bad_cost}),
@@ -208,7 +216,9 @@ def test_judge_usage_without_actual_cost_retains_valid_tokens_and_call_count() -
     "usage_parser",
     [judge_usage_from_response, judge_usage_without_actual_cost_from_response],
 )
-def test_judge_usage_parsers_reject_invalid_billable_response_count(usage_parser: object) -> None:
+def test_judge_usage_parsers_reject_invalid_billable_response_count(
+    usage_parser: object,
+) -> None:
     with pytest.raises(JudgeUsageMetadataError, match="billable_response_count"):
         usage_parser(
             _response(metadata={"billable_response_count": 0}),
@@ -230,7 +240,9 @@ def test_judge_usage_parsers_reject_negative_token_values(usage_parser: object) 
         )
 
 
-@pytest.mark.parametrize("bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01])
+@pytest.mark.parametrize(
+    "bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01]
+)
 def test_judge_model_usage_rejects_invalid_actual_cost(bad_cost: object) -> None:
     with pytest.raises(ValueError, match="actual_cost_usd"):
         JudgeModelUsage(
@@ -246,7 +258,9 @@ def test_judge_model_usage_rejects_invalid_actual_cost(bad_cost: object) -> None
         )
 
 
-@pytest.mark.parametrize("bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01])
+@pytest.mark.parametrize(
+    "bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01]
+)
 def test_judge_usage_summary_rejects_invalid_actual_cost(bad_cost: object) -> None:
     with pytest.raises(ValueError, match="actual_cost_usd"):
         JudgeUsageSummary(
@@ -260,7 +274,9 @@ def test_judge_usage_summary_rejects_invalid_actual_cost(bad_cost: object) -> No
         )
 
 
-def test_judge_usage_summary_rejects_actual_cost_total_that_does_not_match_models() -> None:
+def test_judge_usage_summary_rejects_actual_cost_total_that_does_not_match_models() -> (
+    None
+):
     model_usage = JudgeModelUsage(
         provider="chutes",
         model="judge",
@@ -273,7 +289,9 @@ def test_judge_usage_summary_rejects_actual_cost_total_that_does_not_match_model
         actual_cost_source="provider_actual",
     )
 
-    with pytest.raises(ValueError, match="actual_cost_usd must equal model actual costs"):
+    with pytest.raises(
+        ValueError, match="actual_cost_usd must equal model actual costs"
+    ):
         JudgeUsageSummary(
             call_count=1,
             prompt_tokens=10,
@@ -285,7 +303,9 @@ def test_judge_usage_summary_rejects_actual_cost_total_that_does_not_match_model
         )
 
 
-def test_judge_usage_summary_requires_unavailable_cost_when_any_model_cost_is_unavailable() -> None:
+def test_judge_usage_summary_requires_unavailable_cost_when_any_model_cost_is_unavailable() -> (
+    None
+):
     known_cost = JudgeModelUsage(
         provider="chutes",
         model="known-cost-judge",
@@ -337,7 +357,13 @@ def test_judge_usage_summary_requires_unavailable_cost_when_any_model_cost_is_un
 
 def test_merge_judge_usage_sums_tokens_and_actual_costs_by_model() -> None:
     first = judge_usage_from_response(
-        _response(metadata={"selected_provider": "chutes", "selected_model": "judge", "actual_cost_usd": 0.01}),
+        _response(
+            metadata={
+                "selected_provider": "chutes",
+                "selected_model": "judge",
+                "actual_cost_usd": 0.01,
+            }
+        ),
         default_provider="chutes",
         default_model="judge",
     )
@@ -347,7 +373,11 @@ def test_merge_judge_usage_sums_tokens_and_actual_costs_by_model() -> None:
             completion_tokens=3,
             total_tokens=10,
             reasoning_tokens=1,
-            metadata={"selected_provider": "chutes", "selected_model": "judge", "actual_cost_usd": 0.02},
+            metadata={
+                "selected_provider": "chutes",
+                "selected_model": "judge",
+                "actual_cost_usd": 0.02,
+            },
         ),
         default_provider="chutes",
         default_model="judge",
@@ -372,7 +402,9 @@ def test_merge_judge_usage_coalesces_unavailable_model_reasoning_tokens() -> Non
         default_model="judge",
     )
     second = judge_usage_from_response(
-        _response(prompt_tokens=7, completion_tokens=3, total_tokens=10, reasoning_tokens=1),
+        _response(
+            prompt_tokens=7, completion_tokens=3, total_tokens=10, reasoning_tokens=1
+        ),
         default_provider="chutes",
         default_model="judge",
     )
@@ -385,12 +417,20 @@ def test_merge_judge_usage_coalesces_unavailable_model_reasoning_tokens() -> Non
 
 def test_merge_judge_usage_keeps_tokens_when_actual_cost_is_missing() -> None:
     with_actual = judge_usage_from_response(
-        _response(metadata={"selected_provider": "chutes", "selected_model": "judge", "actual_cost_usd": 0.01}),
+        _response(
+            metadata={
+                "selected_provider": "chutes",
+                "selected_model": "judge",
+                "actual_cost_usd": 0.01,
+            }
+        ),
         default_provider="chutes",
         default_model="judge",
     )
     without_actual = judge_usage_from_response(
-        _response(prompt_tokens=7, completion_tokens=3, total_tokens=10, reasoning_tokens=1),
+        _response(
+            prompt_tokens=7, completion_tokens=3, total_tokens=10, reasoning_tokens=1
+        ),
         default_provider="chutes",
         default_model="judge",
     )

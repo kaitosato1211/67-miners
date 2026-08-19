@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import Any, Literal, cast
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from harnyx_miner_sdk.tools.search_provider_extra import (
     FetchPageProviderExtra,
@@ -52,7 +59,9 @@ class SearchWebSearchRequest(BaseModel):
         provider = payload.get("provider")
         if isinstance(provider, str) and "provider_extra" in payload:
             payload["provider_extra"] = validate_search_provider_extra(
-                operation="search_web", provider=provider, provider_extra=payload["provider_extra"]
+                operation="search_web",
+                provider=provider,
+                provider_extra=payload["provider_extra"],
             )
         return payload
 
@@ -61,11 +70,15 @@ class SearchWebSearchRequest(BaseModel):
         if self.provider == "firecrawl":
             query = " OR ".join(f"({term})" for term in self.search_queries)
             if len(query) > 500:
-                raise ValueError("Firecrawl search query must not exceed 500 characters")
+                raise ValueError(
+                    "Firecrawl search query must not exceed 500 characters"
+                )
         return self
 
     def to_query_params(self) -> dict[str, Any]:
-        payload = self.model_dump(exclude_none=True, exclude={"provider", "timeout", "provider_extra"})
+        payload = self.model_dump(
+            exclude_none=True, exclude={"provider", "timeout", "provider_extra"}
+        )
         if self.provider_extra is not None:
             payload.update(self.provider_extra.to_provider_payload())
         return payload
@@ -121,7 +134,8 @@ class SearchXUser(BaseModel):
     id: str | None = None
     display_name: str | None = Field(default=None, alias="name")
     profile_image_url: str | None = Field(
-        default=None, validation_alias=AliasChoices("profile_image_url_https", "profile_image_url")
+        default=None,
+        validation_alias=AliasChoices("profile_image_url_https", "profile_image_url"),
     )
     followers_count: int | None = None
     verified: bool | None = None
@@ -250,7 +264,9 @@ class FetchPageRequest(BaseModel):
         provider = payload.get("provider")
         if isinstance(provider, str) and "provider_extra" in payload:
             payload["provider_extra"] = validate_search_provider_extra(
-                operation="fetch_page", provider=provider, provider_extra=payload["provider_extra"]
+                operation="fetch_page",
+                provider=provider,
+                provider_extra=payload["provider_extra"],
             )
         return payload
 

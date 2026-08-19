@@ -116,7 +116,9 @@ class ToolUsageSummary:
     search_tool_cost: float = 0.0
     llm: LlmUsageSummary = field(default_factory=LlmUsageSummary)
     llm_cost: float = 0.0
-    embedding: EmbeddingToolUsageSummary = field(default_factory=EmbeddingToolUsageSummary)
+    embedding: EmbeddingToolUsageSummary = field(
+        default_factory=EmbeddingToolUsageSummary
+    )
     embedding_cost: float = 0.0
     reference_total_cost_usd: float = 0.0
     reference_cost_by_provider: dict[str, float] = field(default_factory=dict)
@@ -137,7 +139,9 @@ class ToolUsageSummary:
                     actual_cost=self.embedding.actual_cost,
                 ),
             )
-        legacy_reference_total = self.llm_cost + self.search_tool_cost + self.embedding_cost
+        legacy_reference_total = (
+            self.llm_cost + self.search_tool_cost + self.embedding_cost
+        )
         if self.reference_total_cost_usd == 0.0 and legacy_reference_total != 0.0:
             object.__setattr__(self, "reference_total_cost_usd", legacy_reference_total)
         if self.search_tool_cost < 0.0:

@@ -20,12 +20,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from harnyx_commons.config.external_client import ExternalClientRetrySettings
 from harnyx_commons.errors import ToolProviderError, ToolProviderFailureCode
 from harnyx_commons.llm.retry_utils import RetryPolicy, backoff_ms
-from harnyx_commons.platform_tool_proxy import platform_tool_proxy_effective_provider_timeout_seconds
+from harnyx_commons.platform_tool_proxy import (
+    platform_tool_proxy_effective_provider_timeout_seconds,
+)
 from harnyx_commons.tools.desearch_ai_protocol import (
     DeSearchAiDocsResponse,
     parse_desearch_ai_response,
 )
-from harnyx_commons.tools.provider_billing import ProviderBillingMetadata, SearchProviderResult
+from harnyx_commons.tools.provider_billing import (
+    ProviderBillingMetadata,
+    SearchProviderResult,
+)
 from harnyx_commons.tools.search_models import (
     FetchPageRequest,
     FetchPageResponse,
@@ -40,7 +45,10 @@ from harnyx_commons.tools.search_models import (
     SearchXSearchRequest,
     SearchXSearchResponse,
 )
-from harnyx_miner_sdk.tools.search_provider_extra import DeSearchFetchExtra, DeSearchSearchExtra
+from harnyx_miner_sdk.tools.search_provider_extra import (
+    DeSearchFetchExtra,
+    DeSearchSearchExtra,
+)
 
 _LOGGER = logging.getLogger("harnyx_commons.tools.desearch.calls")
 _DESEARCH_AI_MIN_COUNT = 10
@@ -163,7 +171,9 @@ class DeSearchClient:
         self._retry_policy = retry_policy or ExternalClientRetrySettings().retry_policy
         self._include_payloads_in_logs = include_payloads_in_logs
         self._semaphore: asyncio.Semaphore | None = (
-            asyncio.Semaphore(max_concurrent) if max_concurrent and max_concurrent > 0 else None
+            asyncio.Semaphore(max_concurrent)
+            if max_concurrent and max_concurrent > 0
+            else None
         )
 
     async def _post(
@@ -261,7 +271,9 @@ class DeSearchClient:
         extra = request.provider_extra or DeSearchSearchExtra()
         if not isinstance(extra, DeSearchSearchExtra):
             raise ValueError("DeSearch search requires DeSearchSearchExtra")
-        data = await self._search_links_web_page_with_billing(request, start=extra.start)
+        data = await self._search_links_web_page_with_billing(
+            request, start=extra.start
+        )
         if data is None:
             raise ToolProviderError("tool provider failed")
         response = SearchWebSearchResponse.model_validate(data.data)
@@ -336,7 +348,9 @@ class DeSearchClient:
             ),
         )
 
-    async def search_links_web(self, request: SearchWebSearchRequest) -> SearchWebSearchResponse:
+    async def search_links_web(
+        self, request: SearchWebSearchRequest
+    ) -> SearchWebSearchResponse:
         data = await self._search_links_web_page(request, start=None)
         if data is None:
             raise ToolProviderError("tool provider failed")
@@ -362,7 +376,9 @@ class DeSearchClient:
         }
         if start is not None:
             params["start"] = start
-        return await self._get_with_billing("web", params, requested_timeout=request.timeout)
+        return await self._get_with_billing(
+            "web", params, requested_timeout=request.timeout
+        )
 
     async def search_links_twitter(
         self,
@@ -382,14 +398,20 @@ class DeSearchClient:
     ) -> AsyncIterator[DeSearchTwitterSearchPage]:
         base_query = request.query.strip()
         if not base_query:
-            raise ValueError("desearch iter_search_links_twitter_pages requires non-empty query")
+            raise ValueError(
+                "desearch iter_search_links_twitter_pages requires non-empty query"
+            )
         if "max_id:" in base_query:
-            raise ValueError("desearch iter_search_links_twitter_pages request.query must not contain max_id:")
+            raise ValueError(
+                "desearch iter_search_links_twitter_pages request.query must not contain max_id:"
+            )
 
         cursor: int | None = None
         page_index = 0
         while True:
-            page_query = base_query if cursor is None else f"{base_query} max_id:{cursor}"
+            page_query = (
+                base_query if cursor is None else f"{base_query} max_id:{cursor}"
+            )
             page_request = request.model_copy(update={"query": page_query})
 
             response = await self.search_links_twitter(page_request)
@@ -401,7 +423,9 @@ class DeSearchClient:
             post_ids = _parse_tweet_ids(page_posts)
 
             if cursor is not None:
-                page_posts, post_ids, ignored_count = _filter_tweets_for_max_id(page_posts, cursor=cursor)
+                page_posts, post_ids, ignored_count = _filter_tweets_for_max_id(
+                    page_posts, cursor=cursor
+                )
                 if ignored_count:
                     _LOGGER.info(
                         "desearch.search_links_twitter.pagination.ignored_out_of_range",
@@ -486,7 +510,9 @@ class DeSearchClient:
             if max_id is None or tweet_id > max_id:
                 max_id = tweet_id
 
-        sample_tweets = [tweet.model_dump(exclude_none=True) for tweet in response.data[:20]]
+        sample_tweets = [
+            tweet.model_dump(exclude_none=True) for tweet in response.data[:20]
+        ]
 
         _LOGGER.info(
             "desearch.search_links_twitter.summary",
@@ -496,8 +522,12 @@ class DeSearchClient:
                     "return_count": len(response.data),
                     "min_id": min_id,
                     "max_id": max_id,
-                    "min_created_at": created_at_by_id.get(min_id) if min_id is not None else None,
-                    "max_created_at": created_at_by_id.get(max_id) if max_id is not None else None,
+                    "min_created_at": (
+                        created_at_by_id.get(min_id) if min_id is not None else None
+                    ),
+                    "max_created_at": (
+                        created_at_by_id.get(max_id) if max_id is not None else None
+                    ),
                 },
                 "json_fields": {"sample_tweets": sample_tweets},
             },
@@ -568,7 +598,9 @@ class DeSearchClient:
             "streaming": False,
             "count": max(_DESEARCH_AI_MIN_COUNT, min(_DESEARCH_AI_MAX_COUNT, count)),
         }
-        payload = {key: value for key, value in payload_items.items() if value is not None}
+        payload = {
+            key: value for key, value in payload_items.items() if value is not None
+        }
         data = await self._post_with_billing(
             "desearch/ai/search",
             payload,
@@ -713,7 +745,9 @@ class DeSearchClient:
                             {
                                 "http.status_code": resp.status_code,
                                 "desearch.result_count": (
-                                    len(data["data"]) if isinstance(data.get("data"), list) else 0
+                                    len(data["data"])
+                                    if isinstance(data.get("data"), list)
+                                    else 0
                                 ),
                             }
                         )
@@ -726,7 +760,11 @@ class DeSearchClient:
                                 "attempts": attempt + 1,
                                 "latency_ms_total": round(total_latency_ms, 2),
                                 "retry_reasons": tuple(reasons),
-                                "result_count": len(data["data"]) if isinstance(data.get("data"), list) else None,
+                                "result_count": (
+                                    len(data["data"])
+                                    if isinstance(data.get("data"), list)
+                                    else None
+                                ),
                                 "wait_ms": round(wait_ms, 2),
                             }
                         }
@@ -742,10 +780,14 @@ class DeSearchClient:
                             }
                         _LOGGER.info("desearch.request.complete", extra=log_extra)
                         return _DeSearchRequestData(data=data, billing=billing)
-                    except httpx.HTTPStatusError as exc:  # pragma: no cover - network errors
+                    except (
+                        httpx.HTTPStatusError
+                    ) as exc:  # pragma: no cover - network errors
                         status = exc.response.status_code if exc.response else None
                         if allow_not_found and status == 404:
-                            total_latency_ms += (time.perf_counter() - attempt_start) * 1000
+                            total_latency_ms += (
+                                time.perf_counter() - attempt_start
+                            ) * 1000
                             span.set_attributes(
                                 {
                                     "http.status_code": 404,
@@ -774,7 +816,9 @@ class DeSearchClient:
                                 }
                             _LOGGER.info("desearch.request.not_found", extra=log_extra)
                             return None
-                        retryable = status == 429 or (status is not None and status >= 500)
+                        retryable = status == 429 or (
+                            status is not None and status >= 500
+                        )
                         reasons.append(f"http_{status}")
                         if not (retryable and self._should_retry(attempt)):
                             span.set_attributes(
@@ -797,7 +841,9 @@ class DeSearchClient:
                     except httpx.HTTPError as exc:  # pragma: no cover
                         reasons.append(exc.__class__.__name__)
                         if not self._should_retry(attempt):
-                            span.set_attributes({"desearch.error": exc.__class__.__name__})
+                            span.set_attributes(
+                                {"desearch.error": exc.__class__.__name__}
+                            )
                             raise ToolProviderError("tool provider failed") from exc
                         await self._sleep(attempt)
                     except ValueError as exc:
@@ -827,8 +873,12 @@ class DeSearchClient:
         headers = {"Authorization": self._api_key}
         if method == "post":
             headers["content-type"] = "application/json"
-            return await self._client.post(path, headers=headers, json=json_payload, timeout=timeout)
-        return await self._client.get(path, headers=headers, params=params, timeout=timeout)
+            return await self._client.post(
+                path, headers=headers, json=json_payload, timeout=timeout
+            )
+        return await self._client.get(
+            path, headers=headers, params=params, timeout=timeout
+        )
 
     @staticmethod
     async def _parse_response(
@@ -869,7 +919,9 @@ class DeSearchClient:
         await asyncio.sleep(backoff / 1000)
 
 
-def _billing_metadata_from_headers(headers: httpx.Headers) -> ProviderBillingMetadata | None:
+def _billing_metadata_from_headers(
+    headers: httpx.Headers,
+) -> ProviderBillingMetadata | None:
     cost = _optional_float(headers.get("x-desearch-cost-usd"))
     usage_count = _optional_int(headers.get("x-desearch-usage-count"))
     if cost is None and usage_count is None:

@@ -41,7 +41,9 @@ async def test_vertex_multimodal_image_live() -> None:
                 LlmMessage(
                     role="user",
                     content=(
-                        LlmMessageContentPart.input_text("What is in this image? Reply in one sentence."),
+                        LlmMessageContentPart.input_text(
+                            "What is in this image? Reply in one sentence."
+                        ),
                         LlmMessageContentPart.input_image_url(
                             "gs://generativeai-downloads/images/scones.jpg",
                             mime_type="image/jpeg",
@@ -55,7 +57,9 @@ async def test_vertex_multimodal_image_live() -> None:
         )
 
         response = await provider.invoke(request)
-        assert response.raw_text, "Vertex multimodal response should include text output"
+        assert (
+            response.raw_text
+        ), "Vertex multimodal response should include text output"
     finally:
         await provider.aclose()
 
@@ -137,7 +141,11 @@ async def test_vertex_grounded_search_live() -> None:
                 ),
                 LlmMessage(
                     role="user",
-                    content=(LlmMessageContentPart.input_text("Share one current headline with a citation."),),
+                    content=(
+                        LlmMessageContentPart.input_text(
+                            "Share one current headline with a citation."
+                        ),
+                    ),
                 ),
             ),
             temperature=0.2,
@@ -184,7 +192,11 @@ async def test_vertex_claude_web_search_live() -> None:
                 ),
                 LlmMessage(
                     role="user",
-                    content=(LlmMessageContentPart.input_text("Share one headline and cite the source."),),
+                    content=(
+                        LlmMessageContentPart.input_text(
+                            "Share one headline and cite the source."
+                        ),
+                    ),
                 ),
             ),
             temperature=1.0,
@@ -224,7 +236,11 @@ async def test_vertex_json_mode_live() -> None:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text("Return JSON only with key 'ping' and value 'pong'."),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        "Return JSON only with key 'ping' and value 'pong'."
+                    ),
+                ),
             ),
         ),
         temperature=0.0,
@@ -267,7 +283,11 @@ async def test_vertex_structured_output_live() -> None:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('Respond only with JSON {"answer": "ok"}.'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'Respond only with JSON {"answer": "ok"}.'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,

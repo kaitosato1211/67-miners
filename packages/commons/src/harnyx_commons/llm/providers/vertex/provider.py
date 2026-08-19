@@ -17,7 +17,10 @@ from google.auth.credentials import Credentials as GoogleCredentials
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.genai import errors, types
 
-from harnyx_commons.llm.cost_settlement import settled_response_cost, with_settled_llm_cost
+from harnyx_commons.llm.cost_settlement import (
+    settled_response_cost,
+    with_settled_llm_cost,
+)
 from harnyx_commons.llm.provider import BaseLlmProvider
 from harnyx_commons.llm.providers.openai_stream import (
     OpenAiStreamError,
@@ -106,7 +109,9 @@ class VertexLlmProvider(BaseLlmProvider):
         self._project = project
         self._location = location
         self._timeout = timeout
-        self._credentials, self._credentials_file = prepare_credentials(credentials_path, service_account_b64)
+        self._credentials, self._credentials_file = prepare_credentials(
+            credentials_path, service_account_b64
+        )
         self._http_credentials: GoogleCredentials | None = self._credentials
         http_timeout = math.ceil(timeout * 1000) if timeout and timeout > 0 else None
         http_options = types.HttpOptions(
@@ -133,7 +138,9 @@ class VertexLlmProvider(BaseLlmProvider):
         if is_claude_model(request.model):
             return await self._call_with_retry(
                 request,
-                call_coro=lambda current_request: self._call_claude_anthropic(current_request),
+                call_coro=lambda current_request: self._call_claude_anthropic(
+                    current_request
+                ),
                 verifier=self._verify_response,
                 classify_exception=self._classify_anthropic_exception,
                 policy=request.retry_policy,
@@ -141,7 +148,9 @@ class VertexLlmProvider(BaseLlmProvider):
 
         return await self._call_with_retry(
             request,
-            call_coro=lambda current_request: self._call_vertex_with_request(current_request),
+            call_coro=lambda current_request: self._call_vertex_with_request(
+                current_request
+            ),
             verifier=self._verify_response,
             classify_exception=self._classify_exception,
             policy=request.retry_policy,
@@ -156,7 +165,9 @@ class VertexLlmProvider(BaseLlmProvider):
         if cost is None:
             self._logger.warning(
                 "vertex.cost_settlement.unavailable",
-                extra={"data": {"provider": self._provider_label, "model": request.model}},
+                extra={
+                    "data": {"provider": self._provider_label, "model": request.model}
+                },
             )
             return response
         return with_settled_llm_cost(response, cost)
@@ -168,7 +179,9 @@ class VertexLlmProvider(BaseLlmProvider):
         await self._anthropic_client.close()
         cleanup_credentials_file(self._credentials_file, self._logger)
 
-    def _tools_for(self, request: AbstractLlmRequest) -> tuple[list[Any] | None, types.ToolConfig | None]:
+    def _tools_for(
+        self, request: AbstractLlmRequest
+    ) -> tuple[list[Any] | None, types.ToolConfig | None]:
         if request.grounded:
             if is_claude_web_search_model(request.model):
                 return None, None
@@ -200,8 +213,13 @@ class VertexLlmProvider(BaseLlmProvider):
         if not request.grounded:
             if request.output_mode in {"json_object", "structured"}:
                 config_kwargs["response_mime_type"] = "application/json"
-            if request.output_mode == "structured" and request.output_schema is not None:
-                config_kwargs["response_schema"] = json_schema_from_model(request.output_schema)
+            if (
+                request.output_mode == "structured"
+                and request.output_schema is not None
+            ):
+                config_kwargs["response_schema"] = json_schema_from_model(
+                    request.output_schema
+                )
 
         thinking_config = (
             resolve_thinking_config(
@@ -247,7 +265,9 @@ class VertexLlmProvider(BaseLlmProvider):
             if _merge_gemini_chunk(accumulated, chunk) and ttft_ms is None:
                 ttft_ms = round((time.perf_counter() - started_at) * 1000, 2)
         if latest_response is None:
-            raise _VertexProviderProtocolError("vertex streaming generation returned no response chunks")
+            raise _VertexProviderProtocolError(
+                "vertex streaming generation returned no response chunks"
+            )
 
         choices = accumulated.to_choices()
         primary_finish_reason = choices[0].finish_reason if choices else None
@@ -256,10 +276,17 @@ class VertexLlmProvider(BaseLlmProvider):
 
         metadata, usage = accumulated.metadata(usage)
         combined_metadata = dict(metadata or {})
-        combined_metadata.setdefault("raw_response", accumulated.raw_response_payload(latest_response))
+        combined_metadata.setdefault(
+            "raw_response", accumulated.raw_response_payload(latest_response)
+        )
         if ttft_ms is not None:
             combined_metadata.setdefault("ttft_ms", ttft_ms)
-        self._log_stream_ttft(branch="gemini", model=request.model, response_id=response_id, ttft_ms=ttft_ms)
+        self._log_stream_ttft(
+            branch="gemini",
+            model=request.model,
+            response_id=response_id,
+            ttft_ms=ttft_ms,
+        )
 
         return LlmResponse(
             id=response_id,
@@ -269,7 +296,9 @@ class VertexLlmProvider(BaseLlmProvider):
             finish_reason=primary_finish_reason,
         )
 
-    async def _call_vertex_with_request(self, request: AbstractLlmRequest) -> LlmResponse:
+    async def _call_vertex_with_request(
+        self, request: AbstractLlmRequest
+    ) -> LlmResponse:
         if _should_use_vertex_maas_openai_chat(request):
             return await self._call_vertex_maas_chat_completions(request)
         system_instruction, contents = normalize_messages(request.messages)
@@ -282,7 +311,9 @@ class VertexLlmProvider(BaseLlmProvider):
         )
         return await self._call_vertex(request, contents, generation_config)
 
-    async def _call_vertex_maas_chat_completions(self, request: AbstractLlmRequest) -> LlmResponse:
+    async def _call_vertex_maas_chat_completions(
+        self, request: AbstractLlmRequest
+    ) -> LlmResponse:
         payload = _VertexMaasChatRequest.from_request(request)
         location = _vertex_maas_location_for(model=request.model)
         access_token = await self._vertex_maas_access_token()
@@ -318,7 +349,9 @@ class VertexLlmProvider(BaseLlmProvider):
                 ):
                     if ttft_ms is None:
                         ttft_ms = round((time.perf_counter() - started_at) * 1000, 2)
-        response_body = _VertexMaasChatResponse.from_stream_state(state, model=request.model)
+        response_body = _VertexMaasChatResponse.from_stream_state(
+            state, model=request.model
+        )
         llm_response = response_body.to_llm_response(model=request.model)
         metadata = dict(llm_response.metadata or {})
         metadata.setdefault("raw_response", response_body.raw_payload())
@@ -344,7 +377,9 @@ class VertexLlmProvider(BaseLlmProvider):
         await asyncio.to_thread(credentials.refresh, request)
         token = credentials.token
         if not token:
-            raise RuntimeError("vertex maas credentials refresh returned no access token")
+            raise RuntimeError(
+                "vertex maas credentials refresh returned no access token"
+            )
         return token
 
     async def _vertex_maas_credentials(self) -> GoogleCredentials:
@@ -373,7 +408,9 @@ class VertexLlmProvider(BaseLlmProvider):
 
         if request.grounded:
             if not is_claude_web_search_model(model):
-                raise ValueError("grounded Claude requests require a Claude web_search model")
+                raise ValueError(
+                    "grounded Claude requests require a Claude web_search model"
+                )
             tools = [build_claude_web_search_tool(request.extra)]
             extra_headers = {"anthropic-beta": CLAUDE_WEB_SEARCH_BETA}
 
@@ -395,20 +432,28 @@ class VertexLlmProvider(BaseLlmProvider):
             "temperature": temperature,
             "tools": tools,
             "extra_headers": extra_headers,
-            "thinking": {
-                "type": "enabled",
-                "budget_tokens": thinking_budget,
-            }
-            if thinking_budget is not None
-            else None,
+            "thinking": (
+                {
+                    "type": "enabled",
+                    "budget_tokens": thinking_budget,
+                }
+                if thinking_budget is not None
+                else None
+            ),
         }
 
-        kwargs = base_kwargs | {k: v for k, v in optional_kwargs.items() if v is not None}
+        kwargs = base_kwargs | {
+            k: v for k, v in optional_kwargs.items() if v is not None
+        }
 
         started_at = time.perf_counter()
         ttft_ms: float | None = None
         async with self._anthropic_client.messages.stream(
-            timeout=request.timeout_seconds if request.timeout_seconds is not None else self._timeout,
+            timeout=(
+                request.timeout_seconds
+                if request.timeout_seconds is not None
+                else self._timeout
+            ),
             **kwargs,
         ) as stream:
             async for text in stream.text_stream:
@@ -421,13 +466,22 @@ class VertexLlmProvider(BaseLlmProvider):
         metadata.setdefault("raw_response", _raw_response_payload(response))
         if ttft_ms is not None:
             metadata.setdefault("ttft_ms", ttft_ms)
-        self._log_stream_ttft(branch="claude", model=request.model, response_id=llm_response.id, ttft_ms=ttft_ms)
+        self._log_stream_ttft(
+            branch="claude",
+            model=request.model,
+            response_id=llm_response.id,
+            ttft_ms=ttft_ms,
+        )
 
         usage_with_calls = llm_response.usage
         if llm_response.usage.web_search_calls in (None, 0):
             raw_queries = metadata.get("web_search_queries", ())
-            web_search_calls = len(raw_queries) if isinstance(raw_queries, (list, tuple)) else 0
-            usage_with_calls = llm_response.usage + LlmUsage(web_search_calls=web_search_calls)
+            web_search_calls = (
+                len(raw_queries) if isinstance(raw_queries, (list, tuple)) else 0
+            )
+            usage_with_calls = llm_response.usage + LlmUsage(
+                web_search_calls=web_search_calls
+            )
 
         return LlmResponse(
             id=llm_response.id,
@@ -477,7 +531,9 @@ class VertexLlmProvider(BaseLlmProvider):
     ) -> tuple[bool, str]:
         return classify_anthropic_exception(exc, classify_exception)
 
-    def _log_stream_ttft(self, *, branch: str, model: str, response_id: str, ttft_ms: float | None) -> None:
+    def _log_stream_ttft(
+        self, *, branch: str, model: str, response_id: str, ttft_ms: float | None
+    ) -> None:
         if ttft_ms is None:
             return
         self._logger.debug(
@@ -517,7 +573,9 @@ def _should_use_vertex_maas_openai_chat(request: AbstractLlmRequest) -> bool:
 
 def _vertex_maas_location_for(*, model: str) -> str:
     normalized_model = model.strip().lower()
-    return _VERTEX_MAAS_MODEL_LOCATIONS.get(normalized_model, VERTEX_MAAS_DEFAULT_LOCATION)
+    return _VERTEX_MAAS_MODEL_LOCATIONS.get(
+        normalized_model, VERTEX_MAAS_DEFAULT_LOCATION
+    )
 
 
 def _request_http_options(request: AbstractLlmRequest) -> types.HttpOptions | None:
@@ -525,7 +583,9 @@ def _request_http_options(request: AbstractLlmRequest) -> types.HttpOptions | No
     timeout = request.timeout_seconds
     if headers is None and timeout is None:
         return None
-    http_timeout = math.ceil(timeout * 1000) if timeout is not None and timeout > 0 else None
+    http_timeout = (
+        math.ceil(timeout * 1000) if timeout is not None and timeout > 0 else None
+    )
     return types.HttpOptions(
         api_version=_API_VERSION,
         timeout=int(http_timeout) if http_timeout is not None else None,
@@ -539,20 +599,26 @@ def _request_http_headers(request: AbstractLlmRequest) -> dict[str, str] | None:
     if raw_headers is None:
         return None
     if not isinstance(raw_headers, Mapping):
-        raise ValueError(f"request extra {_REQUEST_HTTP_HEADERS_EXTRA_KEY!r} must be a mapping")
+        raise ValueError(
+            f"request extra {_REQUEST_HTTP_HEADERS_EXTRA_KEY!r} must be a mapping"
+        )
     headers: dict[str, str] = {}
     for key, value in raw_headers.items():
         if not isinstance(key, str) or not isinstance(value, str):
-            raise ValueError(f"request extra {_REQUEST_HTTP_HEADERS_EXTRA_KEY!r} must contain string headers")
+            raise ValueError(
+                f"request extra {_REQUEST_HTTP_HEADERS_EXTRA_KEY!r} must contain string headers"
+            )
         headers[key] = value
     return headers
 
 
 def _vertex_maas_chat_completions_url(*, project: str, location: str) -> str:
-    host = "aiplatform.googleapis.com" if location == "global" else f"{location}-aiplatform.googleapis.com"
-    return (
-        f"https://{host}/v1/projects/{project}/locations/{location}/endpoints/openapi/chat/completions"
+    host = (
+        "aiplatform.googleapis.com"
+        if location == "global"
+        else f"{location}-aiplatform.googleapis.com"
     )
+    return f"https://{host}/v1/projects/{project}/locations/{location}/endpoints/openapi/chat/completions"
 
 
 def _anthropic_messages_from_request(
@@ -562,8 +628,12 @@ def _anthropic_messages_from_request(
     messages: list[dict[str, Any]] = []
     for msg in request.messages:
         if any(isinstance(part, LlmInputImagePart) for part in msg.content):
-            raise ValueError("Claude-on-Vertex requests do not support input_image content parts")
-        text = "\n".join(part.text for part in msg.content if isinstance(part, LlmInputTextPart))
+            raise ValueError(
+                "Claude-on-Vertex requests do not support input_image content parts"
+            )
+        text = "\n".join(
+            part.text for part in msg.content if isinstance(part, LlmInputTextPart)
+        )
         if msg.role == "system":
             system_content = text
         else:

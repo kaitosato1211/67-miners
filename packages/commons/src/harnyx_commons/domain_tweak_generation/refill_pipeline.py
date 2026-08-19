@@ -38,7 +38,10 @@ from harnyx_commons.domain_tweak_generation.contracts import (
     SlotAttemptCallback,
     SlotAttemptEvent,
 )
-from harnyx_commons.domain_tweak_generation.prompts import PORTFOLIO_SYSTEM, portfolio_prompt
+from harnyx_commons.domain_tweak_generation.prompts import (
+    PORTFOLIO_SYSTEM,
+    portfolio_prompt,
+)
 from harnyx_commons.observability.langfuse import (
     LangfuseGeneration,
     start_metadata_only_observation,
@@ -61,9 +64,7 @@ def _capability_preferences(target_count: int) -> tuple[CapabilityPreference, ..
         return ()
     capacity = math.ceil(target_count / len(CAPABILITY_PREFERENCES))
     return tuple(
-        preference
-        for preference in CAPABILITY_PREFERENCES
-        for _ in range(capacity)
+        preference for preference in CAPABILITY_PREFERENCES for _ in range(capacity)
     )[:target_count]
 
 
@@ -137,7 +138,9 @@ class ShortfallRefillPipeline:
 
         while open_slots:
             round_index += 1
-            slot_inputs = tuple(_SlotInput(slot, preference_by_slot[slot]) for slot in open_slots)
+            slot_inputs = tuple(
+                _SlotInput(slot, preference_by_slot[slot]) for slot in open_slots
+            )
             groups = tuple(
                 slot_inputs[start : start + _MAX_PORTFOLIO_GROUP_SIZE]
                 for start in range(0, len(slot_inputs), _MAX_PORTFOLIO_GROUP_SIZE)
@@ -150,7 +153,10 @@ class ShortfallRefillPipeline:
                 group_index: int,
                 group: Sequence[_SlotInput],
                 current_round: int = round_index,
-            ) -> tuple[Sequence[_SlotInput], _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal]:
+            ) -> tuple[
+                Sequence[_SlotInput],
+                _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal,
+            ]:
                 return group, await self._run_portfolio_group(
                     current_round,
                     group_index,
@@ -159,7 +165,8 @@ class ShortfallRefillPipeline:
                 )
 
             portfolio_tasks = [
-                asyncio.create_task(run_portfolio(group_index, group)) for group_index, group in enumerate(groups)
+                asyncio.create_task(run_portfolio(group_index, group))
+                for group_index, group in enumerate(groups)
             ]
 
             async def settle_portfolio(
@@ -167,11 +174,15 @@ class ShortfallRefillPipeline:
                 outcome: _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal,
                 current_round: int = round_index,
                 current_retry_after_values: list[float] = retry_after_values,
-                current_candidate_inputs: list[tuple[_SlotInput, PortfolioAllocation, str]] = candidate_inputs,
+                current_candidate_inputs: list[
+                    tuple[_SlotInput, PortfolioAllocation, str]
+                ] = candidate_inputs,
             ) -> BatchTerminalGenerationError | None:
                 nonlocal portfolio_call_count, round_transient, slot_attempt_count, total_usage
                 portfolio_call_count += 1
-                total_usage = merge_complete_actual_cost_usage(total_usage, outcome.call_event.tool_usage)
+                total_usage = merge_complete_actual_cost_usage(
+                    total_usage, outcome.call_event.tool_usage
+                )
                 if on_portfolio_completed is not None:
                     await on_portfolio_completed(outcome.call_event)
                 if isinstance(outcome, _PortfolioTerminal):
@@ -182,7 +193,9 @@ class ShortfallRefillPipeline:
                     if failure_name == "transient_provider":
                         round_transient = True
                         if outcome.error.retry_after_seconds is not None:
-                            current_retry_after_values.append(outcome.error.retry_after_seconds)
+                            current_retry_after_values.append(
+                                outcome.error.retry_after_seconds
+                            )
                     slot_attempt_count += len(group)
                     await _emit_portfolio_failure_attempts(
                         group,
@@ -214,7 +227,9 @@ class ShortfallRefillPipeline:
                     terminal_error: BatchTerminalGenerationError | None = None
                     for portfolio_task in ready:
                         completed_group, completed_outcome = portfolio_task.result()
-                        detected = await settle_portfolio(completed_group, completed_outcome)
+                        detected = await settle_portfolio(
+                            completed_group, completed_outcome
+                        )
                         terminal_error = terminal_error or detected
                     if terminal_error is None:
                         continue
@@ -225,7 +240,9 @@ class ShortfallRefillPipeline:
                     )
                     terminal_error = terminal_error or detected
                     assert terminal_error is not None
-                    total_usage = _usage_after_terminal_cancellation(total_usage, bool(pending_portfolios))
+                    total_usage = _usage_after_terminal_cancellation(
+                        total_usage, bool(pending_portfolios)
+                    )
                     raise _with_batch_usage(terminal_error, total_usage)
             except BaseException:
                 await _cancel_and_drain(portfolio_tasks)
@@ -273,7 +290,8 @@ class ShortfallRefillPipeline:
                                 item=item,
                                 portfolio_call_id=portfolio_call_id,
                                 attempt_id=attempt_id,
-                                elapsed_ms=(time.perf_counter() - candidate_started) * 1000,
+                                elapsed_ms=(time.perf_counter() - candidate_started)
+                                * 1000,
                                 outcome=result,
                                 verdict=verdict_future,
                                 observation_done=observation_done,
@@ -323,7 +341,9 @@ class ShortfallRefillPipeline:
                 outcome = candidate_run.outcome
                 slot_attempt_count += 1
                 if isinstance(outcome, BatchTerminalGenerationError):
-                    total_usage = merge_complete_actual_cost_usage(total_usage, outcome.tool_usage)
+                    total_usage = merge_complete_actual_cost_usage(
+                        total_usage, outcome.tool_usage
+                    )
                     event = SlotAttemptEvent(
                         attempt_id=candidate_run.attempt_id,
                         round_index=current_round,
@@ -353,7 +373,9 @@ class ShortfallRefillPipeline:
                         )
                     else:
                         canonical_questions.add(canonical)
-                total_usage = merge_complete_actual_cost_usage(total_usage, outcome.tool_usage)
+                total_usage = merge_complete_actual_cost_usage(
+                    total_usage, outcome.tool_usage
+                )
                 if isinstance(outcome, DomainTweakFinalizedTask):
                     if outcome.route_context is None:
                         raise BatchTerminalGenerationError(
@@ -414,7 +436,9 @@ class ShortfallRefillPipeline:
             try:
                 pending_results = set(candidate_results)
                 while pending_results:
-                    done, _ = await asyncio.wait(pending_results, return_when=asyncio.FIRST_COMPLETED)
+                    done, _ = await asyncio.wait(
+                        pending_results, return_when=asyncio.FIRST_COMPLETED
+                    )
                     ready = [result for result in candidate_results if result in done]
                     pending_results.difference_update(done)
                     terminal_error: BatchTerminalGenerationError | None = None
@@ -430,7 +454,9 @@ class ShortfallRefillPipeline:
                     )
                     terminal_error = terminal_error or detected
                     assert terminal_error is not None
-                    total_usage = _usage_after_terminal_cancellation(total_usage, bool(pending_results))
+                    total_usage = _usage_after_terminal_cancellation(
+                        total_usage, bool(pending_results)
+                    )
                     raise _with_batch_usage(terminal_error, total_usage)
                 await asyncio.gather(*candidate_tasks)
             except BaseException:
@@ -441,7 +467,9 @@ class ShortfallRefillPipeline:
             if open_slots:
                 if round_transient:
                     consecutive_transient_rounds += 1
-                    delay, reason = self._retry_delay(consecutive_transient_rounds, retry_after_values)
+                    delay, reason = self._retry_delay(
+                        consecutive_transient_rounds, retry_after_values
+                    )
                     _LOGGER.warning(
                         "domain_tweak_generation.refill_pacing",
                         extra={
@@ -459,7 +487,9 @@ class ShortfallRefillPipeline:
 
         return DomainTweakBatchGenerationResult(
             target_count=target_count,
-            finalized_tasks=tuple(finalized_by_slot[index] for index in range(target_count)),
+            finalized_tasks=tuple(
+                finalized_by_slot[index] for index in range(target_count)
+            ),
             portfolio_call_count=portfolio_call_count,
             slot_attempt_count=slot_attempt_count,
             round_count=round_index,
@@ -579,7 +609,11 @@ class ShortfallRefillPipeline:
                 round_index=round_index,
                 group_index=group_index,
                 slot_count=len(group),
-                outcome=("transient_provider" if exc.failure_class == "transient_provider" else "contract_invalid"),
+                outcome=(
+                    "transient_provider"
+                    if exc.failure_class == "transient_provider"
+                    else "contract_invalid"
+                ),
                 elapsed_ms=(time.perf_counter() - started) * 1000,
                 tool_usage=exc.tool_usage,
                 retry_after_seconds=exc.retry_after_seconds,
@@ -606,7 +640,9 @@ class ShortfallRefillPipeline:
             )
             return _PortfolioTerminal(event, terminal)
 
-    def _retry_delay(self, consecutive_rounds: int, retry_after_values: Sequence[float]) -> tuple[float, str]:
+    def _retry_delay(
+        self, consecutive_rounds: int, retry_after_values: Sequence[float]
+    ) -> tuple[float, str]:
         if retry_after_values:
             return max(retry_after_values), "provider_retry_after"
         ceiling = min(60.0, 2.0 ** (consecutive_rounds - 1))
@@ -616,11 +652,17 @@ class ShortfallRefillPipeline:
 async def _drain_ready_candidate_results(
     ordered_results: Sequence[asyncio.Future[_CandidateRun]],
     pending_results: set[asyncio.Future[_CandidateRun]],
-    settle_candidate: Callable[[_CandidateRun], Awaitable[BatchTerminalGenerationError | None]],
+    settle_candidate: Callable[
+        [_CandidateRun], Awaitable[BatchTerminalGenerationError | None]
+    ],
 ) -> BatchTerminalGenerationError | None:
     terminal_error: BatchTerminalGenerationError | None = None
     while True:
-        ready = [result for result in ordered_results if result in pending_results and result.done()]
+        ready = [
+            result
+            for result in ordered_results
+            if result in pending_results and result.done()
+        ]
         if not ready:
             return terminal_error
         pending_results.difference_update(ready)
@@ -655,19 +697,36 @@ async def _emit_portfolio_failure_attempts(
 
 async def _drain_ready_portfolio_results(
     ordered_results: Sequence[
-        asyncio.Task[tuple[Sequence[_SlotInput], _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal]]
+        asyncio.Task[
+            tuple[
+                Sequence[_SlotInput],
+                _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal,
+            ]
+        ]
     ],
     pending_results: set[
-        asyncio.Task[tuple[Sequence[_SlotInput], _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal]]
+        asyncio.Task[
+            tuple[
+                Sequence[_SlotInput],
+                _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal,
+            ]
+        ]
     ],
     settle_portfolio: Callable[
-        [Sequence[_SlotInput], _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal],
+        [
+            Sequence[_SlotInput],
+            _PortfolioSuccess | _PortfolioFailure | _PortfolioTerminal,
+        ],
         Awaitable[BatchTerminalGenerationError | None],
     ],
 ) -> BatchTerminalGenerationError | None:
     terminal_error: BatchTerminalGenerationError | None = None
     while True:
-        ready = [result for result in ordered_results if result in pending_results and result.done()]
+        ready = [
+            result
+            for result in ordered_results
+            if result in pending_results and result.done()
+        ]
         if not ready:
             return terminal_error
         pending_results.difference_update(ready)
@@ -719,7 +778,9 @@ def _validate_portfolio(
     expected_slots = {item.output_slot for item in group}
     allocations = {item.slot: item for item in packet.allocations}
     if set(allocations) != expected_slots:
-        raise CandidateStageError("contract_invalid", "portfolio", "portfolio slot set differs from request")
+        raise CandidateStageError(
+            "contract_invalid", "portfolio", "portfolio slot set differs from request"
+        )
     return allocations
 
 
@@ -730,7 +791,9 @@ async def _cancel_and_drain(tasks: Sequence[asyncio.Task[Any]]) -> None:
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
-def _usage_after_terminal_cancellation(usage: ToolUsageSummary, has_unresolved_siblings: bool) -> ToolUsageSummary:
+def _usage_after_terminal_cancellation(
+    usage: ToolUsageSummary, has_unresolved_siblings: bool
+) -> ToolUsageSummary:
     if not has_unresolved_siblings:
         return usage
     return merge_complete_actual_cost_usage(usage, ToolUsageSummary.zero())

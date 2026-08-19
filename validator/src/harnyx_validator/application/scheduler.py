@@ -41,7 +41,9 @@ from harnyx_validator.application.dto.evaluation import (
     ValidatorBatchFailureDetail,
 )
 from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator
-from harnyx_validator.application.platform_tool_proxy import PlatformToolProxyScopeRegistry
+from harnyx_validator.application.platform_tool_proxy import (
+    PlatformToolProxyScopeRegistry,
+)
 from harnyx_validator.application.ports.evaluation_record import EvaluationRecordPort
 from harnyx_validator.application.ports.progress import ProgressRecorder
 from harnyx_validator.application.ports.subtensor import SubtensorClientPort
@@ -131,7 +133,9 @@ class EvaluationScheduler:
         max_attempts: int,
         assignment_token: str,
     ) -> PlatformOwnedTaskResult:
-        self._mark_artifact_activity_started_best_effort(batch_id=batch_id, artifact_id=artifact.artifact_id)
+        self._mark_artifact_activity_started_best_effort(
+            batch_id=batch_id, artifact_id=artifact.artifact_id
+        )
         deployment: SandboxDeployment | None = None
         attempt_started_at = self._clock()
         try:
@@ -199,7 +203,9 @@ class EvaluationScheduler:
         initial_assignments: Sequence[MinerTaskWorkAssignment],
         assigned_work: AssignedArtifactWork,
         close_requested: asyncio.Event,
-        result_queue: asyncio.Queue[PlatformOwnedTaskResult | PlatformOwnedTaskExecution],
+        result_queue: asyncio.Queue[
+            PlatformOwnedTaskResult | PlatformOwnedTaskExecution
+        ],
     ) -> None:
         assignments = tuple(initial_assignments)
         if not assignments:
@@ -211,7 +217,9 @@ class EvaluationScheduler:
                 artifact_id=artifact.artifact_id,
             )
 
-        self._mark_artifact_activity_started_best_effort(batch_id=batch_id, artifact_id=artifact.artifact_id)
+        self._mark_artifact_activity_started_best_effort(
+            batch_id=batch_id, artifact_id=artifact.artifact_id
+        )
         deployment: SandboxDeployment | None = None
         attempt_started_at = self._clock()
         try:
@@ -233,7 +241,10 @@ class EvaluationScheduler:
                 orchestrator=orchestrator,
             )
         except ArtifactExecutionFailedError as exc:
-            affected_assignments = (*assignments, *assigned_work.drain_for_setup_failure())
+            affected_assignments = (
+                *assignments,
+                *assigned_work.drain_for_setup_failure(),
+            )
             if exc.error_code is MinerTaskErrorCode.SCRIPT_VALIDATION_FAILED:
                 results = await self._runner.record_assigned_task_setup_failures(
                     batch_id=batch_id,
@@ -289,7 +300,9 @@ class EvaluationScheduler:
             )
             last_options = options
             try:
-                return await _run_blocking_call(blocking_executor, self._sandboxes.start, options)
+                return await _run_blocking_call(
+                    blocking_executor, self._sandboxes.start, options
+                )
             except Exception as exc:
                 last_error_message = str(exc)
                 if attempt_number < LOCAL_RETRY_ATTEMPTS:
@@ -303,7 +316,11 @@ class EvaluationScheduler:
                     continue
                 logger.error(
                     "failed to start sandbox",
-                    extra={"batch_id": str(batch_id), "uid": artifact.uid, "artifact_id": str(artifact.artifact_id)},
+                    extra={
+                        "batch_id": str(batch_id),
+                        "uid": artifact.uid,
+                        "artifact_id": str(artifact.artifact_id),
+                    },
                     exc_info=exc,
                 )
                 break
@@ -326,11 +343,17 @@ class EvaluationScheduler:
         blocking_executor: Executor,
     ) -> SandboxOptions:
         try:
-            return await _run_blocking_call(blocking_executor, self._sandbox_options, artifact)
+            return await _run_blocking_call(
+                blocking_executor, self._sandbox_options, artifact
+            )
         except ArtifactPreparationError as exc:
             logger.error(
                 "failed to prepare sandbox options",
-                extra={"batch_id": str(batch_id), "uid": artifact.uid, "artifact_id": str(artifact.artifact_id)},
+                extra={
+                    "batch_id": str(batch_id),
+                    "uid": artifact.uid,
+                    "artifact_id": str(artifact.artifact_id),
+                },
                 exc_info=exc,
             )
             raise self._artifact_execution_failure(
@@ -343,7 +366,11 @@ class EvaluationScheduler:
         except Exception as exc:
             logger.error(
                 "failed to prepare sandbox options",
-                extra={"batch_id": str(batch_id), "uid": artifact.uid, "artifact_id": str(artifact.artifact_id)},
+                extra={
+                    "batch_id": str(batch_id),
+                    "uid": artifact.uid,
+                    "artifact_id": str(artifact.artifact_id),
+                },
                 exc_info=exc,
             )
             raise self._artifact_execution_failure(
@@ -425,14 +452,18 @@ class EvaluationScheduler:
         artifact_id: UUID,
     ) -> None:
         try:
-            await _run_blocking_call(self._blocking_executor, self._sandboxes.stop, deployment)
+            await _run_blocking_call(
+                self._blocking_executor, self._sandboxes.stop, deployment
+            )
         except Exception:
             logger.exception(
                 "assigned artifact sandbox teardown failed after result construction",
                 extra={"batch_id": str(batch_id), "artifact_id": str(artifact_id)},
             )
 
-    def _mark_artifact_activity_started_best_effort(self, *, batch_id: UUID, artifact_id: UUID) -> None:
+    def _mark_artifact_activity_started_best_effort(
+        self, *, batch_id: UUID, artifact_id: UUID
+    ) -> None:
         if self._activity is None:
             return
         try:
@@ -444,7 +475,9 @@ class EvaluationScheduler:
                 extra={"batch_id": str(batch_id), "artifact_id": str(artifact_id)},
             )
 
-    def _mark_artifact_activity_finished_best_effort(self, *, batch_id: UUID, artifact_id: UUID) -> None:
+    def _mark_artifact_activity_finished_best_effort(
+        self, *, batch_id: UUID, artifact_id: UUID
+    ) -> None:
         if self._activity is None:
             return
         try:
@@ -456,7 +489,9 @@ class EvaluationScheduler:
                 extra={"batch_id": str(batch_id), "artifact_id": str(artifact_id)},
             )
 
-    def _record_terminated_attempt_best_effort(self, result: PlatformOwnedTaskResult) -> None:
+    def _record_terminated_attempt_best_effort(
+        self, result: PlatformOwnedTaskResult
+    ) -> None:
         try:
             self._progress.record_terminated_attempt(result.terminal_attempt)
         except Exception:
@@ -496,6 +531,7 @@ class EvaluationScheduler:
             remaining_tasks=tuple(tasks),
         )
 
+
 def _require_assignment_for_artifact(
     assignment: MinerTaskWorkAssignment,
     *,
@@ -508,21 +544,37 @@ def _require_assignment_for_artifact(
         raise ValueError("assigned task artifact_id does not match artifact queue")
 
 
-def _sandbox_failure_diagnostics_from_options(options: object | None) -> SandboxFailureDiagnostics | None:
-    if not isinstance(options, SandboxOptions) or options.failure_diagnostics_dir is None:
+def _sandbox_failure_diagnostics_from_options(
+    options: object | None,
+) -> SandboxFailureDiagnostics | None:
+    if (
+        not isinstance(options, SandboxOptions)
+        or options.failure_diagnostics_dir is None
+    ):
         return None
     diagnostics_dir = Path(options.failure_diagnostics_dir)
     try:
         sandbox_options = _read_json_object(diagnostics_dir / "sandbox-options.json")
-        docker_inspect = _docker_inspect_container(_read_json(diagnostics_dir / "docker-inspect.json"))
+        docker_inspect = _docker_inspect_container(
+            _read_json(diagnostics_dir / "docker-inspect.json")
+        )
         docker_state = _object_field(docker_inspect, "State")
-        docker_pull_result = _read_json_object(diagnostics_dir / "docker-pull-result.json")
-        docker_run_result = _read_json_object(diagnostics_dir / "docker-run-result.json")
+        docker_pull_result = _read_json_object(
+            diagnostics_dir / "docker-pull-result.json"
+        )
+        docker_run_result = _read_json_object(
+            diagnostics_dir / "docker-run-result.json"
+        )
         return SandboxFailureDiagnostics(
-            image=_bounded_identifier(options.image or _string_field(sandbox_options, "image")),
-            pull_policy=_bounded_identifier(options.pull_policy or _string_field(sandbox_options, "pull_policy")),
+            image=_bounded_identifier(
+                options.image or _string_field(sandbox_options, "image")
+            ),
+            pull_policy=_bounded_identifier(
+                options.pull_policy or _string_field(sandbox_options, "pull_policy")
+            ),
             container_name=_bounded_identifier(
-                options.container_name or _string_field(sandbox_options, "container_name")
+                options.container_name
+                or _string_field(sandbox_options, "container_name")
             ),
             container_id=_bounded_identifier(_string_field(docker_inspect, "Id")),
             status=_bounded_identifier(_string_field(docker_state, "Status")),
@@ -533,40 +585,59 @@ def _sandbox_failure_diagnostics_from_options(options: object | None) -> Sandbox
                 max_length=DIAGNOSTIC_STATE_ERROR_MAX_LENGTH,
             ),
             error_text=_bounded_text(
-                _redact_sensitive_text(_read_text(diagnostics_dir / "error.txt"), options),
+                _redact_sensitive_text(
+                    _read_text(diagnostics_dir / "error.txt"), options
+                ),
                 max_length=DIAGNOSTIC_TEXT_MAX_LENGTH,
             ),
             docker_logs_tail=_bounded_log_tail(
-                _redact_sensitive_text(_read_text(diagnostics_dir / "docker-logs.txt"), options)
+                _redact_sensitive_text(
+                    _read_text(diagnostics_dir / "docker-logs.txt"), options
+                )
             ),
             docker_inspect_error_tail=_bounded_text(
-                _redact_sensitive_text(_read_text(diagnostics_dir / "docker-inspect.json.error.txt"), options),
+                _redact_sensitive_text(
+                    _read_text(diagnostics_dir / "docker-inspect.json.error.txt"),
+                    options,
+                ),
                 max_length=DIAGNOSTIC_TEXT_MAX_LENGTH,
             ),
             docker_logs_error_tail=_bounded_text(
-                _redact_sensitive_text(_read_text(diagnostics_dir / "docker-logs.txt.error.txt"), options),
+                _redact_sensitive_text(
+                    _read_text(diagnostics_dir / "docker-logs.txt.error.txt"), options
+                ),
                 max_length=DIAGNOSTIC_TEXT_MAX_LENGTH,
             ),
             pull_returncode=_int_field(docker_pull_result, "returncode"),
             pull_stdout_tail=_bounded_text(
-                _redact_sensitive_text(_string_field(docker_pull_result, "stdout"), options),
+                _redact_sensitive_text(
+                    _string_field(docker_pull_result, "stdout"), options
+                ),
                 max_length=DIAGNOSTIC_TEXT_MAX_LENGTH,
             ),
             pull_stderr_tail=_bounded_text(
-                _redact_sensitive_text(_string_field(docker_pull_result, "stderr"), options),
+                _redact_sensitive_text(
+                    _string_field(docker_pull_result, "stderr"), options
+                ),
                 max_length=DIAGNOSTIC_TEXT_MAX_LENGTH,
             ),
             run_returncode=_int_field(docker_run_result, "returncode"),
             run_stdout_tail=_bounded_text(
-                _redact_sensitive_text(_string_field(docker_run_result, "stdout"), options),
+                _redact_sensitive_text(
+                    _string_field(docker_run_result, "stdout"), options
+                ),
                 max_length=DIAGNOSTIC_TEXT_MAX_LENGTH,
             ),
             run_stderr_tail=_bounded_text(
-                _redact_sensitive_text(_string_field(docker_run_result, "stderr"), options),
+                _redact_sensitive_text(
+                    _string_field(docker_run_result, "stderr"), options
+                ),
                 max_length=DIAGNOSTIC_TEXT_MAX_LENGTH,
             ),
         )
-    except Exception as exc:  # pragma: no cover - diagnostic path must not mask the failure
+    except (
+        Exception
+    ) as exc:  # pragma: no cover - diagnostic path must not mask the failure
         logger.warning(
             "sandbox failure diagnostics could not be summarized",
             extra={"diagnostics_dir": str(diagnostics_dir)},
@@ -607,7 +678,9 @@ def _docker_inspect_container(value: object | None) -> dict[str, object] | None:
     return None
 
 
-def _object_field(mapping: dict[str, object] | None, field: str) -> dict[str, object] | None:
+def _object_field(
+    mapping: dict[str, object] | None, field: str
+) -> dict[str, object] | None:
     if mapping is None:
         return None
     value = mapping.get(field)

@@ -29,7 +29,9 @@ class AgentSourceValidationError(ValueError):
     """Raised when miner-provided source bytes violate the script contract."""
 
 
-def _container_path_for(*, staged_path: Path, state_dir: Path, container_root: str) -> str:
+def _container_path_for(
+    *, staged_path: Path, state_dir: Path, container_root: str
+) -> str:
     rel = staged_path.relative_to(state_dir)
     rel_path = PurePosixPath("/".join(rel.parts))
     root = PurePosixPath(container_root or "/")
@@ -80,7 +82,9 @@ def stage_agent_source(
     if max_bytes <= 0:
         raise ValueError("max_bytes must be > 0")
     if len(data) > max_bytes:
-        raise AgentSourceValidationError(f"agent exceeds size limit (size_bytes={len(data)} max_bytes={max_bytes})")
+        raise AgentSourceValidationError(
+            f"agent exceeds size limit (size_bytes={len(data)} max_bytes={max_bytes})"
+        )
 
     content_hash = hashlib.sha256(data).hexdigest()
     agent_path, container_path = agent_paths(
@@ -172,7 +176,9 @@ def _validate_agent_source(path: Path) -> None:
         compile(source, str(path), "exec")
     except SyntaxError as exc:
         snippet = source[:_LOG_SNIPPET_LIMIT].replace("\n", "\\n")
-        raise AgentSourceValidationError(f"agent failed bytecode compilation: snippet={snippet!r}") from exc
+        raise AgentSourceValidationError(
+            f"agent failed bytecode compilation: snippet={snippet!r}"
+        ) from exc
 
 
 __all__ = [

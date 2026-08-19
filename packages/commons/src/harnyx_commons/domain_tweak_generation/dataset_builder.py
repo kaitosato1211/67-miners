@@ -9,7 +9,9 @@ from harnyx_commons.domain_tweak_generation.contracts import (
     PortfolioCallCallback,
     SlotAttemptCallback,
 )
-from harnyx_commons.domain_tweak_generation.refill_pipeline import ShortfallRefillPipeline
+from harnyx_commons.domain_tweak_generation.refill_pipeline import (
+    ShortfallRefillPipeline,
+)
 from harnyx_commons.miner_task_generation import MinerTaskDatasetRequest
 
 
@@ -27,7 +29,9 @@ class DomainTweakMinerTaskDatasetBuilder:
 
     async def build(self, request: MinerTaskDatasetRequest) -> tuple[MinerTask, ...]:
         result = await self.build_with_result(request)
-        return finalized_tasks_from_domain_tweak_result(result, target_count=request.minimum_task_total)
+        return finalized_tasks_from_domain_tweak_result(
+            result, target_count=request.minimum_task_total
+        )
 
     async def build_with_result(
         self,
@@ -50,7 +54,10 @@ def finalized_tasks_from_domain_tweak_result(
     *,
     target_count: int,
 ) -> tuple[MinerTask, ...]:
-    if result.target_count != target_count or len(result.finalized_tasks) != target_count:
+    if (
+        result.target_count != target_count
+        or len(result.finalized_tasks) != target_count
+    ):
         raise RuntimeError(
             "domain-tweak generation result does not match the requested task count: "
             f"requested {target_count}, finalized {len(result.finalized_tasks)}"

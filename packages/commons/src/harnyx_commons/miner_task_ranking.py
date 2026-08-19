@@ -92,7 +92,9 @@ class RankingCascadeTrace:
     def champion_lineage_artifact_ids(self) -> tuple[UUID, ...]:
         """Return champions in the order they entered the lineage."""
 
-        lineage = () if self.initial_artifact_id is None else (self.initial_artifact_id,)
+        lineage = (
+            () if self.initial_artifact_id is None else (self.initial_artifact_id,)
+        )
         selected_challengers = tuple(
             step.challenger_artifact_id
             for step in self.steps
@@ -101,7 +103,9 @@ class RankingCascadeTrace:
         return tuple(dict.fromkeys((*lineage, *selected_challengers)))
 
     def successful_dethroner_artifact_ids(self) -> tuple[UUID, ...]:
-        return tuple(step.challenger_artifact_id for step in self.steps if step.dethroned)
+        return tuple(
+            step.challenger_artifact_id for step in self.steps if step.dethroned
+        )
 
     def reverse_champion_lineage(self) -> tuple[UUID, ...]:
         """Return final champion first, followed by the champions it superseded."""
@@ -118,7 +122,9 @@ def main_participant_priority(
 ) -> tuple[UUID, ...]:
     """Order main participants by final lineage, then reverse qualifying performance."""
 
-    ordered = main_trace.reverse_champion_lineage() + tuple(reversed(qualifying_participant_order))
+    ordered = main_trace.reverse_champion_lineage() + tuple(
+        reversed(qualifying_participant_order)
+    )
     return tuple(dict.fromkeys(ordered))
 
 
@@ -245,7 +251,9 @@ class RankingCascade:
             rules=(
                 RankingRuleEvaluation(
                     rule=RankingDecisionRule.POSITIVE_SCORE,
-                    status=RankingRuleStatus.PASSED if passed else RankingRuleStatus.FAILED,
+                    status=(
+                        RankingRuleStatus.PASSED if passed else RankingRuleStatus.FAILED
+                    ),
                 ),
                 RankingRuleEvaluation(
                     rule=RankingDecisionRule.SCORE_MARGIN,
@@ -257,7 +265,8 @@ class RankingCascade:
                     ),
                     required_absolute_improvement=(
                         self._policy.score_margin_required
-                        if self._policy.score_margin_kind is _ScoreMarginKind.FRACTION_OF_MAXIMUM
+                        if self._policy.score_margin_kind
+                        is _ScoreMarginKind.FRACTION_OF_MAXIMUM
                         else None
                     ),
                 ),
@@ -315,7 +324,8 @@ class RankingCascade:
         cost_rule = RankingRuleEvaluation(
             rule=RankingDecisionRule.COST_REDUCTION,
             status=_efficiency_rule_status(
-                metric_available=challenger_cost is not None and incumbent_cost is not None,
+                metric_available=challenger_cost is not None
+                and incumbent_cost is not None,
                 other_dimension_non_regressing=runtime_non_regressing,
                 score_non_regressing=score_non_regressing,
                 metric_passed=_is_meaningfully_lower(
@@ -339,7 +349,8 @@ class RankingCascade:
         runtime_rule = RankingRuleEvaluation(
             rule=RankingDecisionRule.RUNTIME_REDUCTION,
             status=_efficiency_rule_status(
-                metric_available=challenger_runtime is not None and incumbent_runtime is not None,
+                metric_available=challenger_runtime is not None
+                and incumbent_runtime is not None,
                 other_dimension_non_regressing=cost_non_regressing,
                 score_non_regressing=score_non_regressing,
                 metric_passed=_is_meaningfully_faster(
@@ -428,7 +439,9 @@ class RankingCascade:
         )
 
     @staticmethod
-    def _has_positive_total(artifact_id: UUID | None, aggregates: ArtifactAggregateBundle) -> bool:
+    def _has_positive_total(
+        artifact_id: UUID | None, aggregates: ArtifactAggregateBundle
+    ) -> bool:
         if artifact_id is None:
             return False
         return float(aggregates.totals.get(artifact_id, 0.0)) > 0.0
@@ -465,20 +478,30 @@ def aggregate_ranking_rows(
         seen_pairs.add(pair)
 
         vector[position] = _normalize_score(row.score)
-        pair_counts_by_validator[row.validator_id] = pair_counts_by_validator.get(row.validator_id, 0) + 1
+        pair_counts_by_validator[row.validator_id] = (
+            pair_counts_by_validator.get(row.validator_id, 0) + 1
+        )
 
         validator_costs = costs_by_validator.setdefault(row.validator_id, {})
-        validator_costs[row.artifact_id] = validator_costs.get(row.artifact_id, 0.0) + float(row.total_cost_usd)
+        validator_costs[row.artifact_id] = validator_costs.get(
+            row.artifact_id, 0.0
+        ) + float(row.total_cost_usd)
 
         validator_elapsed = elapsed_by_validator.setdefault(row.validator_id, {})
         if row.elapsed_ms is None:
             elapsed_missing.add((row.validator_id, row.artifact_id))
         else:
-            validator_elapsed[row.artifact_id] = validator_elapsed.get(row.artifact_id, 0.0) + float(row.elapsed_ms)
+            validator_elapsed[row.artifact_id] = validator_elapsed.get(
+                row.artifact_id, 0.0
+            ) + float(row.elapsed_ms)
 
-    validator_ids = sorted(vectors_by_validator, key=lambda validator_id: validator_id.hex)
+    validator_ids = sorted(
+        vectors_by_validator, key=lambda validator_id: validator_id.hex
+    )
     expected_artifact_ids = {
-        artifact_id for validator_vectors in vectors_by_validator.values() for artifact_id in validator_vectors.keys()
+        artifact_id
+        for validator_vectors in vectors_by_validator.values()
+        for artifact_id in validator_vectors.keys()
     }
     expected_count_per_validator = len(expected_artifact_ids) * len(task_ids)
 
@@ -486,7 +509,10 @@ def aggregate_ranking_rows(
         present_artifact_ids = set(vectors_by_validator[validator_id])
         if present_artifact_ids != expected_artifact_ids:
             raise ValueError(f"incomplete runs for validator {validator_id}")
-        if pair_counts_by_validator.get(validator_id, 0) != expected_count_per_validator:
+        if (
+            pair_counts_by_validator.get(validator_id, 0)
+            != expected_count_per_validator
+        ):
             raise ValueError(f"incomplete runs for validator {validator_id}")
 
     aggregate_vectors: dict[UUID, ScoreVector] = {}
@@ -494,20 +520,34 @@ def aggregate_ranking_rows(
     costs_by_artifact: dict[UUID, float] = {}
     median_elapsed_ms_by_artifact: dict[UUID, float] = {}
     for artifact_id in sorted(expected_artifact_ids, key=lambda value: value.hex):
-        vectors_for_artifact = [vectors_by_validator[validator_id][artifact_id] for validator_id in validator_ids]
+        vectors_for_artifact = [
+            vectors_by_validator[validator_id][artifact_id]
+            for validator_id in validator_ids
+        ]
         aggregate_vector = [
-            _normalize_score(statistics.median(vector[position] for vector in vectors_for_artifact))
+            _normalize_score(
+                statistics.median(vector[position] for vector in vectors_for_artifact)
+            )
             for position in range(vector_length)
         ]
         aggregate_vectors[artifact_id] = aggregate_vector
         totals_by_artifact[artifact_id] = _normalize_score(math.fsum(aggregate_vector))
         costs_by_artifact[artifact_id] = float(
-            statistics.median(costs_by_validator[validator_id][artifact_id] for validator_id in validator_ids)
+            statistics.median(
+                costs_by_validator[validator_id][artifact_id]
+                for validator_id in validator_ids
+            )
         )
-        if any((validator_id, artifact_id) in elapsed_missing for validator_id in validator_ids):
+        if any(
+            (validator_id, artifact_id) in elapsed_missing
+            for validator_id in validator_ids
+        ):
             continue
         median_elapsed_ms_by_artifact[artifact_id] = float(
-            statistics.median(elapsed_by_validator[validator_id][artifact_id] for validator_id in validator_ids)
+            statistics.median(
+                elapsed_by_validator[validator_id][artifact_id]
+                for validator_id in validator_ids
+            )
         )
 
     return ArtifactAggregateBundle(
@@ -524,7 +564,11 @@ def ordered_challengers(
     candidate_artifact_ids: Sequence[UUID],
 ) -> list[UUID]:
     incumbents = {initial} if initial is not None else set()
-    return [artifact_id for artifact_id in candidate_artifact_ids if artifact_id not in incumbents]
+    return [
+        artifact_id
+        for artifact_id in candidate_artifact_ids
+        if artifact_id not in incumbents
+    ]
 
 
 def _normalize_score(value: float) -> float:
@@ -552,11 +596,15 @@ def run_contribution_score(
 
     breakdown = details.score_breakdown
     if breakdown is None:
-        raise ValueError("successful completed runs must include score breakdown details")
+        raise ValueError(
+            "successful completed runs must include score breakdown details"
+        )
     if score is None:
         raise ValueError("successful completed runs must include a score")
     if not math.isclose(score, breakdown.total_score, rel_tol=1e-9, abs_tol=1e-9):
-        raise ValueError("completed run score must match details.score_breakdown.total_score")
+        raise ValueError(
+            "completed run score must match details.score_breakdown.total_score"
+        )
     return float(breakdown.total_score)
 
 
@@ -633,7 +681,11 @@ def _relative_improvement(
 ) -> float | None:
     if challenger_metric is None or incumbent_metric is None or incumbent_metric <= 0.0:
         return None
-    delta = incumbent_metric - challenger_metric if lower_is_better else challenger_metric - incumbent_metric
+    delta = (
+        incumbent_metric - challenger_metric
+        if lower_is_better
+        else challenger_metric - incumbent_metric
+    )
     return delta / incumbent_metric
 
 

@@ -5,7 +5,14 @@ from __future__ import annotations
 import json
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationError,
+    field_validator,
+)
 
 from harnyx_commons.llm.providers.openai_chat_codec import OpenAiChatRequestParts
 from harnyx_commons.llm.providers.openai_stream import (
@@ -68,11 +75,17 @@ class _ChutesChatRequest(BaseModel):
         payload = cls(
             provider=request.provider or "chutes",
             model=request.model,
-            messages=[message.model_dump(mode="python", exclude_none=True) for message in request_parts.messages],
+            messages=[
+                message.model_dump(mode="python", exclude_none=True)
+                for message in request_parts.messages
+            ],
             temperature=request.temperature,
             max_output_tokens=request.max_output_tokens,
             tools=(
-                [tool.model_dump(mode="python", exclude_none=True) for tool in request_parts.tools]
+                [
+                    tool.model_dump(mode="python", exclude_none=True)
+                    for tool in request_parts.tools
+                ]
                 if request_parts.tools
                 else None
             ),
@@ -80,7 +93,9 @@ class _ChutesChatRequest(BaseModel):
             parallel_tool_calls=request_parts.parallel_tool_calls,
             include=request_parts.include,
             response_format=(
-                request_parts.response_format.model_dump(mode="python", exclude_none=True)
+                request_parts.response_format.model_dump(
+                    mode="python", exclude_none=True
+                )
                 if request_parts.response_format is not None
                 else None
             ),
@@ -133,7 +148,9 @@ class _ChutesReasoningObject(BaseModel):
 
     @property
     def reasoning_text(self) -> str | None:
-        normalized_parts = tuple(part.strip() for part in self.thought_text_parts if part.strip())
+        normalized_parts = tuple(
+            part.strip() for part in self.thought_text_parts if part.strip()
+        )
         if normalized_parts:
             return "\n\n".join(normalized_parts)
 
@@ -152,7 +169,9 @@ class _ChutesReasoningObject(BaseModel):
         return None
 
     @classmethod
-    def from_stream_state(cls, state: _ChutesReasoningChoiceState) -> _ChutesReasoningObject | None:
+    def from_stream_state(
+        cls, state: _ChutesReasoningChoiceState
+    ) -> _ChutesReasoningObject | None:
         if not state.thought_text_parts and not state.fallback_parts:
             return None
         if state.thought_text_parts:
@@ -238,7 +257,9 @@ class _ChutesMessagePayload(BaseModel):
 
     @field_validator("content", mode="before")
     @classmethod
-    def _normalize_content(cls, value: object) -> str | list[_ChutesTextContentPart] | None:
+    def _normalize_content(
+        cls, value: object
+    ) -> str | list[_ChutesTextContentPart] | None:
         match value:
             case None:
                 return None
@@ -272,11 +293,15 @@ class _ChutesMessagePayload(BaseModel):
                 try:
                     return _ChutesReasoningObject.model_validate(value, strict=True)
                 except ValidationError as exc:
-                    raise RuntimeError("chutes message reasoning object shape is invalid") from exc
+                    raise RuntimeError(
+                        "chutes message reasoning object shape is invalid"
+                    ) from exc
 
     @field_validator("tool_calls", mode="before")
     @classmethod
-    def _normalize_tool_calls(cls, value: object) -> list[_ChutesToolCallPayload] | None:
+    def _normalize_tool_calls(
+        cls, value: object
+    ) -> list[_ChutesToolCallPayload] | None:
         if value is None:
             return None
         try:
@@ -284,12 +309,19 @@ class _ChutesMessagePayload(BaseModel):
         except ValidationError as exc:
             raise RuntimeError("chutes message tool_calls must be an array") from exc
         try:
-            tool_calls = [_ChutesToolCallPayload.model_validate(payload) for payload in raw_tool_calls]
+            tool_calls = [
+                _ChutesToolCallPayload.model_validate(payload)
+                for payload in raw_tool_calls
+            ]
         except ValidationError as exc:
-            raise RuntimeError("chutes message tool_calls contain an invalid function call") from exc
+            raise RuntimeError(
+                "chutes message tool_calls contain an invalid function call"
+            ) from exc
         call_ids = [tool_call.id for tool_call in tool_calls]
         if len(call_ids) != len(set(call_ids)):
-            raise RuntimeError("chutes tool call IDs must be unique within each assistant block")
+            raise RuntimeError(
+                "chutes tool call IDs must be unique within each assistant block"
+            )
         return tool_calls
 
     def content_parts(self) -> tuple[LlmMessageContentPart, ...]:
@@ -311,7 +343,10 @@ class _ChutesMessagePayload(BaseModel):
     def tool_call_parts(self) -> tuple[LlmMessageToolCall, ...]:
         if not self.tool_calls:
             return ()
-        return tuple(tool_call.to_tool_call(index=index) for index, tool_call in enumerate(self.tool_calls))
+        return tuple(
+            tool_call.to_tool_call(index=index)
+            for index, tool_call in enumerate(self.tool_calls)
+        )
 
     def reasoning_text(self) -> str | None:
         match self.reasoning:
@@ -423,7 +458,9 @@ class _ChutesChatResponse(BaseModel):
         try:
             return cls.model_validate(payload)
         except ValidationError as exc:
-            raise RuntimeError("chutes chat completions payload must be a JSON object") from exc
+            raise RuntimeError(
+                "chutes chat completions payload must be a JSON object"
+            ) from exc
 
     @classmethod
     def from_stream_state(
@@ -437,7 +474,9 @@ class _ChutesChatResponse(BaseModel):
                 index=index,
                 message=_ChutesMessagePayload(
                     content=choice_state.content_text,
-                    reasoning=_ChutesReasoningObject.from_stream_state(reasoning_state.choice(index)),
+                    reasoning=_ChutesReasoningObject.from_stream_state(
+                        reasoning_state.choice(index)
+                    ),
                     reasoning_details=choice_state.reasoning_details or None,
                     tool_calls=_chutes_stream_tool_calls(choice_state),
                 ),
@@ -449,7 +488,9 @@ class _ChutesChatResponse(BaseModel):
         return cls(id=state.response_id or None, choices=choices, usage=usage)
 
     def to_llm_response(self) -> LlmResponse:
-        choices = tuple(choice.to_choice(index=index) for index, choice in enumerate(self.choices))
+        choices = tuple(
+            choice.to_choice(index=index) for index, choice in enumerate(self.choices)
+        )
         usage = self.usage.to_usage() if self.usage is not None else LlmUsage()
         finish_reason = choices[0].finish_reason if choices else None
         return LlmResponse(
@@ -477,12 +518,21 @@ class _ChutesReasoningChoiceState(BaseModel):
                     self.fallback_parts.append(normalized)
             case _:
                 try:
-                    normalized = _ChutesReasoningObject.model_validate(value, strict=True)
+                    normalized = _ChutesReasoningObject.model_validate(
+                        value, strict=True
+                    )
                 except ValidationError as exc:
-                    raise RuntimeError("chutes message reasoning object shape is invalid") from exc
+                    raise RuntimeError(
+                        "chutes message reasoning object shape is invalid"
+                    ) from exc
                 self.thought_text_parts.extend(normalized.thought_text_parts)
-                self.has_thought_signature = self.has_thought_signature or normalized.has_thought_signature
-                if not normalized.thought_text_parts and normalized.stream_fallback_text is not None:
+                self.has_thought_signature = (
+                    self.has_thought_signature or normalized.has_thought_signature
+                )
+                if (
+                    not normalized.thought_text_parts
+                    and normalized.stream_fallback_text is not None
+                ):
                     self.fallback_parts.append(normalized.stream_fallback_text)
 
 
@@ -490,7 +540,9 @@ class _ChutesReasoningStreamState(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     choices: dict[int, _ChutesReasoningChoiceState] = Field(default_factory=dict)
-    usage_progress: _ChutesReasoningUsageProgress = Field(default_factory=lambda: _ChutesReasoningUsageProgress())
+    usage_progress: _ChutesReasoningUsageProgress = Field(
+        default_factory=lambda: _ChutesReasoningUsageProgress()
+    )
 
     def choice(self, index: int) -> _ChutesReasoningChoiceState:
         state = self.choices.get(index)
@@ -502,25 +554,39 @@ class _ChutesReasoningStreamState(BaseModel):
     def merge_event(self, event: _OpenAiStreamEvent) -> None:
         reasoning_delta_observed = False
         for fallback_index, choice_payload in enumerate(event.choices):
-            index = choice_payload.index if choice_payload.index is not None else fallback_index
-            message_payload = choice_payload.message_delta(reasoning_keys=("reasoning", "reasoning_content"))
+            index = (
+                choice_payload.index
+                if choice_payload.index is not None
+                else fallback_index
+            )
+            message_payload = choice_payload.message_delta(
+                reasoning_keys=("reasoning", "reasoning_content")
+            )
             if message_payload is None:
                 continue
             extra = message_payload.model_extra or {}
             reasoning_value = extra.get("reasoning")
             self.choice(index).merge(reasoning_value)
-            appended_reasoning = set(_chutes_stream_reasoning_fragments(reasoning_value))
+            appended_reasoning = set(
+                _chutes_stream_reasoning_fragments(reasoning_value)
+            )
             if appended_reasoning:
                 reasoning_delta_observed = True
-            for reasoning_fragment in normalize_openai_text_fragments(extra.get("reasoning_content")):
+            for reasoning_fragment in normalize_openai_text_fragments(
+                extra.get("reasoning_content")
+            ):
                 if reasoning_fragment in appended_reasoning:
                     continue
                 appended_reasoning.add(reasoning_fragment)
                 self.choice(index).merge(reasoning_fragment)
                 reasoning_delta_observed = True
-        self.usage_progress.observe(event.usage, reasoning_delta_observed=reasoning_delta_observed)
+        self.usage_progress.observe(
+            event.usage, reasoning_delta_observed=reasoning_delta_observed
+        )
 
-    def normalized_usage_payload(self, raw_usage: dict[str, Any] | None) -> _ChutesUsagePayload | None:
+    def normalized_usage_payload(
+        self, raw_usage: dict[str, Any] | None
+    ) -> _ChutesUsagePayload | None:
         if raw_usage is None:
             return None
         usage = _ChutesUsagePayload.model_validate(raw_usage)
@@ -537,8 +603,12 @@ class _ChutesReasoningUsageProgress(BaseModel):
     reasoning_delta_observed: bool = False
     reasoning_token_usage_conflict_observed: bool = False
 
-    def observe(self, usage: dict[str, Any] | None, *, reasoning_delta_observed: bool) -> None:
-        self.reasoning_delta_observed = self.reasoning_delta_observed or reasoning_delta_observed
+    def observe(
+        self, usage: dict[str, Any] | None, *, reasoning_delta_observed: bool
+    ) -> None:
+        self.reasoning_delta_observed = (
+            self.reasoning_delta_observed or reasoning_delta_observed
+        )
         if usage is None or not reasoning_delta_observed:
             return
         completion_tokens = _usage_int(usage.get("completion_tokens"))
@@ -558,7 +628,8 @@ class _ChutesReasoningUsageProgress(BaseModel):
     @property
     def reasoning_tokens_unavailable(self) -> bool:
         return self.reasoning_delta_observed and (
-            self.prior_reasoning_tokens is None or self.reasoning_token_usage_conflict_observed
+            self.prior_reasoning_tokens is None
+            or self.reasoning_token_usage_conflict_observed
         )
 
 
@@ -566,11 +637,16 @@ def _usage_int(value: object) -> int | None:
     return value if isinstance(value, int) and value >= 0 else None
 
 
-def _chutes_stream_tool_calls(choice_state: OpenAiChoiceState) -> list[_ChutesToolCallPayload] | None:
+def _chutes_stream_tool_calls(
+    choice_state: OpenAiChoiceState,
+) -> list[_ChutesToolCallPayload] | None:
     tool_calls = choice_state.tool_call_values()
     if not tool_calls:
         return None
-    return [_ChutesToolCallPayload.from_openai_tool_call(tool_call) for tool_call in tool_calls]
+    return [
+        _ChutesToolCallPayload.from_openai_tool_call(tool_call)
+        for tool_call in tool_calls
+    ]
 
 
 def _normalize_reasoning_text(value: object) -> str | None:

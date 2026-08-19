@@ -7,9 +7,19 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from mcp import types as mcp_types
 
-from harnyx_commons.domain_tweak_generation import ProofStep, SourceDocument, SourceFetchError, SourceWorkspace
-from harnyx_commons.domain_tweak_generation import source_workspace as source_workspace_module
-from harnyx_commons.domain_tweak_generation.source_workspace import SourceLink, _serialize_audit_packet
+from harnyx_commons.domain_tweak_generation import (
+    ProofStep,
+    SourceDocument,
+    SourceFetchError,
+    SourceWorkspace,
+)
+from harnyx_commons.domain_tweak_generation import (
+    source_workspace as source_workspace_module,
+)
+from harnyx_commons.domain_tweak_generation.source_workspace import (
+    SourceLink,
+    _serialize_audit_packet,
+)
 
 
 class _RecordingFetcher:
@@ -27,7 +37,9 @@ class _UnavailableFetcher:
         raise SourceFetchError("source_unavailable", "upstream document is unavailable")
 
 
-def test_web_search_registration_does_not_require_additive_search_count_metadata() -> None:
+def test_web_search_registration_does_not_require_additive_search_count_metadata() -> (
+    None
+):
     """Future failure: the documented WebSearch envelope must work without optional SDK metadata."""
     workspace = SourceWorkspace()
 
@@ -37,7 +49,9 @@ def test_web_search_registration_does_not_require_additive_search_count_metadata
             "results": [
                 {
                     "tool_use_id": "server-tool-1",
-                    "content": [{"title": "Annual report", "url": "https://example.com/report"}],
+                    "content": [
+                        {"title": "Annual report", "url": "https://example.com/report"}
+                    ],
                 },
                 "Search results for query `annual report`",
             ],
@@ -56,11 +70,15 @@ def test_web_search_registration_rejects_undocumented_non_error_shape() -> None:
     workspace = SourceWorkspace()
 
     with pytest.raises(ValueError, match="pinned Agent SDK contract"):
-        workspace.register_web_search_results({"results": [{"url": "https://example.com"}]})
+        workspace.register_web_search_results(
+            {"results": [{"url": "https://example.com"}]}
+        )
 
 
 @pytest.mark.anyio
-async def test_fetch_tool_returns_a_stable_failure_id_for_exact_question_generation_attribution() -> None:
+async def test_fetch_tool_returns_a_stable_failure_id_for_exact_question_generation_attribution() -> (
+    None
+):
     """Future failure: QG must be able to select the exact fetch failure that blocks generation."""
     workspace = SourceWorkspace()
     workspace.register_web_search_results(
@@ -69,7 +87,9 @@ async def test_fetch_tool_returns_a_stable_failure_id_for_exact_question_generat
             "results": [
                 {
                     "tool_use_id": "server-tool-1",
-                    "content": [{"title": "Annual report", "url": "https://example.com/report"}],
+                    "content": [
+                        {"title": "Annual report", "url": "https://example.com/report"}
+                    ],
                 }
             ],
             "durationSeconds": 0.2,
@@ -103,7 +123,10 @@ async def test_fetch_tool_returns_a_stable_failure_id_for_exact_question_generat
         "failure_class": "source_unavailable",
         "message": "upstream document is unavailable",
     }
-    assert workspace.source_failure("source_failure:1").failure_class == "source_unavailable"
+    assert (
+        workspace.source_failure("source_failure:1").failure_class
+        == "source_unavailable"
+    )
 
 
 def test_unknown_source_candidate_is_rejected_before_fetch() -> None:
@@ -135,7 +158,9 @@ async def test_fetch_contract_errors_do_not_enter_source_failure_ledger(
             "results": [
                 {
                     "tool_use_id": "server-tool-1",
-                    "content": [{"title": "Annual report", "url": "https://example.com/report"}],
+                    "content": [
+                        {"title": "Annual report", "url": "https://example.com/report"}
+                    ],
                 }
             ],
             "durationSeconds": 0.2,
@@ -188,7 +213,9 @@ def test_workspace_uses_stable_ids_and_attaches_table_header() -> None:
 
 
 @pytest.mark.anyio
-async def test_list_source_links_filters_bounded_results_and_registers_fetch_candidates() -> None:
+async def test_list_source_links_filters_bounded_results_and_registers_fetch_candidates() -> (
+    None
+):
     """Future failure: retained HTML navigation must stay bounded without becoming a crawler."""
     workspace = SourceWorkspace()
     source = workspace.store(
@@ -199,7 +226,10 @@ async def test_list_source_links_filters_bounded_results_and_registers_fetch_can
             content="Index",
             fetched_bytes=5,
             links=tuple(
-                SourceLink(url=f"https://example.com/annual/{index}", text=f"Annual record {index}")
+                SourceLink(
+                    url=f"https://example.com/annual/{index}",
+                    text=f"Annual record {index}",
+                )
                 for index in range(105)
             )
             + (SourceLink(url="https://example.com/monthly", text="Monthly record"),),
@@ -226,7 +256,9 @@ async def test_list_source_links_filters_bounded_results_and_registers_fetch_can
     assert payload["total_match_count"] == 105
     assert payload["truncated"] is True
     assert len(payload["links"]) == 100
-    assert workspace.get_source_candidate("source_candidate:100").url.endswith("/annual/99")
+    assert workspace.get_source_candidate("source_candidate:100").url.endswith(
+        "/annual/99"
+    )
 
 
 @pytest.mark.anyio
@@ -272,10 +304,15 @@ async def test_list_source_links_bounds_the_serialized_result_not_only_the_link_
     assert payload["truncated"] is True
     assert len(content[0].text) <= 600
     for item in payload["links"]:
-        assert workspace.get_source_candidate(item["source_candidate_id"]).url == item["url"]
+        assert (
+            workspace.get_source_candidate(item["source_candidate_id"]).url
+            == item["url"]
+        )
 
 
-def test_audit_tools_are_exactly_the_fixed_read_only_source_inspection_boundary() -> None:
+def test_audit_tools_are_exactly_the_fixed_read_only_source_inspection_boundary() -> (
+    None
+):
     """Future failure: the blind audit must not gain fetch, search, registration, or mutation tools."""
     assert SourceWorkspace().audit_tools().allowed_tools == (
         "mcp__audit_vfs__list_sources",
@@ -317,15 +354,17 @@ async def test_shared_inspection_tools_return_the_same_payload_for_author_and_au
             "start_line_id": lines[0].line_id,
             "end_line_id": lines[-1].line_id,
         }
-    author_server = workspace.question_generation_tools(_UnavailableFetcher()).mcp_servers[
-        "question_generation_vfs"
-    ]["instance"]
+    author_server = workspace.question_generation_tools(
+        _UnavailableFetcher()
+    ).mcp_servers["question_generation_vfs"]["instance"]
     audit_server = workspace.audit_tools().mcp_servers["audit_vfs"]["instance"]
 
     async def call(server: object) -> str:
         request = mcp_types.CallToolRequest(
             method="tools/call",
-            params=mcp_types.CallToolRequestParams(name=tool_name, arguments=resolved_arguments),
+            params=mcp_types.CallToolRequestParams(
+                name=tool_name, arguments=resolved_arguments
+            ),
         )
         response = await server.request_handlers[mcp_types.CallToolRequest](request)  # type: ignore[attr-defined]
         content = response.root.content
@@ -358,11 +397,16 @@ def test_citation_offsets_preserve_raw_crlf_and_non_ascii_source_text() -> None:
     selected = workspace.citation_slices(evidence)[0]
 
     assert selected.end - selected.start >= 100
-    assert content[selected.start : selected.end] == source.content[selected.start : selected.end]
+    assert (
+        content[selected.start : selected.end]
+        == source.content[selected.start : selected.end]
+    )
     assert "ROW\tCafé\t1,200\r\n" in content[selected.start : selected.end]
 
 
-def test_closed_audit_packet_includes_selected_evidence_and_certificate_boundaries() -> None:
+def test_closed_audit_packet_includes_selected_evidence_and_certificate_boundaries() -> (
+    None
+):
     """Future failure: the independent audit must see bounded context without receiving the source body."""
     workspace = SourceWorkspace()
     source = workspace.store(
@@ -406,8 +450,15 @@ def test_closed_audit_packet_includes_selected_evidence_and_certificate_boundari
     selected = packet["selected_evidence"][0]  # type: ignore[index]
     scan = packet["scan_certificates"][0]  # type: ignore[index]
     assert selected["excerpt"] == "HEADER\tName\tValue\nROW\tAlpha\t1200"
-    assert [item["text"] for item in selected["boundary_context"]] == ["intro", "ROW\tBeta\t900", "footer"]
-    assert [item["text"] for item in scan["matched_lines"]] == ["ROW\tAlpha\t1200", "ROW\tBeta\t900"]
+    assert [item["text"] for item in selected["boundary_context"]] == [
+        "intro",
+        "ROW\tBeta\t900",
+        "footer",
+    ]
+    assert [item["text"] for item in scan["matched_lines"]] == [
+        "ROW\tAlpha\t1200",
+        "ROW\tBeta\t900",
+    ]
     assert "content" not in str(packet)
 
 
@@ -521,18 +572,24 @@ def test_proof_packet_trims_aggregate_evidence_inside_the_context_bound() -> Non
     assert json.loads(serialized) == packet
     selected = packet["selected_evidence"]
     assert isinstance(selected, list)
-    assert [item["evidence_id"] for item in selected] == [record.evidence_id for record in records]
+    assert [item["evidence_id"] for item in selected] == [
+        record.evidence_id for record in records
+    ]
     assert all("audit text truncated" in item["excerpt"] for item in selected)
-    assert all(item["excerpt"].startswith(str(index)) for index, item in enumerate(selected))
-    assert all(item["excerpt"].endswith(str(index)) for index, item in enumerate(selected))
     assert all(
-        line["line_id"]
-        for item in selected
-        for line in item["boundary_context"]
+        item["excerpt"].startswith(str(index)) for index, item in enumerate(selected)
+    )
+    assert all(
+        item["excerpt"].endswith(str(index)) for index, item in enumerate(selected)
+    )
+    assert all(
+        line["line_id"] for item in selected for line in item["boundary_context"]
     )
 
 
-def test_structured_proof_packet_preserves_required_contract_while_trimming_evidence() -> None:
+def test_structured_proof_packet_preserves_required_contract_while_trimming_evidence() -> (
+    None
+):
     """Future failure: packet budgeting must never truncate schema or structured reference semantics."""
     workspace = SourceWorkspace()
     source = workspace.store(
@@ -540,7 +597,11 @@ def test_structured_proof_packet_preserves_required_contract_while_trimming_evid
             requested_url="https://example.com/report",
             final_url="https://example.com/report",
             media_type="text/plain",
-            content=("a" * 30_000) + ("\n" * 5) + ("b" * 30_000) + ("\n" * 5) + ("c" * 30_000),
+            content=("a" * 30_000)
+            + ("\n" * 5)
+            + ("b" * 30_000)
+            + ("\n" * 5)
+            + ("c" * 30_000),
             fetched_bytes=90_010,
         )
     )
@@ -585,7 +646,9 @@ def test_structured_proof_packet_preserves_required_contract_while_trimming_evid
     assert "audit text truncated" in str(packet["selected_evidence"])
 
 
-def test_structured_proof_packet_preserves_irreducible_public_envelope_over_target() -> None:
+def test_structured_proof_packet_preserves_irreducible_public_envelope_over_target() -> (
+    None
+):
     """Future failure: the ordinary packet target must not silently narrow exact public semantics."""
     workspace = SourceWorkspace()
 
@@ -721,7 +784,10 @@ async def test_similarity_search_limits_workers_and_cancels_queued_scans(
         return {"chunks": []}
 
     monkeypatch.setattr(workspace, "_similarity_result", blocking_result)
-    tasks = [asyncio.create_task(workspace._run_similarity_result(source, "needle", 1)) for _ in range(10)]
+    tasks = [
+        asyncio.create_task(workspace._run_similarity_result(source, "needle", 1))
+        for _ in range(10)
+    ]
     try:
         assert await asyncio.to_thread(two_started.wait, 2.0)
         for task in tasks[2:]:

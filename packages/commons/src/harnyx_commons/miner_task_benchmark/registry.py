@@ -96,7 +96,10 @@ def load_benchmark_snapshot(
                 "benchmark suite registry mismatch: "
                 f"requested {suite_slug} got {snapshot.manifest.suite_slug}"
             )
-        snapshot_version = (snapshot.manifest.dataset_version, snapshot.manifest.scoring_version)
+        snapshot_version = (
+            snapshot.manifest.dataset_version,
+            snapshot.manifest.scoring_version,
+        )
         if snapshot_version == expected_version:
             return snapshot
     raise RuntimeError(
@@ -107,7 +110,9 @@ def load_benchmark_snapshot(
 
 def load_active_benchmark_snapshot() -> BenchmarkDatasetSnapshot:
     if len(_BENCHMARK_CURRENT_SNAPSHOT_LOADERS) != 1:
-        raise RuntimeError("active benchmark suite is ambiguous; resolve an explicit suite_slug")
+        raise RuntimeError(
+            "active benchmark suite is ambiguous; resolve an explicit suite_slug"
+        )
     _, loader = next(iter(_BENCHMARK_CURRENT_SNAPSHOT_LOADERS.items()))
     return loader()
 
@@ -115,7 +120,9 @@ def load_active_benchmark_snapshot() -> BenchmarkDatasetSnapshot:
 def list_current_benchmark_snapshots() -> tuple[BenchmarkDatasetSnapshot, ...]:
     return tuple(
         loader()
-        for _, loader in sorted(_BENCHMARK_CURRENT_SNAPSHOT_LOADERS.items(), key=lambda entry: entry[0])
+        for _, loader in sorted(
+            _BENCHMARK_CURRENT_SNAPSHOT_LOADERS.items(), key=lambda entry: entry[0]
+        )
     )
 
 
@@ -134,7 +141,9 @@ def _expected_snapshot_version(
     if dataset_version is None and scoring_version is None:
         return None
     if dataset_version is None or scoring_version is None:
-        raise RuntimeError("benchmark snapshot lookup requires both dataset_version and scoring_version")
+        raise RuntimeError(
+            "benchmark snapshot lookup requires both dataset_version and scoring_version"
+        )
     return dataset_version, scoring_version
 
 

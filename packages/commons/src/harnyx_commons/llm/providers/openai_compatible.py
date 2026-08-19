@@ -23,7 +23,10 @@ from harnyx_commons.config.llm import (
 )
 from harnyx_commons.json_types import JsonObject, JsonValue
 from harnyx_commons.llm.adapter import canonical_model_for_provider_model
-from harnyx_commons.llm.cost_settlement import settled_response_cost, with_settled_llm_cost
+from harnyx_commons.llm.cost_settlement import (
+    settled_response_cost,
+    with_settled_llm_cost,
+)
 from harnyx_commons.llm.provider import BaseLlmProvider
 from harnyx_commons.llm.provider_types import custom_openai_compatible_target
 from harnyx_commons.llm.providers.openai_chat_codec import OpenAiChatRequestParts
@@ -47,7 +50,9 @@ from harnyx_commons.llm.schema import (
     LlmUsage,
 )
 
-OpenAiCompatibleResponseMetadataExtractor = Callable[[Mapping[str, Any]], JsonObject | None]
+OpenAiCompatibleResponseMetadataExtractor = Callable[
+    [Mapping[str, Any]], JsonObject | None
+]
 
 
 class OpenAiCompatibleLlmProvider(BaseLlmProvider):
@@ -56,13 +61,19 @@ class OpenAiCompatibleLlmProvider(BaseLlmProvider):
         *,
         endpoint: OpenAiCompatibleEndpointConfig,
         client: httpx.AsyncClient | None = None,
-        response_metadata_extractor: OpenAiCompatibleResponseMetadataExtractor | None = None,
+        response_metadata_extractor: (
+            OpenAiCompatibleResponseMetadataExtractor | None
+        ) = None,
     ) -> None:
         provider_label = custom_openai_compatible_target(endpoint.id)
-        super().__init__(provider_label=provider_label, max_concurrent=endpoint.max_concurrent)
+        super().__init__(
+            provider_label=provider_label, max_concurrent=endpoint.max_concurrent
+        )
         self._endpoint = endpoint
         self._authenticator = _OpenAiCompatibleAuthenticator(endpoint.auth)
-        self._chat_completions_url = f"{str(endpoint.base_url).rstrip('/')}/chat/completions"
+        self._chat_completions_url = (
+            f"{str(endpoint.base_url).rstrip('/')}/chat/completions"
+        )
         self._owns_client = client is None
         self._response_metadata_extractor = response_metadata_extractor
         self._client = client or httpx.AsyncClient(
@@ -87,7 +98,9 @@ class OpenAiCompatibleLlmProvider(BaseLlmProvider):
         request: AbstractLlmRequest,
         response: LlmResponse,
     ) -> LlmResponse:
-        provider = request.provider or custom_openai_compatible_target(self._endpoint.id)
+        provider = request.provider or custom_openai_compatible_target(
+            self._endpoint.id
+        )
         cost = settled_response_cost(response, provider=provider, model=request.model)
         if cost is None:
             self._llm_logger.warning(
@@ -97,7 +110,9 @@ class OpenAiCompatibleLlmProvider(BaseLlmProvider):
             return response
         return with_settled_llm_cost(response, cost)
 
-    def _build_request(self, request: AbstractLlmRequest) -> _OpenAiCompatibleChatRequest:
+    def _build_request(
+        self, request: AbstractLlmRequest
+    ) -> _OpenAiCompatibleChatRequest:
         return _OpenAiCompatibleChatRequest.from_request(
             request,
             provider_name=custom_openai_compatible_target(self._endpoint.id),
@@ -137,7 +152,9 @@ class OpenAiCompatibleLlmProvider(BaseLlmProvider):
         state = OpenAiStreamState()
         response_metadata: JsonObject | None = None
         ttft_ms: float | None = None
-        async with self._client.stream("POST", self._chat_completions_url, **request_kwargs) as response:
+        async with self._client.stream(
+            "POST", self._chat_completions_url, **request_kwargs
+        ) as response:
             if response.is_error:
                 await response.aread()
             response.raise_for_status()
@@ -147,7 +164,9 @@ class OpenAiCompatibleLlmProvider(BaseLlmProvider):
                 invalid_event_message="OpenAI-compatible chat completions SSE event must be a JSON object",
             ):
                 if self._response_metadata_extractor is not None:
-                    response_metadata = self._response_metadata_extractor(payload) or response_metadata
+                    response_metadata = (
+                        self._response_metadata_extractor(payload) or response_metadata
+                    )
                 try:
                     event = _OpenAiStreamEvent.model_validate(payload)
                 except ValidationError as exc:
@@ -158,15 +177,22 @@ class OpenAiCompatibleLlmProvider(BaseLlmProvider):
                     ) from exc
                 if state.merge_event(
                     event,
-                    reasoning_keys=("reasoning", "reasoning_content", "reasoning_details"),
+                    reasoning_keys=(
+                        "reasoning",
+                        "reasoning_content",
+                        "reasoning_details",
+                    ),
                     normalize_reasoning_fragment=normalize_openai_reasoning_fragments,
                 ):
                     if ttft_ms is None:
                         ttft_ms = round((time.perf_counter() - started_at) * 1000, 2)
-        return _OpenAiCompatibleChatResponse.from_stream_state(
-            state,
-            response_metadata=response_metadata,
-        ), ttft_ms
+        return (
+            _OpenAiCompatibleChatResponse.from_stream_state(
+                state,
+                response_metadata=response_metadata,
+            ),
+            ttft_ms,
+        )
 
     @staticmethod
     def _verify_response(response: LlmResponse) -> tuple[bool, bool, str | None]:
@@ -188,7 +214,11 @@ class OpenAiCompatibleLlmProvider(BaseLlmProvider):
             case httpx.HTTPStatusError():
                 status = exc.response.status_code if exc.response else None
                 retryable = status is not None and (status == 429 or status >= 500)
-                detail = _summarize_response(exc.response) if exc.response is not None else ""
+                detail = (
+                    _summarize_response(exc.response)
+                    if exc.response is not None
+                    else ""
+                )
                 if detail:
                     return retryable, f"http_{status}: {detail}"
                 return retryable, f"http_{status}"
@@ -211,7 +241,9 @@ class _OpenAiCompatibleChatRequest(BaseModel):
     model: str
     messages: list[dict[str, Any]]
     stream: bool = True
-    stream_options: dict[str, bool] = Field(default_factory=lambda: {"include_usage": True})
+    stream_options: dict[str, bool] = Field(
+        default_factory=lambda: {"include_usage": True}
+    )
     temperature: float | None = None
     max_tokens: int | None = None
     tools: list[dict[str, Any]] | None = None
@@ -222,9 +254,13 @@ class _OpenAiCompatibleChatRequest(BaseModel):
     chat_template_kwargs: dict[str, Any] | None = None
 
     @classmethod
-    def from_request(cls, request: AbstractLlmRequest, *, provider_name: str) -> _OpenAiCompatibleChatRequest:
+    def from_request(
+        cls, request: AbstractLlmRequest, *, provider_name: str
+    ) -> _OpenAiCompatibleChatRequest:
         if request.grounded:
-            raise ValueError("grounded mode is not supported for OpenAI-compatible provider")
+            raise ValueError(
+                "grounded mode is not supported for OpenAI-compatible provider"
+            )
         request_parts = OpenAiChatRequestParts.from_request(
             request,
             provider_name=provider_name,
@@ -234,11 +270,17 @@ class _OpenAiCompatibleChatRequest(BaseModel):
         )
         payload = cls(
             model=request.model,
-            messages=[message.model_dump(mode="python", exclude_none=True) for message in request_parts.messages],
+            messages=[
+                message.model_dump(mode="python", exclude_none=True)
+                for message in request_parts.messages
+            ],
             temperature=request.temperature,
             max_tokens=request.max_output_tokens,
             tools=(
-                [tool.model_dump(mode="python", exclude_none=True) for tool in request_parts.tools]
+                [
+                    tool.model_dump(mode="python", exclude_none=True)
+                    for tool in request_parts.tools
+                ]
                 if request_parts.tools
                 else None
             ),
@@ -246,12 +288,16 @@ class _OpenAiCompatibleChatRequest(BaseModel):
             parallel_tool_calls=request_parts.parallel_tool_calls,
             include=request_parts.include,
             response_format=(
-                request_parts.response_format.model_dump(mode="python", exclude_none=True)
+                request_parts.response_format.model_dump(
+                    mode="python", exclude_none=True
+                )
                 if request_parts.response_format is not None
                 else None
             ),
         )
-        payload = _apply_openai_compatible_thinking(payload, request, provider_name=provider_name)
+        payload = _apply_openai_compatible_thinking(
+            payload, request, provider_name=provider_name
+        )
         if request.extra:
             payload = payload.model_copy(update=dict(request.extra))
         return payload.model_copy(update={"stream": True})
@@ -353,10 +399,16 @@ class _OpenAiCompatibleChatResponse(BaseModel):
         response_metadata: JsonObject | None,
     ) -> _OpenAiCompatibleChatResponse:
         choices = [
-            _OpenAiCompatibleChoicePayload.from_choice_state(index=index, state=choice_state)
+            _OpenAiCompatibleChoicePayload.from_choice_state(
+                index=index, state=choice_state
+            )
             for index, choice_state in sorted(state.choices.items())
         ]
-        usage = _OpenAiCompatibleUsagePayload.model_validate(state.usage) if state.usage is not None else None
+        usage = (
+            _OpenAiCompatibleUsagePayload.model_validate(state.usage)
+            if state.usage is not None
+            else None
+        )
         return cls(
             id=state.response_id,
             choices=choices,
@@ -365,7 +417,9 @@ class _OpenAiCompatibleChatResponse(BaseModel):
         )
 
     def raw_payload(self) -> JsonObject:
-        payload = self.model_dump(mode="python", exclude_none=True, exclude={"response_metadata"})
+        payload = self.model_dump(
+            mode="python", exclude_none=True, exclude={"response_metadata"}
+        )
         if self.response_metadata is not None:
             payload.update(self.response_metadata)
         return payload
@@ -391,7 +445,9 @@ class _OpenAiCompatibleChoicePayload(BaseModel):
     finish_reason: str | None = None
 
     @classmethod
-    def from_choice_state(cls, *, index: int, state: OpenAiChoiceState) -> _OpenAiCompatibleChoicePayload:
+    def from_choice_state(
+        cls, *, index: int, state: OpenAiChoiceState
+    ) -> _OpenAiCompatibleChoicePayload:
         return cls(
             index=index,
             content=state.content_text,
@@ -418,9 +474,11 @@ class _OpenAiCompatibleChoicePayload(BaseModel):
 class _OpenAiCompatibleAuthenticator:
     def __init__(
         self,
-        auth: OpenAiCompatibleNoAuthConfig
-        | OpenAiCompatibleBearerTokenEnvAuthConfig
-        | OpenAiCompatibleGoogleIdTokenAuthConfig,
+        auth: (
+            OpenAiCompatibleNoAuthConfig
+            | OpenAiCompatibleBearerTokenEnvAuthConfig
+            | OpenAiCompatibleGoogleIdTokenAuthConfig
+        ),
     ) -> None:
         self._auth = auth
 
@@ -431,21 +489,29 @@ class _OpenAiCompatibleAuthenticator:
             case OpenAiCompatibleBearerTokenEnvAuthConfig(token_env=token_env):
                 token = os.environ.get(token_env, "").strip()
                 if not token:
-                    raise RuntimeError(f"{token_env} must be configured for OpenAI-compatible bearer auth")
+                    raise RuntimeError(
+                        f"{token_env} must be configured for OpenAI-compatible bearer auth"
+                    )
                 return {"Authorization": f"Bearer {token}"}
             case OpenAiCompatibleGoogleIdTokenAuthConfig() as auth:
                 token = await asyncio.to_thread(_refresh_google_id_token, auth)
                 return {"Authorization": f"Bearer {token}"}
-        raise RuntimeError(f"unsupported OpenAI-compatible auth type: {self._auth.type}")
+        raise RuntimeError(
+            f"unsupported OpenAI-compatible auth type: {self._auth.type}"
+        )
 
 
 def _refresh_google_id_token(auth: OpenAiCompatibleGoogleIdTokenAuthConfig) -> str:
     request = GoogleAuthRequest()
     if auth.credential_source == "adc":
-        credentials = id_token.fetch_id_token_credentials(auth.audience, request=request)
+        credentials = id_token.fetch_id_token_credentials(
+            auth.audience, request=request
+        )
     else:
         if auth.credential_env is None:
-            raise RuntimeError("credential_env must be configured for service_account_json_b64_env")
+            raise RuntimeError(
+                "credential_env must be configured for service_account_json_b64_env"
+            )
         credentials = service_account.IDTokenCredentials.from_service_account_info(
             _service_account_info_from_env(auth.credential_env),
             target_audience=auth.audience,
@@ -460,7 +526,9 @@ def _refresh_google_id_token(auth: OpenAiCompatibleGoogleIdTokenAuthConfig) -> s
 def _service_account_info_from_env(env_name: str) -> dict[str, object]:
     encoded = os.environ.get(env_name, "").strip()
     if not encoded:
-        raise RuntimeError(f"{env_name} must be configured for OpenAI-compatible Google ID token auth")
+        raise RuntimeError(
+            f"{env_name} must be configured for OpenAI-compatible Google ID token auth"
+        )
     decoded = base64.b64decode(encoded, validate=True).decode("utf-8")
     payload = json.loads(decoded)
     if not isinstance(payload, dict):
@@ -468,7 +536,9 @@ def _service_account_info_from_env(env_name: str) -> dict[str, object]:
     return dict(payload)
 
 
-def _to_llm_tool_calls(state: OpenAiChoiceState) -> tuple[LlmMessageToolCall, ...] | None:
+def _to_llm_tool_calls(
+    state: OpenAiChoiceState,
+) -> tuple[LlmMessageToolCall, ...] | None:
     tool_calls = state.tool_call_values()
     if not tool_calls:
         return None

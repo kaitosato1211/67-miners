@@ -15,7 +15,9 @@ from harnyx_commons.config.external_client import ExternalClientRetrySettings
 from harnyx_commons.errors import ToolProviderError, ToolProviderFailureCode
 from harnyx_commons.llm.pricing import price_parallel_extract, price_parallel_search
 from harnyx_commons.llm.retry_utils import RetryPolicy, backoff_ms
-from harnyx_commons.platform_tool_proxy import platform_tool_proxy_effective_provider_timeout_seconds
+from harnyx_commons.platform_tool_proxy import (
+    platform_tool_proxy_effective_provider_timeout_seconds,
+)
 from harnyx_commons.tools.extraction_models import (
     ExtractedPage,
     ExtractPagesRequest,
@@ -40,7 +42,10 @@ from harnyx_commons.tools.search_models import (
     SearchWebSearchRequest,
     SearchWebSearchResponse,
 )
-from harnyx_miner_sdk.tools.search_provider_extra import ParallelFetchExtra, ParallelSearchExtra
+from harnyx_miner_sdk.tools.search_provider_extra import (
+    ParallelFetchExtra,
+    ParallelSearchExtra,
+)
 
 _LOGGER = logging.getLogger("harnyx_commons.tools.parallel.calls")
 
@@ -143,7 +148,9 @@ class _ParallelExtractResponsePayload(BaseModel):
     attempts: int | None = None
     retry_reasons: tuple[str, ...] | None = None
 
-    @field_validator("results", "errors", "warnings", "usage", "retry_reasons", mode="before")
+    @field_validator(
+        "results", "errors", "warnings", "usage", "retry_reasons", mode="before"
+    )
     @classmethod
     def _tuple_from_list(cls, value: object) -> object:
         if isinstance(value, list):
@@ -192,7 +199,9 @@ class ParallelClient:
         self._retry_policy = retry_policy or ExternalClientRetrySettings().retry_policy
         self._include_payloads_in_logs = include_payloads_in_logs
         self._semaphore: asyncio.Semaphore | None = (
-            asyncio.Semaphore(max_concurrent) if max_concurrent and max_concurrent > 0 else None
+            asyncio.Semaphore(max_concurrent)
+            if max_concurrent and max_concurrent > 0
+            else None
         )
 
     async def search_web(
@@ -249,7 +258,9 @@ class ParallelClient:
             "max_results": request.count,
         }
         data = _ParallelSearchResponsePayload.model_validate(
-            await self._post("/v1beta/search", payload, requested_timeout=request.timeout)
+            await self._post(
+                "/v1beta/search", payload, requested_timeout=request.timeout
+            )
         )
         response = SearchAiSearchResponse(
             data=[
@@ -293,7 +304,9 @@ class ParallelClient:
         if len(extraction.response.pages) != 1:
             raise ToolProviderError("tool provider failed", provider="parallel")
         result = extraction.response.pages[0]
-        content = result.content or "\n\n".join(excerpt.strip() for excerpt in result.excerpts if excerpt.strip())
+        content = result.content or "\n\n".join(
+            excerpt.strip() for excerpt in result.excerpts if excerpt.strip()
+        )
         if not content:
             raise ToolProviderError("tool provider failed", provider="parallel")
         response = FetchPageResponse(
@@ -316,7 +329,9 @@ class ParallelClient:
         self,
         request: ExtractPagesRequest,
     ) -> SearchProviderResult[ExtractPagesResponse]:
-        return await self._extract_pages(request, requested_timeout=None, provider_extra=None)
+        return await self._extract_pages(
+            request, requested_timeout=None, provider_extra=None
+        )
 
     async def _extract_pages(
         self,
@@ -411,7 +426,9 @@ class ParallelClient:
                     for error in data.errors
                 ),
                 warnings=tuple(
-                    PageExtractionWarning(warning_type=warning.type, message=warning.message)
+                    PageExtractionWarning(
+                        warning_type=warning.type, message=warning.message
+                    )
                     for warning in (data.warnings or ())
                 ),
                 session_id=data.session_id,
@@ -437,12 +454,16 @@ class ParallelClient:
             requested_timeout,
         )
         if self._semaphore is None:
-            return await self._post_with_retries(path, payload, wait_ms=0.0, timeout=provider_timeout)
+            return await self._post_with_retries(
+                path, payload, wait_ms=0.0, timeout=provider_timeout
+            )
 
         wait_start = time.perf_counter()
         async with self._semaphore:
             wait_ms = (time.perf_counter() - wait_start) * 1000
-            return await self._post_with_retries(path, payload, wait_ms=wait_ms, timeout=provider_timeout)
+            return await self._post_with_retries(
+                path, payload, wait_ms=wait_ms, timeout=provider_timeout
+            )
 
     async def _post_with_retries(
         self,
@@ -532,7 +553,9 @@ def _parallel_search_billing(
 ) -> ProviderBillingMetadata:
     return _parallel_billing(
         billable_units=billable_units,
-        actual_cost_usd=price_parallel_search(billable_results=billable_units, mode=mode),
+        actual_cost_usd=price_parallel_search(
+            billable_results=billable_units, mode=mode
+        ),
         provider_request_id=provider_request_id,
     )
 
@@ -623,4 +646,6 @@ def _validate_extract_url_partition(
         raise ValueError("parallel extract response URL appeared in results and errors")
     if result_urls | error_urls != requested:
         raise ValueError("parallel extract response did not partition requested URLs")
+
+
 __all__ = ["ParallelClient"]

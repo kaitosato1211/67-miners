@@ -23,7 +23,11 @@ from harnyx_commons.application.miner_response_hydration import (
     CitationSlice,
 )
 from harnyx_commons.domain.shared_config import COMMONS_STRICT_CONFIG
-from harnyx_commons.domain_tweak_generation.contracts import AgentToolSet, ProofStep, ResponseMode
+from harnyx_commons.domain_tweak_generation.contracts import (
+    AgentToolSet,
+    ProofStep,
+    ResponseMode,
+)
 from harnyx_miner_sdk.json_types import JsonObject, JsonValue
 
 _MAX_READ_LINES = 128
@@ -39,10 +43,14 @@ _REGEX_SCAN_SECONDS = 2.0
 _SIMILARITY_CHUNK_LINES = 128
 _SIMILARITY_CHUNK_STRIDE = 96
 _MAX_SIMILARITY_QUERY_TERMS = 32
-_SIMILARITY_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="source-similarity")
+_SIMILARITY_EXECUTOR = ThreadPoolExecutor(
+    max_workers=2, thread_name_prefix="source-similarity"
+)
 _TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9_.-]*", re.IGNORECASE)
 _DOCUMENT_KINDS = frozenset({"html", "text", "pdf", "xlsx", "static_json"})
-SourceFailureClass = Literal["source_fetch_rejected", "source_extraction_limit", "source_unavailable"]
+SourceFailureClass = Literal[
+    "source_fetch_rejected", "source_extraction_limit", "source_unavailable"
+]
 _SOURCE_FAILURE_CLASSES: frozenset[str] = frozenset(
     {
         "source_fetch_rejected",
@@ -92,7 +100,9 @@ def _serialize_audit_packet(packet: Mapping[str, object]) -> str:
 
 
 def _shorten_audit_text(text: str, maximum_characters: int) -> str:
-    if len(text) <= maximum_characters or len(text) <= len(_AUDIT_TEXT_TRUNCATION_MARKER):
+    if len(text) <= maximum_characters or len(text) <= len(
+        _AUDIT_TEXT_TRUNCATION_MARKER
+    ):
         return text
     retained_characters = maximum_characters - len(_AUDIT_TEXT_TRUNCATION_MARKER)
     head_characters = (retained_characters + 1) // 2
@@ -129,11 +139,15 @@ def _restore_audit_text(
         slot.restore(accepted)
 
 
-def _audit_text_slots(packet: dict[str, object]) -> tuple[tuple[_AuditTextSlot, ...], tuple[_AuditTextSlot, ...]]:
+def _audit_text_slots(
+    packet: dict[str, object],
+) -> tuple[tuple[_AuditTextSlot, ...], tuple[_AuditTextSlot, ...]]:
     load_bearing: list[_AuditTextSlot] = []
     context: list[_AuditTextSlot] = []
     for evidence in cast(list[dict[str, object]], packet["selected_evidence"]):
-        load_bearing.append(_AuditTextSlot(evidence, "excerpt", cast(str, evidence["excerpt"])))
+        load_bearing.append(
+            _AuditTextSlot(evidence, "excerpt", cast(str, evidence["excerpt"]))
+        )
         for line in cast(list[dict[str, object]], evidence["boundary_context"]):
             context.append(_AuditTextSlot(line, "text", cast(str, line["text"])))
     for certificate in cast(list[dict[str, object]], packet["scan_certificates"]):
@@ -148,11 +162,16 @@ def _structural_shape(value: object, *, depth: int = 0) -> object:
     if depth >= 6:
         return type(value).__name__
     if isinstance(value, Mapping):
-        return {str(key)[:100]: _structural_shape(item, depth=depth + 1) for key, item in list(value.items())[:20]}
+        return {
+            str(key)[:100]: _structural_shape(item, depth=depth + 1)
+            for key, item in list(value.items())[:20]
+        }
     if isinstance(value, list):
         return {
             "list_length": len(value),
-            "item_shapes": [_structural_shape(item, depth=depth + 1) for item in value[:3]],
+            "item_shapes": [
+                _structural_shape(item, depth=depth + 1) for item in value[:3]
+            ],
         }
     return type(value).__name__
 
@@ -162,11 +181,17 @@ def _sha256(value: str) -> str:
 
 
 def _query_terms(value: str) -> tuple[str, ...]:
-    terms = tuple(dict.fromkeys(match.group(0).casefold() for match in _TOKEN_PATTERN.finditer(value)))
+    terms = tuple(
+        dict.fromkeys(
+            match.group(0).casefold() for match in _TOKEN_PATTERN.finditer(value)
+        )
+    )
     if not terms:
         raise ValueError("similarity query must contain a searchable term")
     if len(terms) > _MAX_SIMILARITY_QUERY_TERMS:
-        raise ValueError(f"similarity query exceeds {_MAX_SIMILARITY_QUERY_TERMS} distinct terms")
+        raise ValueError(
+            f"similarity query exceeds {_MAX_SIMILARITY_QUERY_TERMS} distinct terms"
+        )
     return terms
 
 
@@ -275,7 +300,9 @@ class _SourceLines(Sequence[SourceLine]):
 
     def __getitem__(self, index: int | slice) -> SourceLine | Sequence[SourceLine]:
         if isinstance(index, slice):
-            return tuple(self._line(offset) for offset in range(*index.indices(len(self))))
+            return tuple(
+                self._line(offset) for offset in range(*index.indices(len(self)))
+            )
         normalized = index + len(self) if index < 0 else index
         if normalized < 0 or normalized >= len(self):
             raise IndexError(index)
@@ -283,12 +310,18 @@ class _SourceLines(Sequence[SourceLine]):
 
     def _line(self, offset: int) -> SourceLine:
         start = self.starts[offset]
-        end = self.starts[offset + 1] - 1 if offset + 1 < len(self.starts) else len(self.source.content)
+        end = (
+            self.starts[offset + 1] - 1
+            if offset + 1 < len(self.starts)
+            else len(self.source.content)
+        )
         text = self.source.content[start:end]
         if text.endswith("\r"):
             text = text[:-1]
         ordinal = offset + 1
-        return SourceLine(line_id=f"L:{self.token}:{ordinal}", ordinal=ordinal, text=text)
+        return SourceLine(
+            line_id=f"L:{self.token}:{ordinal}", ordinal=ordinal, text=text
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -329,7 +362,8 @@ def _bm25_score(
         return 0.0
     length_normalization = 1.5 * (0.25 + (0.75 * chunk.token_count / average_length))
     return sum(
-        inverse_document_frequencies[index] * (count * 2.5 / (count + length_normalization))
+        inverse_document_frequencies[index]
+        * (count * 2.5 / (count + length_normalization))
         for index, count in enumerate(chunk.query_term_counts)
         if count
     )
@@ -395,7 +429,9 @@ class SourceWorkspace:
             for index, character in enumerate(source.content)
             if character == "\n" and index + 1 < len(source.content)
         )
-        self._source_lines[source_id] = _SourceLines(source=source, token=token, starts=starts)
+        self._source_lines[source_id] = _SourceLines(
+            source=source, token=token, starts=starts
+        )
         self._line_tokens[token] = source_id
         return source
 
@@ -417,7 +453,9 @@ class SourceWorkspace:
             if isinstance(result, str):
                 continue
             for item in result.content:
-                candidate = self._register_source_candidate(url=item.url, title=item.title)
+                candidate = self._register_source_candidate(
+                    url=item.url, title=item.title
+                )
                 registered.append(
                     {
                         "source_candidate_id": candidate.source_candidate_id,
@@ -426,7 +464,9 @@ class SourceWorkspace:
                 )
         if not registered:
             return "Host registered no fetch candidates for this search."
-        return "Host-registered fetch candidates:\n" + json.dumps(registered, ensure_ascii=False)
+        return "Host-registered fetch candidates:\n" + json.dumps(
+            registered, ensure_ascii=False
+        )
 
     def _register_source_candidate(self, *, url: str, title: str) -> SourceCandidate:
         candidate_id = f"source_candidate:{self._next_source_candidate}"
@@ -443,7 +483,9 @@ class SourceWorkspace:
         try:
             return self._source_candidates[source_candidate_id]
         except KeyError as exc:
-            raise ValueError(f"unknown source_candidate_id: {source_candidate_id}") from exc
+            raise ValueError(
+                f"unknown source_candidate_id: {source_candidate_id}"
+            ) from exc
 
     def source_metadata(self) -> tuple[dict[str, object], ...]:
         return tuple(
@@ -480,7 +522,9 @@ class SourceWorkspace:
         try:
             return self._source_lines[source.source_id]
         except KeyError as exc:
-            raise ValueError(f"source is not retained in this workspace: {source.source_id}") from exc
+            raise ValueError(
+                f"source is not retained in this workspace: {source.source_id}"
+            ) from exc
 
     def resolve_line(self, line_id: str) -> tuple[StoredSource, SourceLine]:
         prefix, separator, raw_ordinal = line_id.rpartition(":")
@@ -501,7 +545,9 @@ class SourceWorkspace:
         assert isinstance(line, SourceLine)
         return source, line
 
-    def line_range(self, start_line_id: str, end_line_id: str) -> tuple[StoredSource, tuple[SourceLine, ...]]:
+    def line_range(
+        self, start_line_id: str, end_line_id: str
+    ) -> tuple[StoredSource, tuple[SourceLine, ...]]:
         source, start, end = self._line_bounds(start_line_id, end_line_id)
         line_count = end.ordinal - start.ordinal + 1
         if line_count > _MAX_READ_LINES:
@@ -512,22 +558,32 @@ class SourceWorkspace:
         return source, chosen
 
     def citation_slices(self, evidence: EvidenceRecord) -> tuple[CitationSlice, ...]:
-        source, start, end = self._line_bounds(evidence.start_line_id, evidence.end_line_id)
+        source, start, end = self._line_bounds(
+            evidence.start_line_id, evidence.end_line_id
+        )
         lines = self._source_lines[source.source_id]
         start_offset = lines.starts[start.ordinal - 1]
-        end_offset = lines.starts[end.ordinal] if end.ordinal < len(lines) else len(source.content)
+        end_offset = (
+            lines.starts[end.ordinal]
+            if end.ordinal < len(lines)
+            else len(source.content)
+        )
         if len(source.content) < MIN_CITATION_SLICE_CHARS:
             start_offset = 0
             end_offset = len(source.content)
         elif end_offset - start_offset < MIN_CITATION_SLICE_CHARS:
-            start_offset = max(0, min(start_offset, len(source.content) - MIN_CITATION_SLICE_CHARS))
+            start_offset = max(
+                0, min(start_offset, len(source.content) - MIN_CITATION_SLICE_CHARS)
+            )
             end_offset = max(end_offset, start_offset + MIN_CITATION_SLICE_CHARS)
             if end_offset > len(source.content):
                 end_offset = len(source.content)
                 start_offset = end_offset - MIN_CITATION_SLICE_CHARS
         return (CitationSlice(start=start_offset, end=end_offset),)
 
-    def _line_bounds(self, start_line_id: str, end_line_id: str) -> tuple[StoredSource, SourceLine, SourceLine]:
+    def _line_bounds(
+        self, start_line_id: str, end_line_id: str
+    ) -> tuple[StoredSource, SourceLine, SourceLine]:
         start_source, start = self.resolve_line(start_line_id)
         end_source, end = self.resolve_line(end_line_id)
         if start_source.source_id != end_source.source_id:
@@ -551,7 +607,9 @@ class SourceWorkspace:
         source, chosen = self.line_range(start_line_id, end_line_id)
         chosen = self._attach_table_header(source, chosen)
         if len(chosen) > _MAX_READ_LINES:
-            raise ValueError(f"evidence range including its table header is limited to {_MAX_READ_LINES} lines")
+            raise ValueError(
+                f"evidence range including its table header is limited to {_MAX_READ_LINES} lines"
+            )
         context = self._boundary_context(source, chosen[0].ordinal, chosen[-1].ordinal)
         self._require_bounded_audit_text((*chosen, *context), label="evidence")
         evidence_id = f"E{self._next_evidence}"
@@ -590,9 +648,13 @@ class SourceWorkspace:
             pattern,
             maximum_matches=_MAX_REGEX_MATCHES,
         )
-        boundary_lines = self._certificate_boundaries(source, start.ordinal, end.ordinal)
+        boundary_lines = self._certificate_boundaries(
+            source, start.ordinal, end.ordinal
+        )
         matched_lines = tuple(self.resolve_line(line_id)[1] for line_id in matches)
-        self._require_bounded_audit_text((*boundary_lines, *matched_lines), label="certificate")
+        self._require_bounded_audit_text(
+            (*boundary_lines, *matched_lines), label="certificate"
+        )
         certificate_id = f"C{self._next_certificate}"
         self._next_certificate += 1
         certificate = ScanCertificate(
@@ -618,9 +680,15 @@ class SourceWorkspace:
         output_schema: JsonObject | None = None,
         structured_answer: JsonValue | None = None,
     ) -> dict[str, object]:
-        evidence_ids = {evidence_id for step in steps for evidence_id in getattr(step, "evidence_ids", ())}
+        evidence_ids = {
+            evidence_id
+            for step in steps
+            for evidence_id in getattr(step, "evidence_ids", ())
+        }
         certificate_ids = {
-            certificate_id for step in steps for certificate_id in getattr(step, "scan_certificate_ids", ())
+            certificate_id
+            for step in steps
+            for certificate_id in getattr(step, "scan_certificate_ids", ())
         }
         packet: dict[str, object] = {
             "question": question,
@@ -657,15 +725,27 @@ class SourceWorkspace:
     def _evidence_audit_view(self, evidence: EvidenceRecord) -> dict[str, object]:
         source, chosen = self.line_range(evidence.start_line_id, evidence.end_line_id)
         context = self._boundary_context(source, chosen[0].ordinal, chosen[-1].ordinal)
-        return {**asdict(evidence), "boundary_context": [asdict(item) for item in context]}
+        return {
+            **asdict(evidence),
+            "boundary_context": [asdict(item) for item in context],
+        }
 
-    def _certificate_audit_view(self, certificate: ScanCertificate) -> dict[str, object]:
-        source, start, end = self._line_bounds(certificate.start_line_id, certificate.end_line_id)
-        boundary_lines = self._certificate_boundaries(source, start.ordinal, end.ordinal)
+    def _certificate_audit_view(
+        self, certificate: ScanCertificate
+    ) -> dict[str, object]:
+        source, start, end = self._line_bounds(
+            certificate.start_line_id, certificate.end_line_id
+        )
+        boundary_lines = self._certificate_boundaries(
+            source, start.ordinal, end.ordinal
+        )
         return {
             **asdict(certificate),
             "boundary_lines": [asdict(item) for item in boundary_lines],
-            "matched_lines": [asdict(self.resolve_line(line_id)[1]) for line_id in certificate.match_line_ids],
+            "matched_lines": [
+                asdict(self.resolve_line(line_id)[1])
+                for line_id in certificate.match_line_ids
+            ],
         }
 
     def _regex_matches(
@@ -714,7 +794,9 @@ class SourceWorkspace:
             try:
                 matched = compiled.search(line.text, timeout=remaining) is not None
             except TimeoutError as exc:
-                raise ValueError(f"regex scan exceeded {_REGEX_SCAN_SECONDS:g} seconds") from exc
+                raise ValueError(
+                    f"regex scan exceeded {_REGEX_SCAN_SECONDS:g} seconds"
+                ) from exc
             if not matched:
                 continue
             total += 1
@@ -756,13 +838,19 @@ class SourceWorkspace:
         )
         return tuple(lines[offset] for offset in offsets)
 
-    def _require_bounded_audit_text(self, lines: Sequence[SourceLine], *, label: str) -> None:
+    def _require_bounded_audit_text(
+        self, lines: Sequence[SourceLine], *, label: str
+    ) -> None:
         unique = {line.line_id: line for line in lines}
         total_characters = sum(len(line.text) for line in unique.values())
         if total_characters > _MAX_AUDIT_TEXT_CHARACTERS:
-            raise ValueError(f"{label} audit text exceeds {_MAX_AUDIT_TEXT_CHARACTERS} characters")
+            raise ValueError(
+                f"{label} audit text exceeds {_MAX_AUDIT_TEXT_CHARACTERS} characters"
+            )
 
-    def _similarity_result(self, source: StoredSource, query: str, top_k: int) -> dict[str, object]:
+    def _similarity_result(
+        self, source: StoredSource, query: str, top_k: int
+    ) -> dict[str, object]:
         lines = self.lines(source)
         query_terms = _query_terms(query)
         query_term_indexes = {term: index for index, term in enumerate(query_terms)}
@@ -796,10 +884,16 @@ class SourceWorkspace:
                 break
         average_length = total_tokens / len(chunks)
         inverse_document_frequencies = tuple(
-            math.log1p((len(chunks) - frequency + 0.5) / (frequency + 0.5)) for frequency in document_frequencies
+            math.log1p((len(chunks) - frequency + 0.5) / (frequency + 0.5))
+            for frequency in document_frequencies
         )
-        scores = tuple(_bm25_score(chunk, average_length, inverse_document_frequencies) for chunk in chunks)
-        ranked = sorted(range(len(chunks)), key=lambda index: scores[index], reverse=True)[:top_k]
+        scores = tuple(
+            _bm25_score(chunk, average_length, inverse_document_frequencies)
+            for chunk in chunks
+        )
+        ranked = sorted(
+            range(len(chunks)), key=lambda index: scores[index], reverse=True
+        )[:top_k]
         return {
             "query": query,
             "method": "BM25",
@@ -844,7 +938,9 @@ class SourceWorkspace:
     def _source_listing_payload(self) -> dict[str, object]:
         return {"sources": self.source_metadata()}
 
-    async def _regex_search_payload(self, args: Mapping[str, object]) -> dict[str, object]:
+    async def _regex_search_payload(
+        self, args: Mapping[str, object]
+    ) -> dict[str, object]:
         source = self.get_source(str(args["source_id"]))
         context = max(0, min(int(str(args.get("context_lines", 3))), 12))
         limit = max(1, min(int(str(args.get("max_matches", 20))), _MAX_REGEX_MATCHES))
@@ -863,7 +959,9 @@ class SourceWorkspace:
         for line_id in match_ids:
             _, matched_line = self.resolve_line(line_id)
             index = matched_line.ordinal - 1
-            window = lines[max(0, index - context) : min(len(lines), index + context + 1)]
+            window = lines[
+                max(0, index - context) : min(len(lines), index + context + 1)
+            ]
             assert isinstance(window, tuple)
             returned_lines.extend(window)
             windows.append(
@@ -884,7 +982,9 @@ class SourceWorkspace:
         }
 
     def _read_lines_payload(self, args: Mapping[str, object]) -> dict[str, object]:
-        source, chosen = self.line_range(str(args["start_line_id"]), str(args["end_line_id"]))
+        source, chosen = self.line_range(
+            str(args["start_line_id"]), str(args["end_line_id"])
+        )
         self._require_bounded_audit_text(chosen, label="read_lines")
         return {
             "source_id": source.source_id,
@@ -897,19 +997,30 @@ class SourceWorkspace:
         """Expose the frozen audit boundary: retained-source listing, regex search, and bounded reads only."""
 
         def success(payload: object) -> dict[str, object]:
-            return {"content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False)}]}
+            return {
+                "content": [
+                    {"type": "text", "text": json.dumps(payload, ensure_ascii=False)}
+                ]
+            }
 
         def failure(message: str) -> dict[str, object]:
             return {"content": [{"type": "text", "text": message}], "is_error": True}
 
-        @tool("list_sources", "List retained source metadata without source bodies.", {})
+        @tool(
+            "list_sources", "List retained source metadata without source bodies.", {}
+        )
         async def list_sources(_args: dict[str, Any]) -> dict[str, object]:
             return success(self._source_listing_payload())
 
         @tool(
             "regex_search",
             "Regex-search one complete retained source. Results are bounded and explicitly report truncation.",
-            {"source_id": str, "pattern": str, "context_lines": int, "max_matches": int},
+            {
+                "source_id": str,
+                "pattern": str,
+                "context_lines": int,
+                "max_matches": int,
+            },
         )
         async def regex_search(args: dict[str, Any]) -> dict[str, object]:
             try:
@@ -930,7 +1041,9 @@ class SourceWorkspace:
 
         tools = (list_sources, regex_search, read_lines)
         server_name = "audit_vfs"
-        server = create_sdk_mcp_server(name=server_name, version="1.0.0", tools=list(tools))
+        server = create_sdk_mcp_server(
+            name=server_name, version="1.0.0", tools=list(tools)
+        )
         return AgentToolSet(
             allowed_tools=tuple(f"mcp__{server_name}__{item.name}" for item in tools),
             mcp_servers={server_name: server},
@@ -946,7 +1059,9 @@ class SourceWorkspace:
     ) -> StoredSource:
         candidate = self.get_source_candidate(source_candidate_id.strip())
         if document_kind not in _DOCUMENT_KINDS:
-            raise ValueError("document_kind must be html, text, pdf, xlsx, or static_json")
+            raise ValueError(
+                "document_kind must be html, text, pdf, xlsx, or static_json"
+            )
         if not public_document_reason or len(public_document_reason) > 500:
             raise ValueError("public_document_reason must contain 1 to 500 characters")
         try:
@@ -979,7 +1094,11 @@ class SourceWorkspace:
         allow_certificates: bool,
     ) -> AgentToolSet:
         def success(payload: object) -> dict[str, object]:
-            return {"content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False)}]}
+            return {
+                "content": [
+                    {"type": "text", "text": json.dumps(payload, ensure_ascii=False)}
+                ]
+            }
 
         def failure(message: str) -> dict[str, object]:
             return {"content": [{"type": "text", "text": message}], "is_error": True}
@@ -989,7 +1108,11 @@ class SourceWorkspace:
         @tool(
             "fetch_source",
             "Fetch one host-registered ordinary public document into the private VFS; returns metadata only.",
-            {"source_candidate_id": str, "document_kind": str, "public_document_reason": str},
+            {
+                "source_candidate_id": str,
+                "document_kind": str,
+                "public_document_reason": str,
+            },
         )
         async def fetch_source(args: dict[str, Any]) -> dict[str, object]:
             try:
@@ -997,9 +1120,15 @@ class SourceWorkspace:
                     fetcher,
                     source_candidate_id=str(args.get("source_candidate_id", "")),
                     document_kind=str(args.get("document_kind", "")).strip(),
-                    public_document_reason=str(args.get("public_document_reason", "")).strip(),
+                    public_document_reason=str(
+                        args.get("public_document_reason", "")
+                    ).strip(),
                 )
-                metadata = next(item for item in self.source_metadata() if item["source_id"] == source.source_id)
+                metadata = next(
+                    item
+                    for item in self.source_metadata()
+                    if item["source_id"] == source.source_id
+                )
                 return success(metadata)
             except _SourceFetchAttemptError as exc:
                 return failure(
@@ -1018,7 +1147,9 @@ class SourceWorkspace:
 
         tools.append(fetch_source)
 
-        @tool("list_sources", "List retained source metadata without source bodies.", {})
+        @tool(
+            "list_sources", "List retained source metadata without source bodies.", {}
+        )
         async def list_sources(_args: dict[str, Any]) -> dict[str, object]:
             return success(self._source_listing_payload())
 
@@ -1027,7 +1158,12 @@ class SourceWorkspace:
         @tool(
             "regex_search",
             "Regex-search one complete retained source. Results are bounded and explicitly report truncation.",
-            {"source_id": str, "pattern": str, "context_lines": int, "max_matches": int},
+            {
+                "source_id": str,
+                "pattern": str,
+                "context_lines": int,
+                "max_matches": int,
+            },
         )
         async def regex_search(args: dict[str, Any]) -> dict[str, object]:
             try:
@@ -1088,7 +1224,9 @@ class SourceWorkspace:
                 matches = tuple(
                     link
                     for link in source.links
-                    if not pattern or pattern in link.url.casefold() or pattern in link.text.casefold()
+                    if not pattern
+                    or pattern in link.url.casefold()
+                    or pattern in link.text.casefold()
                 )
                 returned = []
                 for link in matches[:100]:
@@ -1108,7 +1246,10 @@ class SourceWorkspace:
                         "truncated": len(returned) + 1 < len(matches),
                         "links": [*returned, item],
                     }
-                    if len(json.dumps(proposed, ensure_ascii=False)) > _MAX_LINK_RESULT_CHARACTERS:
+                    if (
+                        len(json.dumps(proposed, ensure_ascii=False))
+                        > _MAX_LINK_RESULT_CHARACTERS
+                    ):
                         self._source_candidates.pop(candidate.source_candidate_id)
                         break
                     returned.append(item)
@@ -1155,9 +1296,16 @@ class SourceWorkspace:
             @tool(
                 "register_regex_certificate",
                 "Scan an entire declared stable line range and register its complete regex match set.",
-                {"source_id": str, "start_line_id": str, "end_line_id": str, "pattern": str},
+                {
+                    "source_id": str,
+                    "start_line_id": str,
+                    "end_line_id": str,
+                    "pattern": str,
+                },
             )
-            async def register_regex_certificate(args: dict[str, Any]) -> dict[str, object]:
+            async def register_regex_certificate(
+                args: dict[str, Any],
+            ) -> dict[str, object]:
                 try:
                     certificate = await asyncio.to_thread(
                         self.register_regex_certificate,

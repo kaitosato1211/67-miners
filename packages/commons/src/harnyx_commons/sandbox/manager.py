@@ -23,7 +23,9 @@ class SandboxDeployment:
 class SandboxStartError(RuntimeError):
     """Startup failed after launch and the physical sandbox may still exist."""
 
-    def __init__(self, message: str, *, unremoved_deployment: SandboxDeployment) -> None:
+    def __init__(
+        self, message: str, *, unremoved_deployment: SandboxDeployment
+    ) -> None:
         super().__init__(message)
         self.unremoved_deployment = unremoved_deployment
 

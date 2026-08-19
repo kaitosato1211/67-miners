@@ -162,15 +162,23 @@ def _response(
     )
 
 
-async def test_invoke_success_updates_generation_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_invoke_success_updates_generation_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OTEL_SERVICE_NAME", "test-server")
     request = _request(
         use_case="claim_generation",
         internal_metadata={
             "feed_run_id": "feed-run-123",
+        },
+    )
+    response = _response(
+        metadata={
+            "source": "stub",
+            "raw_response": {"response_id": "provider-raw"},
+            "ttft_ms": 12.3,
         }
     )
-    response = _response(metadata={"source": "stub", "raw_response": {"response_id": "provider-raw"}, "ttft_ms": 12.3})
     provider = _StubProvider(response=response)
     scope = _Scope(generation=object())
     start_calls: list[dict[str, object]] = []
@@ -248,7 +256,10 @@ async def test_invoke_success_updates_generation_payload(monkeypatch: pytest.Mon
     assert update_call.metadata["raw"] == {
         "request": provider_module._request_snapshot(request),
         "response_payload": response.payload,
-        "response_metadata": {"source": "stub", "raw_response": {"response_id": "provider-raw"}},
+        "response_metadata": {
+            "source": "stub",
+            "raw_response": {"response_id": "provider-raw"},
+        },
         "provider_response": {"response_id": "provider-raw"},
     }
 
@@ -284,7 +295,9 @@ async def test_metadata_only_invoke_exports_usage_without_request_or_response_pa
         usage: LlmUsage | None = None,
         metadata: Mapping[str, object] | None = None,
     ) -> None:
-        update_calls.append(_UpdateCall(generation, input_payload, output, usage, metadata))
+        update_calls.append(
+            _UpdateCall(generation, input_payload, output, usage, metadata)
+        )
 
     monkeypatch.setattr(provider_module, "update_generation_best_effort", fake_update)
     caplog.set_level("DEBUG", logger="harnyx_commons.llm.calls")
@@ -329,7 +342,9 @@ async def test_metadata_only_invoke_disables_automatic_otel_exception_recording(
             return SpanScope()
 
     monkeypatch.setattr(provider_module.trace, "get_tracer", lambda _: Tracer())
-    monkeypatch.setattr(provider_module, "start_llm_generation", lambda **_: _Scope(generation=None))
+    monkeypatch.setattr(
+        provider_module, "start_llm_generation", lambda **_: _Scope(generation=None)
+    )
 
     with pytest.raises(RuntimeError, match="raw-provider-exception-sentinel"):
         await provider.invoke(request)
@@ -363,7 +378,9 @@ async def test_invoke_keeps_use_case_trace_name_inside_generic_otel_parent_span(
         return scope
 
     monkeypatch.setattr(provider_module, "start_llm_generation", fake_start)
-    monkeypatch.setattr(provider_module, "update_generation_best_effort", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        provider_module, "update_generation_best_effort", lambda *args, **kwargs: None
+    )
 
     tracer = trace.get_tracer("test.provider-langfuse")
     with tracer.start_as_current_span("feed_run"):
@@ -398,11 +415,17 @@ async def test_invoke_does_not_override_explicit_langfuse_trace_name(
         return scope
 
     monkeypatch.setattr(provider_module, "start_llm_generation", fake_start)
-    monkeypatch.setattr(provider_module, "update_generation_best_effort", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        provider_module, "update_generation_best_effort", lambda *args, **kwargs: None
+    )
     monkeypatch.setattr(langfuse, "get_client", lambda: object())
-    monkeypatch.setattr(langfuse, "propagate_attributes", lambda **kwargs: _TraceAttributeScope())
+    monkeypatch.setattr(
+        langfuse, "propagate_attributes", lambda **kwargs: _TraceAttributeScope()
+    )
 
-    with langfuse.propagate_trace_attributes_best_effort(trace_name="content_review_job"):
+    with langfuse.propagate_trace_attributes_best_effort(
+        trace_name="content_review_job"
+    ):
         result = await provider.invoke(request)
 
     assert result == response
@@ -412,7 +435,9 @@ async def test_invoke_does_not_override_explicit_langfuse_trace_name(
 async def test_invoke_success_handles_json_safe_vertex_thought_signature_in_raw_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    request = _request(provider="vertex", model="gemini-2.5-pro", reasoning_effort="high")
+    request = _request(
+        provider="vertex", model="gemini-2.5-pro", reasoning_effort="high"
+    )
     response = _response(
         metadata={
             "source": "stub",
@@ -533,7 +558,9 @@ async def test_invoke_skips_child_observation_recording_when_generation_scope_mi
 
     monkeypatch.setattr(provider_module, "start_llm_generation", fake_start)
     monkeypatch.setattr(provider_module, "update_generation_best_effort", fake_update)
-    monkeypatch.setattr(provider_module, "_record_child_observations", fake_record_child_observations)
+    monkeypatch.setattr(
+        provider_module, "_record_child_observations", fake_record_child_observations
+    )
 
     result = await provider.invoke(request)
 
@@ -608,7 +635,9 @@ async def test_invoke_verifier_failure_includes_raw_payload_in_error_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     request = _request(provider="vertex", model="gemini-2.5-pro")
-    response = _response(metadata={"source": "stub", "raw_response": {"response_id": "provider-raw"}})
+    response = _response(
+        metadata={"source": "stub", "raw_response": {"response_id": "provider-raw"}}
+    )
     provider = _VerifierFailureProvider(response=response)
     scope = _Scope(generation=object())
     update_calls: list[_UpdateCall] = []
@@ -653,7 +682,10 @@ async def test_invoke_verifier_failure_includes_raw_payload_in_error_metadata(
     assert isinstance(raw, Mapping)
     assert raw["request"] == provider_module._request_snapshot(request)
     assert raw["response_payload"] == response.payload
-    assert raw["response_metadata"] == {"source": "stub", "raw_response": {"response_id": "provider-raw"}}
+    assert raw["response_metadata"] == {
+        "source": "stub",
+        "raw_response": {"response_id": "provider-raw"},
+    }
     assert raw["provider_response"] == {"response_id": "provider-raw"}
 
 
@@ -738,7 +770,9 @@ async def test_invoke_records_retriever_and_tool_child_observations(
                 finish_reason="tool_calls",
             ),
         ),
-        usage=LlmUsage(prompt_tokens=5, completion_tokens=2, total_tokens=7, web_search_calls=1),
+        usage=LlmUsage(
+            prompt_tokens=5, completion_tokens=2, total_tokens=7, web_search_calls=1
+        ),
         metadata={"web_search_queries": ("harnyx subnet",), "source": "stub"},
         finish_reason="tool_calls",
     )
@@ -785,7 +819,11 @@ async def test_invoke_records_retriever_and_tool_child_observations(
 
     monkeypatch.setattr(provider_module, "start_llm_generation", fake_start)
     monkeypatch.setattr(provider_module, "update_generation_best_effort", fake_update)
-    monkeypatch.setattr(provider_module, "record_child_observation_best_effort", fake_record_child_observation)
+    monkeypatch.setattr(
+        provider_module,
+        "record_child_observation_best_effort",
+        fake_record_child_observation,
+    )
 
     await provider.invoke(request)
 
@@ -797,7 +835,9 @@ async def test_invoke_records_retriever_and_tool_child_observations(
     assert all(call["as_type"] != "agent" for call in child_calls)
 
 
-async def test_invoke_preserves_provider_facing_extra_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_invoke_preserves_provider_facing_extra_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     request = _request(
         use_case="tool_runtime_invoker",
         extra={"web_search_options": {"mode": "auto"}},
@@ -888,8 +928,12 @@ async def test_invoke_vertex_gemini_reasoning_marks_include_thoughts_requested(
     assert reasoning["reasoning_effort"] == "high"
 
 
-def test_usage_observability_keeps_unavailable_reasoning_tokens_out_of_usage_details() -> None:
-    usage = LlmUsage(prompt_tokens=3, completion_tokens=6, reasoning_tokens=None, total_tokens=9)
+def test_usage_observability_keeps_unavailable_reasoning_tokens_out_of_usage_details() -> (
+    None
+):
+    usage = LlmUsage(
+        prompt_tokens=3, completion_tokens=6, reasoning_tokens=None, total_tokens=9
+    )
 
     provider_usage = provider_module._usage_snapshot(usage)
     langfuse_usage = langfuse._usage_details(usage)
@@ -905,7 +949,9 @@ def test_reasoning_metadata_can_record_text_with_unavailable_reasoning_tokens() 
         reasoning_effort="high",
     )
     response = _response(
-        usage=LlmUsage(prompt_tokens=3, completion_tokens=6, reasoning_tokens=None, total_tokens=9),
+        usage=LlmUsage(
+            prompt_tokens=3, completion_tokens=6, reasoning_tokens=None, total_tokens=9
+        ),
         reasoning="deliberation",
     )
 

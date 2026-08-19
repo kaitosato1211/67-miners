@@ -16,9 +16,19 @@ from harnyx_commons.llm.schema import (
 
 
 def test_tool_result_loop_capabilities_are_centralized() -> None:
-    assert supports_tool_result_messages(provider="chutes", model="deepseek-ai/DeepSeek-V3.1") is True
-    assert supports_tool_result_messages(provider="vertex", model="gemini-2.5-flash") is True
-    assert supports_tool_result_messages(provider="unknown", model="gpt-4.1-mini") is False
+    assert (
+        supports_tool_result_messages(
+            provider="chutes", model="deepseek-ai/DeepSeek-V3.1"
+        )
+        is True
+    )
+    assert (
+        supports_tool_result_messages(provider="vertex", model="gemini-2.5-flash")
+        is True
+    )
+    assert (
+        supports_tool_result_messages(provider="unknown", model="gpt-4.1-mini") is False
+    )
     assert (
         supports_tool_result_messages(
             provider="vertex",

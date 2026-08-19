@@ -74,7 +74,9 @@ def test_aggregate_benchmark_metrics_uses_numeric_scores_when_present() -> None:
     assert metrics.derive_state() is BenchmarkRunState.PARTIAL_SUCCESS
 
 
-def test_aggregate_benchmark_metrics_rejects_numeric_scores_outside_unit_interval() -> None:
+def test_aggregate_benchmark_metrics_rejects_numeric_scores_outside_unit_interval() -> (
+    None
+):
     with pytest.raises(ValueError, match="score"):
         aggregate_benchmark_metrics(
             (
@@ -91,7 +93,9 @@ def test_aggregate_benchmark_metrics_rejects_mixed_completed_scoring_modes() -> 
     with pytest.raises(ValueError, match="mixed"):
         aggregate_benchmark_metrics(
             (
-                BenchmarkItemOutcome(state=BenchmarkItemState.COMPLETED, is_correct=True),
+                BenchmarkItemOutcome(
+                    state=BenchmarkItemState.COMPLETED, is_correct=True
+                ),
                 BenchmarkItemOutcome(
                     state=BenchmarkItemState.COMPLETED,
                     is_correct=None,
@@ -101,7 +105,9 @@ def test_aggregate_benchmark_metrics_rejects_mixed_completed_scoring_modes() -> 
         )
 
 
-def test_aggregate_benchmark_metrics_rejects_single_item_with_numeric_and_binary_score() -> None:
+def test_aggregate_benchmark_metrics_rejects_single_item_with_numeric_and_binary_score() -> (
+    None
+):
     with pytest.raises(ValueError, match="mixed"):
         aggregate_benchmark_metrics(
             (
@@ -130,15 +136,21 @@ def test_aggregate_benchmark_metrics_keeps_score_empty_without_terminal_items() 
     assert metrics.derive_state() is BenchmarkRunState.RUNNING
 
 
-def test_defined_benchmark_scoring_versions_include_correctness_and_weighted_rubric() -> None:
+def test_defined_benchmark_scoring_versions_include_correctness_and_weighted_rubric() -> (
+    None
+):
     assert is_defined_benchmark_scoring_version(BENCHMARK_CORRECTNESS_SCORING_VERSION)
-    assert is_defined_benchmark_scoring_version(BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION)
+    assert is_defined_benchmark_scoring_version(
+        BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    )
     assert not is_defined_benchmark_scoring_version("other")
 
 
 def test_runtime_supported_benchmark_scoring_versions_include_weighted_rubric() -> None:
     assert is_supported_benchmark_scoring_version(BENCHMARK_CORRECTNESS_SCORING_VERSION)
-    assert is_supported_benchmark_scoring_version(BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION)
+    assert is_supported_benchmark_scoring_version(
+        BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    )
     assert SUPPORTED_BENCHMARK_SCORING_VERSION == BENCHMARK_CORRECTNESS_SCORING_VERSION
     assert SUPPORTED_BENCHMARK_SCORING_VERSIONS == frozenset(
         {
@@ -173,7 +185,9 @@ def test_project_benchmark_run_state_marks_terminal_mixed_run_partial_success() 
     )
 
 
-def test_sample_benchmark_items_is_fixed_across_run_ids_and_sorted_by_item_index() -> None:
+def test_sample_benchmark_items_is_fixed_across_run_ids_and_sorted_by_item_index() -> (
+    None
+):
     items = tuple(_SampleItem(index) for index in range(BENCHMARK_SAMPLE_SIZE + 5))
 
     first = sample_benchmark_items(
@@ -191,7 +205,9 @@ def test_sample_benchmark_items_is_fixed_across_run_ids_and_sorted_by_item_index
 
     assert len(first) == BENCHMARK_SAMPLE_SIZE
     assert first == second
-    assert tuple(item.item_index for item in first) == tuple(sorted(item.item_index for item in first))
+    assert tuple(item.item_index for item in first) == tuple(
+        sorted(item.item_index for item in first)
+    )
 
 
 def test_unsupported_benchmark_scoring_version_error_names_expected_version() -> None:

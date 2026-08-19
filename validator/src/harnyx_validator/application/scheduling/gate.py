@@ -8,25 +8,23 @@ from harnyx_validator.application.ports.subtensor import CommitmentRecord
 
 
 class _SubtensorForGate(Protocol):
-    def current_block(self) -> int:
-        ...
+    def current_block(self) -> int: ...
 
-    def fetch_commitment(self, uid: int) -> CommitmentRecord | None:
-        ...
+    def fetch_commitment(self, uid: int) -> CommitmentRecord | None: ...
 
-    def tempo(self, netuid: int) -> int:
-        ...
+    def tempo(self, netuid: int) -> int: ...
 
     def get_next_epoch_start_block(
         self,
         netuid: int,
         *,
         reference_block: int | None = None,
-    ) -> int:
-        ...
+    ) -> int: ...
 
 
-def commitment_marker(uid: int, epoch: int, *, prefix: str = "harnyx:weights:v1") -> str:
+def commitment_marker(
+    uid: int, epoch: int, *, prefix: str = "harnyx:weights:v1"
+) -> str:
     """Build the canonical commitment payload for ``uid`` and ``epoch``."""
 
     return f"{prefix}:uid={uid}:epoch={epoch}"

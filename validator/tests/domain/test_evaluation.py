@@ -5,7 +5,12 @@ from uuid import uuid4
 
 import pytest
 
-from harnyx_commons.domain.miner_task import EvaluationDetails, EvaluationError, Response, ScoreBreakdown
+from harnyx_commons.domain.miner_task import (
+    EvaluationDetails,
+    EvaluationError,
+    Response,
+    ScoreBreakdown,
+)
 from harnyx_commons.domain.tool_usage import ToolUsageSummary
 from harnyx_validator.domain.evaluation import MinerTaskRun
 

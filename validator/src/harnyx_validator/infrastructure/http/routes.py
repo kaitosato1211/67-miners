@@ -9,22 +9,41 @@ from dataclasses import dataclass
 from typing import Protocol, cast
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, Security, status
+from fastapi import (
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    Security,
+    status,
+)
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 
 from harnyx_commons.bittensor import VerificationError
 from harnyx_commons.errors import ConcurrencyLimitError, ToolProviderError
-from harnyx_commons.llm.provider_error_summary import public_llm_provider_failure_summary
-from harnyx_commons.miner_task_similarity import SimilarityJudgeRequest, SimilarityJudgeResult
+from harnyx_commons.llm.provider_error_summary import (
+    public_llm_provider_failure_summary,
+)
+from harnyx_commons.miner_task_similarity import (
+    SimilarityJudgeRequest,
+    SimilarityJudgeResult,
+)
 from harnyx_commons.protocol_headers import SESSION_ID_HEADER
 from harnyx_commons.tools.dto import ToolInvocationRequest
-from harnyx_commons.tools.executor import ToolExecutor, execute_tool_with_concurrency_permit
+from harnyx_commons.tools.executor import (
+    ToolExecutor,
+    execute_tool_with_concurrency_permit,
+)
 from harnyx_commons.tools.http_models import ToolExecuteResponseDTO
 from harnyx_commons.tools.http_serialization import serialize_tool_execute_response
 from harnyx_commons.tools.token_semaphore import ToolConcurrencyLimiter
 from harnyx_miner_sdk.tools.http_models import ToolExecuteRequestDTO
-from harnyx_validator.application.platform_tool_proxy import PlatformToolProxyScopeRegistry
+from harnyx_validator.application.platform_tool_proxy import (
+    PlatformToolProxyScopeRegistry,
+)
 from harnyx_validator.application.ports.platform import PlatformToolProxyPlatformPort
 from harnyx_validator.application.status import BatchActivityTracker, StatusProvider
 from harnyx_validator.infrastructure.http.schemas import (
@@ -91,11 +110,15 @@ def _path_with_query(request: Request) -> str:
     return path
 
 
-def add_tool_routes(app: FastAPI, dependency_provider: Callable[[], ToolRouteDeps]) -> None:
+def add_tool_routes(
+    app: FastAPI, dependency_provider: Callable[[], ToolRouteDeps]
+) -> None:
     def get_dependencies() -> ToolRouteDeps:
         return dependency_provider()
 
-    tool_token_header = APIKeyHeader(name="x-platform-token", scheme_name="PlatformToken", auto_error=False)
+    tool_token_header = APIKeyHeader(
+        name="x-platform-token", scheme_name="PlatformToken", auto_error=False
+    )
 
     @app.post(
         "/v1/tools/execute",
@@ -109,7 +132,9 @@ def add_tool_routes(app: FastAPI, dependency_provider: Callable[[], ToolRouteDep
         session_id: UUID = Header(alias=SESSION_ID_HEADER),  # noqa: B008
     ) -> ToolExecuteResponseDTO:
         if not token_header:
-            raise HTTPException(status_code=401, detail="missing x-platform-token header")
+            raise HTTPException(
+                status_code=401, detail="missing x-platform-token header"
+            )
         invocation = ToolInvocationRequest(
             session_id=session_id,
             token=token_header,
@@ -125,7 +150,9 @@ def add_tool_routes(app: FastAPI, dependency_provider: Callable[[], ToolRouteDep
             )
         except ToolProviderError as exc:
             _log_tool_error(session_id, invocation, exc)
-            raise HTTPException(status_code=400, detail=_public_error_message(exc)) from exc
+            raise HTTPException(
+                status_code=400, detail=_public_error_message(exc)
+            ) from exc
         except (
             ConcurrencyLimitError,
             LookupError,
@@ -134,7 +161,9 @@ def add_tool_routes(app: FastAPI, dependency_provider: Callable[[], ToolRouteDep
             ValueError,
         ) as exc:
             _log_tool_error(session_id, invocation, exc)
-            raise HTTPException(status_code=400, detail=_public_error_message(exc)) from exc
+            raise HTTPException(
+                status_code=400, detail=_public_error_message(exc)
+            ) from exc
         return serialize_tool_execute_response(result)
 
 
@@ -159,7 +188,10 @@ def add_system_routes(app: FastAPI, status_provider: StatusProvider) -> None:
         description="Validator readiness check.",
     )
     def readyz(response: Response) -> dict[str, str]:
-        if status_provider.platform_registration_ready() and status_provider.auth_ready():
+        if (
+            status_provider.platform_registration_ready()
+            and status_provider.auth_ready()
+        ):
             return {"status": "ok"}
         if status_provider.platform_registration_ready():
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -181,7 +213,9 @@ def add_control_routes(
     def get_control_deps() -> ValidatorControlDeps:
         return control_deps_provider()
 
-    bittensor_header = APIKeyHeader(name="Authorization", scheme_name="BittensorAuth", auto_error=False)
+    bittensor_header = APIKeyHeader(
+        name="Authorization", scheme_name="BittensorAuth", auto_error=False
+    )
 
     async def require_bittensor_caller(
         request: Request,
@@ -226,8 +260,12 @@ def add_control_routes(
     ) -> SimilarityJudgeResponseModel | JSONResponse:
         try:
             if deps.similarity_judge is None:
-                raise HTTPException(status_code=503, detail="similarity judge is not configured")
-            result = await deps.similarity_judge.judge(payload.to_domain(batch_id=batch_id))
+                raise HTTPException(
+                    status_code=503, detail="similarity judge is not configured"
+                )
+            result = await deps.similarity_judge.judge(
+                payload.to_domain(batch_id=batch_id)
+            )
         except HTTPException:
             raise
         except (RuntimeError, ValueError) as exc:
@@ -263,7 +301,9 @@ def add_control_routes(
                 hotkey=deps.validator_hotkey.ss58_address,
                 is_chutes_configured=deps.is_chutes_configured,
                 is_openrouter_configured=deps.is_openrouter_configured,
-                resource_usage=_safe_resource_usage_response(deps.resource_usage_provider),
+                resource_usage=_safe_resource_usage_response(
+                    deps.resource_usage_provider
+                ),
             )
             request_ts = request.headers.get(_STATUS_TIMESTAMP_HEADER)
             if request_ts is None:
@@ -274,7 +314,11 @@ def add_control_routes(
                 status=response.status,
                 running=response.running,
             )
-            return response.model_copy(update={"signature_hex": deps.validator_hotkey.sign(proof_payload).hex()})
+            return response.model_copy(
+                update={
+                    "signature_hex": deps.validator_hotkey.sign(proof_payload).hex()
+                }
+            )
         except Exception as exc:
             return _control_route_internal_error_response(request, exc)
 
@@ -340,7 +384,9 @@ def _unwrap_control_route_exception(exc: Exception) -> Exception:
     return exc
 
 
-def _control_route_internal_error_response(request: Request, exc: Exception) -> JSONResponse:
+def _control_route_internal_error_response(
+    request: Request, exc: Exception
+) -> JSONResponse:
     exc = _unwrap_control_route_exception(exc)
     capture_exception(exc)
     payload = ValidatorInternalErrorResponse(
@@ -348,7 +394,9 @@ def _control_route_internal_error_response(request: Request, exc: Exception) -> 
         error_message=str(exc) or type(exc).__name__,
         exception_type=type(exc).__name__,
         request_id=_control_route_request_id(request),
-        traceback="".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+        traceback="".join(
+            traceback.format_exception(type(exc), exc, exc.__traceback__)
+        ),
     )
     return JSONResponse(status_code=500, content=payload.model_dump(mode="json"))
 

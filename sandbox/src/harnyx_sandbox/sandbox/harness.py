@@ -147,7 +147,9 @@ def _default_mp_context() -> multiprocessing.context.BaseContext:
 class WorkerResultReader:
     """Reads a worker result pipe without occupying one executor thread per worker."""
 
-    def __init__(self, *, process: multiprocessing.Process, pipe: WorkerResultPipe) -> None:
+    def __init__(
+        self, *, process: multiprocessing.Process, pipe: WorkerResultPipe
+    ) -> None:
         self._process = process
         self._pipe = pipe
         self._buffer = bytearray()
@@ -201,7 +203,11 @@ class WorkerResultReader:
         self._drain_available_result()
         if self._decode_task is not None:
             return
-        self._set_exception(WorkerResultProtocolError("entrypoint worker exited before returning result"))
+        self._set_exception(
+            WorkerResultProtocolError(
+                "entrypoint worker exited before returning result"
+            )
+        )
 
     def _drain_available_result(self) -> None:
         while not self._closed and self._decode_task is None:
@@ -210,15 +216,27 @@ class WorkerResultReader:
             except BlockingIOError:
                 return
             except OSError as exc:
-                self._set_exception(WorkerResultProtocolError(f"failed to read worker result pipe: {exc}"))
+                self._set_exception(
+                    WorkerResultProtocolError(
+                        f"failed to read worker result pipe: {exc}"
+                    )
+                )
                 return
             if chunk == b"":
-                self._set_exception(WorkerResultProtocolError("worker closed result pipe before complete result"))
+                self._set_exception(
+                    WorkerResultProtocolError(
+                        "worker closed result pipe before complete result"
+                    )
+                )
                 return
             self._buffer.extend(chunk)
             frame = _try_extract_worker_result_frame(self._buffer)
             if frame.oversized:
-                self._set_exception(WorkerResultProtocolError("worker result frame exceeded maximum size"))
+                self._set_exception(
+                    WorkerResultProtocolError(
+                        "worker result frame exceeded maximum size"
+                    )
+                )
                 return
             if frame.complete:
                 self._start_decode(frame.payload)
@@ -235,7 +253,9 @@ class WorkerResultReader:
         try:
             envelope = await asyncio.to_thread(_decode_worker_result, payload)
         except Exception:
-            self._set_exception(WorkerResultProtocolError("worker returned invalid result frame"))
+            self._set_exception(
+                WorkerResultProtocolError("worker returned invalid result frame")
+            )
             return
         self._set_result(envelope)
 
@@ -361,7 +381,8 @@ class WorkerOutputReader:
             "message": line,
         }
         print(
-            "HARNYX_SANDBOX_INVOCATION_OUTPUT " + json.dumps(record, separators=(",", ":")),
+            "HARNYX_SANDBOX_INVOCATION_OUTPUT "
+            + json.dumps(record, separators=(",", ":")),
             flush=True,
         )
 
@@ -457,14 +478,26 @@ class SandboxHarness:
     async def _invoke_with_worker(self, payload: Mapping[str, Any]) -> Any:
         process, result_pipe, stdout_pipe, stderr_pipe = self._spawn_worker(payload)
         output_tasks = (
-            asyncio.create_task(WorkerOutputReader(pipe=stdout_pipe, payload=payload, stream="stdout").wait()),
-            asyncio.create_task(WorkerOutputReader(pipe=stderr_pipe, payload=payload, stream="stderr").wait()),
+            asyncio.create_task(
+                WorkerOutputReader(
+                    pipe=stdout_pipe, payload=payload, stream="stdout"
+                ).wait()
+            ),
+            asyncio.create_task(
+                WorkerOutputReader(
+                    pipe=stderr_pipe, payload=payload, stream="stderr"
+                ).wait()
+            ),
         )
         try:
-            result_kind, result_data = await self._await_worker_result(result_pipe, payload, process)
+            result_kind, result_data = await self._await_worker_result(
+                result_pipe, payload, process
+            )
             return self._unwrap_worker_result(result_kind, result_data)
         finally:
-            cleanup_task = asyncio.create_task(self._finish_worker(process, output_tasks))
+            cleanup_task = asyncio.create_task(
+                self._finish_worker(process, output_tasks)
+            )
             await self._await_owned_cleanup(cleanup_task)
 
     async def _finish_worker(
@@ -500,7 +533,9 @@ class SandboxHarness:
     def _spawn_worker(
         self,
         payload: Mapping[str, Any],
-    ) -> tuple[multiprocessing.Process, WorkerResultPipe, WorkerOutputPipe, WorkerOutputPipe]:
+    ) -> tuple[
+        multiprocessing.Process, WorkerResultPipe, WorkerOutputPipe, WorkerOutputPipe
+    ]:
         acquired_pipes: list[WorkerResultPipe | WorkerOutputPipe] = []
         try:
             result_pipe = WorkerResultPipe.open()
@@ -557,11 +592,15 @@ class SandboxHarness:
         try:
             return await reader.wait(timeout=ENTRYPOINT_TIMEOUT_SECONDS)
         except TimeoutError as exc:  # pragma: no cover - integration timing
-            terminate_task = asyncio.create_task(asyncio.to_thread(self._terminate_process, process))
+            terminate_task = asyncio.create_task(
+                asyncio.to_thread(self._terminate_process, process)
+            )
             await self._await_owned_cleanup(terminate_task)
             return self._handle_timeout(payload, exc)
         except Exception as exc:  # pragma: no cover - unexpected worker failure
-            terminate_task = asyncio.create_task(asyncio.to_thread(self._terminate_process, process))
+            terminate_task = asyncio.create_task(
+                asyncio.to_thread(self._terminate_process, process)
+            )
             await self._await_owned_cleanup(terminate_task)
             return self._handle_worker_failure(exc)
 
@@ -638,8 +677,12 @@ def _entrypoint_worker(
         os.dup2(stderr_write_fd, 2)
         _close_fd(stdout_write_fd)
         _close_fd(stderr_write_fd)
-        sys.stdout = os.fdopen(1, "w", buffering=1, encoding="utf-8", errors="replace", closefd=False)
-        sys.stderr = os.fdopen(2, "w", buffering=1, encoding="utf-8", errors="replace", closefd=False)
+        sys.stdout = os.fdopen(
+            1, "w", buffering=1, encoding="utf-8", errors="replace", closefd=False
+        )
+        sys.stderr = os.fdopen(
+            2, "w", buffering=1, encoding="utf-8", errors="replace", closefd=False
+        )
         if tool_factory is not None:
             # Build the proxy before seccomp so hostname resolution/client setup
             # cannot trigger blocked task-creation syscalls inside the worker.
@@ -658,7 +701,9 @@ def _entrypoint_worker(
         try:
             func = get_entrypoint(entrypoint_name)
         except KeyError as exc:
-            detail_code = "MissingEntrypoint" if preload_completed else "EntrypointUnavailable"
+            detail_code = (
+                "MissingEntrypoint" if preload_completed else "EntrypointUnavailable"
+            )
             _send_worker_error(result_fd, detail_code, exc)
             return
         context_snapshot = ContextSnapshot(context_data or {})
@@ -702,14 +747,18 @@ def _try_extract_worker_result_frame(buffer: bytearray) -> WorkerResultFrame:
     frame_size = WORKER_RESULT_HEADER_BYTES + payload_size
     if len(buffer) < frame_size:
         return WorkerResultFrame()
-    return WorkerResultFrame(payload=bytes(buffer[WORKER_RESULT_HEADER_BYTES:frame_size]))
+    return WorkerResultFrame(
+        payload=bytes(buffer[WORKER_RESULT_HEADER_BYTES:frame_size])
+    )
 
 
 def _send_worker_result(result_fd: int, result: tuple[str, Any]) -> None:
     kind, data = result
     if kind == "ok":
         try:
-            normalized = data.model_dump(mode="json") if isinstance(data, BaseModel) else data
+            normalized = (
+                data.model_dump(mode="json") if isinstance(data, BaseModel) else data
+            )
             _validate_exact_json_value(normalized)
             envelope: dict[str, object] = {"status": "ok", "result": normalized}
             payload = _encode_worker_result(envelope)
@@ -817,7 +866,9 @@ def _decode_worker_result(payload: bytes) -> tuple[str, Any]:
     if status == "error" and set(envelope) == {"status", "error"}:
         error = envelope["error"]
         if type(error) is not dict or set(error) != {"code", "exception", "message"}:
-            raise WorkerResultProtocolError("worker error must match the result protocol")
+            raise WorkerResultProtocolError(
+                "worker error must match the result protocol"
+            )
         code = _required_error_string(error, "code")
         exception = _required_error_string(error, "exception")
         message = _required_error_string(error, "message")
@@ -865,7 +916,9 @@ def _close_fd(fd: int) -> None:
         os.close(fd)
 
 
-def _execute_entrypoint(func: Callable[..., Any], call_kwargs: Mapping[str, Any]) -> Any:
+def _execute_entrypoint(
+    func: Callable[..., Any], call_kwargs: Mapping[str, Any]
+) -> Any:
     if not inspect.iscoroutinefunction(func):
         raise RuntimeError("sandbox entrypoints must be async def")
     coroutine = cast(Coroutine[Any, Any, Any], func(**call_kwargs))

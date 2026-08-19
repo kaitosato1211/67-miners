@@ -90,7 +90,9 @@ class ScriptArtifactSpec(BaseModel):
 
     def require_platform_tool_proxy_scope(self) -> None:
         if self.miner_hotkey_ss58 is None:
-            raise ValueError("script artifact is missing miner hotkey for platform tool proxy")
+            raise ValueError(
+                "script artifact is missing miner hotkey for platform tool proxy"
+            )
 
 
 class MinerTaskBatchSpec(BaseModel):
@@ -214,7 +216,9 @@ class MinerTaskRunSubmission(BaseModel):
         error = self.run.details.error
         if error is None:
             if breakdown is None:
-                raise ValueError("successful task runs must include score breakdown details")
+                raise ValueError(
+                    "successful task runs must include score breakdown details"
+                )
             if self.run.response is None:
                 raise ValueError("successful task runs must include a response")
             if breakdown.total_score != self.score:
@@ -259,22 +263,40 @@ class SandboxFailureDiagnostics(BaseModel):
 
     image: str | None = Field(default=None, max_length=DIAGNOSTIC_ID_MAX_LENGTH)
     pull_policy: str | None = Field(default=None, max_length=DIAGNOSTIC_ID_MAX_LENGTH)
-    container_name: str | None = Field(default=None, max_length=DIAGNOSTIC_ID_MAX_LENGTH)
+    container_name: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_ID_MAX_LENGTH
+    )
     container_id: str | None = Field(default=None, max_length=DIAGNOSTIC_ID_MAX_LENGTH)
     status: str | None = Field(default=None, max_length=DIAGNOSTIC_ID_MAX_LENGTH)
     exit_code: int | None = None
     oom_killed: bool | None = None
-    state_error: str | None = Field(default=None, max_length=DIAGNOSTIC_STATE_ERROR_MAX_LENGTH)
+    state_error: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_STATE_ERROR_MAX_LENGTH
+    )
     error_text: str | None = Field(default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH)
-    docker_logs_tail: str | None = Field(default=None, max_length=DIAGNOSTIC_LOG_TAIL_MAX_LENGTH)
-    docker_inspect_error_tail: str | None = Field(default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH)
-    docker_logs_error_tail: str | None = Field(default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH)
+    docker_logs_tail: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_LOG_TAIL_MAX_LENGTH
+    )
+    docker_inspect_error_tail: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH
+    )
+    docker_logs_error_tail: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH
+    )
     pull_returncode: int | None = None
-    pull_stdout_tail: str | None = Field(default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH)
-    pull_stderr_tail: str | None = Field(default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH)
+    pull_stdout_tail: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH
+    )
+    pull_stderr_tail: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH
+    )
     run_returncode: int | None = None
-    run_stdout_tail: str | None = Field(default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH)
-    run_stderr_tail: str | None = Field(default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH)
+    run_stdout_tail: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH
+    )
+    run_stderr_tail: str | None = Field(
+        default=None, max_length=DIAGNOSTIC_TEXT_MAX_LENGTH
+    )
 
 
 class ValidatorBatchFailureDetail(BaseModel):
@@ -337,7 +359,9 @@ class MinerTaskAttemptAuditRecord(BaseModel):
             if self.retry_decision is not MinerTaskAttemptRetryDecision.WILL_NOT_RETRY:
                 raise ValueError("succeeded attempts must not retry")
             if self.terminal_effect is not MinerTaskAttemptTerminalEffect.TASK_RESULT:
-                raise ValueError("succeeded attempts must have task_result terminal effect")
+                raise ValueError(
+                    "succeeded attempts must have task_result terminal effect"
+                )
         if self.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY:
             if self.terminal_effect is not None:
                 raise ValueError("retrying attempts must not have terminal effect")
@@ -348,13 +372,19 @@ class MinerTaskAttemptAuditRecord(BaseModel):
             and self.attempt_number != self.max_attempts
         ):
             raise ValueError("attempt_failure requires final attempt")
-        if self.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY and self.terminal_effect is None:
+        if (
+            self.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+            and self.terminal_effect is None
+        ):
             raise ValueError("non-retrying attempts must have terminal effect")
         if (
             self.delivery_failure_detail is not None
-            and self.terminal_effect is not MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+            and self.terminal_effect
+            is not MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
         ):
-            raise ValueError("delivery_failure_detail requires delivery_failure terminal effect")
+            raise ValueError(
+                "delivery_failure_detail requires delivery_failure terminal effect"
+            )
         return self
 
 

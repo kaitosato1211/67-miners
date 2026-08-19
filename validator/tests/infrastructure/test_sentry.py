@@ -32,7 +32,9 @@ def _settings(
 def test_configure_sentry_delegates_validator_dsn_to_commons(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_configure_sentry_sdk(*, dsn: str, observability: ObservabilitySettings) -> None:
+    def _fake_configure_sentry_sdk(
+        *, dsn: str, observability: ObservabilitySettings
+    ) -> None:
         captured["dsn"] = dsn
         captured["observability"] = observability
 
@@ -54,7 +56,9 @@ def test_configure_sentry_delegates_validator_dsn_to_commons(monkeypatch) -> Non
 def test_configure_sentry_passes_blank_dsn_to_commons(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_configure_sentry_sdk(*, dsn: str, observability: ObservabilitySettings) -> None:
+    def _fake_configure_sentry_sdk(
+        *, dsn: str, observability: ObservabilitySettings
+    ) -> None:
         captured["dsn"] = dsn
         captured["observability"] = observability
 
@@ -67,23 +71,31 @@ def test_configure_sentry_passes_blank_dsn_to_commons(monkeypatch) -> None:
     assert captured["observability"] is settings.observability
 
 
-def test_configure_sentry_from_env_delegates_validator_dsn_to_commons(monkeypatch) -> None:
+def test_configure_sentry_from_env_delegates_validator_dsn_to_commons(
+    monkeypatch,
+) -> None:
     captured: dict[str, object] = {}
 
     def _fake_configure_sentry_sdk_from_env(*, dsn_env_var: str) -> None:
         captured["dsn_env_var"] = dsn_env_var
 
-    monkeypatch.setattr(sentry_mod, "configure_sentry_sdk_from_env", _fake_configure_sentry_sdk_from_env)
+    monkeypatch.setattr(
+        sentry_mod, "configure_sentry_sdk_from_env", _fake_configure_sentry_sdk_from_env
+    )
 
     sentry_mod.configure_sentry_from_env()
 
     assert captured["dsn_env_var"] == "SENTRY_DSN"
 
 
-def test_configure_sentry_delegates_settings_observability_to_early_bootstrap(monkeypatch) -> None:
+def test_configure_sentry_delegates_settings_observability_to_early_bootstrap(
+    monkeypatch,
+) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_configure_sentry_from_observability(*, observability: ObservabilitySettings) -> None:
+    def _fake_configure_sentry_from_observability(
+        *, observability: ObservabilitySettings
+    ) -> None:
         captured["observability"] = observability
 
     monkeypatch.setattr(

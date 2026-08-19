@@ -40,7 +40,9 @@ def test_selection_from_stored_champion_weights_reads_single_champion_score() ->
     )
 
 
-def test_selection_from_stored_champion_weights_keeps_legacy_split_weights_at_full_score() -> None:
+def test_selection_from_stored_champion_weights_keeps_legacy_split_weights_at_full_score() -> (
+    None
+):
     selection = selection_from_stored_champion_weights(
         final_top=(7, 8),
         weights={"7": 0.6, "8": 0.4},
@@ -77,7 +79,11 @@ def test_select_batch_artifacts_keeps_incumbent_and_new_challengers() -> None:
     )
 
     selected = select_batch_artifacts(
-        latest_by_hotkey={"hotkey-1": incumbent, "hotkey-2": stale, "hotkey-3": challenger},
+        latest_by_hotkey={
+            "hotkey-1": incumbent,
+            "hotkey-2": stale,
+            "hotkey-3": challenger,
+        },
         previous_completed_cutoff=cutoff,
         current_champion=CurrentChampionInput(
             uid=1,
@@ -148,7 +154,9 @@ def test_select_batch_artifacts_prioritizes_incumbent_hotkey_new_challenger() ->
     )
 
 
-def test_select_batch_artifacts_fails_when_incumbent_record_does_not_match_champion() -> None:
+def test_select_batch_artifacts_fails_when_incumbent_record_does_not_match_champion() -> (
+    None
+):
     cutoff = datetime(2026, 4, 28, tzinfo=UTC)
     incumbent = SubmittedArtifactInput(
         uid=2,
@@ -180,7 +188,9 @@ def test_filter_successful_validator_runs_keeps_only_successful_validators() -> 
         ChampionRunInput(validator_b, artifact_id, task_id, 1.0, 0.1),
     )
 
-    assert filter_successful_validator_runs(runs, successful_validator_ids=(validator_b,)) == (runs[1],)
+    assert filter_successful_validator_runs(
+        runs, successful_validator_ids=(validator_b,)
+    ) == (runs[1],)
 
 
 def test_artifact_batch_scores_normalize_aggregate_totals_by_task_count() -> None:
@@ -206,11 +216,15 @@ def test_artifact_batch_scores_normalize_aggregate_totals_by_task_count() -> Non
 def test_artifact_batch_scores_reject_invalid_normalized_score() -> None:
     artifact_id = uuid4()
 
-    with pytest.raises(ValueError, match="artifact batch score must be between 0.0 and 1.0"):
+    with pytest.raises(
+        ValueError, match="artifact batch score must be between 0.0 and 1.0"
+    ):
         artifact_batch_scores(
             artifact_ids=(artifact_id,),
             task_count=2,
-            aggregates=ArtifactAggregateBundle(vectors={}, totals={artifact_id: 2.2}, costs={}),
+            aggregates=ArtifactAggregateBundle(
+                vectors={}, totals={artifact_id: 2.2}, costs={}
+            ),
         )
 
 
@@ -220,10 +234,16 @@ def test_validate_champion_run_inputs_rejects_incomplete_validator_coverage() ->
     task_b = uuid4()
     artifact_id = uuid4()
 
-    with pytest.raises(ValueError, match="validator has incomplete run coverage for batch"):
+    with pytest.raises(
+        ValueError, match="validator has incomplete run coverage for batch"
+    ):
         validate_champion_run_inputs(
             task_ids=(task_a, task_b),
-            artifacts=(ChampionArtifactInput(artifact_id=artifact_id, uid=7, miner_hotkey_ss58="hotkey-7"),),
+            artifacts=(
+                ChampionArtifactInput(
+                    artifact_id=artifact_id, uid=7, miner_hotkey_ss58="hotkey-7"
+                ),
+            ),
             runs=(ChampionRunInput(validator_id, artifact_id, task_a, 1.0, 0.1),),
         )
 
@@ -237,8 +257,12 @@ def test_select_champion_returns_winner_take_all_selection() -> None:
     selection = select_champion(
         task_ids=(task_id,),
         artifacts=(
-            ChampionArtifactInput(artifact_id=incumbent, uid=7, miner_hotkey_ss58="hotkey-7"),
-            ChampionArtifactInput(artifact_id=challenger, uid=8, miner_hotkey_ss58="hotkey-8"),
+            ChampionArtifactInput(
+                artifact_id=incumbent, uid=7, miner_hotkey_ss58="hotkey-7"
+            ),
+            ChampionArtifactInput(
+                artifact_id=challenger, uid=8, miner_hotkey_ss58="hotkey-8"
+            ),
         ),
         runs=(
             ChampionRunInput(validator_id, incumbent, task_id, 0.1, 1.0),
@@ -262,7 +286,9 @@ def test_select_champion_returns_winner_take_all_selection() -> None:
     assert selection.ranking_trace.successful_dethroner_artifact_ids() == (challenger,)
 
 
-def test_select_champion_similarity_candidates_walk_backward_through_dethrone_sequence() -> None:
+def test_select_champion_similarity_candidates_walk_backward_through_dethrone_sequence() -> (
+    None
+):
     validator_id = uuid4()
     task_id = uuid4()
     incumbent = uuid4()
@@ -272,14 +298,26 @@ def test_select_champion_similarity_candidates_walk_backward_through_dethrone_se
     selection = select_champion(
         task_ids=(task_id,),
         artifacts=(
-            ChampionArtifactInput(artifact_id=incumbent, uid=7, miner_hotkey_ss58="hotkey-7"),
-            ChampionArtifactInput(artifact_id=challenger_a, uid=8, miner_hotkey_ss58="hotkey-8"),
-            ChampionArtifactInput(artifact_id=challenger_b, uid=9, miner_hotkey_ss58="hotkey-9"),
+            ChampionArtifactInput(
+                artifact_id=incumbent, uid=7, miner_hotkey_ss58="hotkey-7"
+            ),
+            ChampionArtifactInput(
+                artifact_id=challenger_a, uid=8, miner_hotkey_ss58="hotkey-8"
+            ),
+            ChampionArtifactInput(
+                artifact_id=challenger_b, uid=9, miner_hotkey_ss58="hotkey-9"
+            ),
         ),
         runs=(
-            ChampionRunInput(validator_id, incumbent, task_id, 0.50, 10.0, elapsed_ms=5_000.0),
-            ChampionRunInput(validator_id, challenger_a, task_id, 0.60, 10.0, elapsed_ms=5_000.0),
-            ChampionRunInput(validator_id, challenger_b, task_id, 0.60, 7.0, elapsed_ms=5_000.0),
+            ChampionRunInput(
+                validator_id, incumbent, task_id, 0.50, 10.0, elapsed_ms=5_000.0
+            ),
+            ChampionRunInput(
+                validator_id, challenger_a, task_id, 0.60, 10.0, elapsed_ms=5_000.0
+            ),
+            ChampionRunInput(
+                validator_id, challenger_b, task_id, 0.60, 7.0, elapsed_ms=5_000.0
+            ),
         ),
         current_champion_artifact_id=incumbent,
         cascade=RankingCascade(),
@@ -290,7 +328,9 @@ def test_select_champion_similarity_candidates_walk_backward_through_dethrone_se
     assert selection.similarity_fallback_artifact_ids == (challenger_b, challenger_a)
 
 
-def test_select_champion_similarity_candidates_include_replacement_of_zero_incumbent() -> None:
+def test_select_champion_similarity_candidates_include_replacement_of_zero_incumbent() -> (
+    None
+):
     validator_id = uuid4()
     task_id = uuid4()
     incumbent = uuid4()
@@ -299,8 +339,12 @@ def test_select_champion_similarity_candidates_include_replacement_of_zero_incum
     selection = select_champion(
         task_ids=(task_id,),
         artifacts=(
-            ChampionArtifactInput(artifact_id=incumbent, uid=7, miner_hotkey_ss58="hotkey-7"),
-            ChampionArtifactInput(artifact_id=challenger, uid=8, miner_hotkey_ss58="hotkey-8"),
+            ChampionArtifactInput(
+                artifact_id=incumbent, uid=7, miner_hotkey_ss58="hotkey-7"
+            ),
+            ChampionArtifactInput(
+                artifact_id=challenger, uid=8, miner_hotkey_ss58="hotkey-8"
+            ),
         ),
         runs=(
             ChampionRunInput(validator_id, incumbent, task_id, 0.0, 1.0),

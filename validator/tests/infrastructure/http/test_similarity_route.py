@@ -6,9 +6,15 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from harnyx_commons.domain.judge_usage import JudgeModelUsage, JudgeUsageSummary
-from harnyx_commons.miner_task_similarity import SimilarityJudgeRequest, SimilarityJudgeResult
+from harnyx_commons.miner_task_similarity import (
+    SimilarityJudgeRequest,
+    SimilarityJudgeResult,
+)
 from harnyx_validator.application.status import BatchActivityTracker, StatusProvider
-from harnyx_validator.infrastructure.http.routes import ValidatorControlDeps, add_control_routes
+from harnyx_validator.infrastructure.http.routes import (
+    ValidatorControlDeps,
+    add_control_routes,
+)
 from harnyx_validator.runtime.resource_usage import ValidatorResourceUsageSnapshot
 
 
@@ -92,7 +98,9 @@ class _StubHotkey:
 
 class _StubResourceUsageProvider:
     def snapshot(self) -> ValidatorResourceUsageSnapshot:
-        raise AssertionError("similarity route should not sample validator resource usage")
+        raise AssertionError(
+            "similarity route should not sample validator resource usage"
+        )
 
 
 def _client(judge: StubSimilarityJudge | FailingSimilarityJudge | None) -> TestClient:
@@ -111,7 +119,9 @@ def _client(judge: StubSimilarityJudge | FailingSimilarityJudge | None) -> TestC
     return TestClient(app)
 
 
-def _payload(*, candidate_artifact_id: UUID, incumbent_artifact_id: UUID) -> dict[str, object]:
+def _payload(
+    *, candidate_artifact_id: UUID, incumbent_artifact_id: UUID
+) -> dict[str, object]:
     return {
         "candidate_artifact_id": str(candidate_artifact_id),
         "incumbent_artifact_id": str(incumbent_artifact_id),
@@ -193,7 +203,9 @@ def test_similarity_route_rejects_prompt_payload() -> None:
     )
     payload["prompt"] = "platform-provided evaluator instructions"
 
-    response = client.post(f"/validator/miner-task-batches/{batch_id}/similarity", json=payload)
+    response = client.post(
+        f"/validator/miner-task-batches/{batch_id}/similarity", json=payload
+    )
 
     assert response.status_code == 422
     assert judge.requests == []

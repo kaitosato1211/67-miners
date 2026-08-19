@@ -51,7 +51,9 @@ def test_receipt_log_keeps_pending_receipt_until_usage_settlement_finishes() -> 
         return session, False
 
     def complete() -> None:
-        completion_result.append(receipt_log.complete_pending_receipt(receipt, settle_usage))
+        completion_result.append(
+            receipt_log.complete_pending_receipt(receipt, settle_usage)
+        )
 
     completion_thread = threading.Thread(target=complete)
     completion_thread.start()
@@ -83,7 +85,9 @@ def test_receipt_log_records_successful_receipt_when_usage_settlement_fails() ->
     assert receipt_log.lookup(receipt.receipt_id) == receipt
 
 
-def test_receipt_log_completion_returns_none_after_pending_receipt_is_abandoned() -> None:
+def test_receipt_log_completion_returns_none_after_pending_receipt_is_abandoned() -> (
+    None
+):
     receipt_log = InMemoryReceiptLog()
     session = _session()
     started_call = _started_call(session, receipt_id="receipt-1", active_attempt=2)
@@ -115,13 +119,10 @@ def test_receipt_log_allows_new_pending_receipt_after_abandonment() -> None:
         started_call=replacement_call,
     )
 
-    assert (
-        receipt_log.complete_pending_receipt(
-            _ok_receipt(replacement_call),
-            lambda: (session, False),
-        )
-        == (session, False)
-    )
+    assert receipt_log.complete_pending_receipt(
+        _ok_receipt(replacement_call),
+        lambda: (session, False),
+    ) == (session, False)
 
 
 def test_receipt_log_clear_session_removes_pending_receipts() -> None:

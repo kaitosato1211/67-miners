@@ -28,16 +28,22 @@ from harnyx_sandbox.tools.proxy import ToolProxy
 
 logger = logging.getLogger("harnyx_sandbox")
 
-PLATFORM_TOKEN_SCHEME = APIKeyHeader(name="x-platform-token", scheme_name="PlatformToken", auto_error=False)
+PLATFORM_TOKEN_SCHEME = APIKeyHeader(
+    name="x-platform-token", scheme_name="PlatformToken", auto_error=False
+)
 
 
-async def require_tool_token(_request: Request, token: str | None = Security(PLATFORM_TOKEN_SCHEME)) -> str:
+async def require_tool_token(
+    _request: Request, token: str | None = Security(PLATFORM_TOKEN_SCHEME)
+) -> str:
     if not token:
         raise HTTPException(status_code=401, detail="missing x-platform-token header")
     return token
 
 
-def _tool_factory(config: Mapping[str, object] | None, headers: Mapping[str, str]) -> ToolProxy | None:
+def _tool_factory(
+    config: Mapping[str, object] | None, headers: Mapping[str, str]
+) -> ToolProxy | None:
     if config:
         raise ValueError("tool proxy config is not supported; use request headers")
 
@@ -65,7 +71,9 @@ def _load_agent_from_env() -> SandboxPreloadFailure | None:
 
     preload_failure_type = SandboxPreloadFailure
 
-    def make_preload_infrastructure_failure(message: str, exception: str) -> SandboxPreloadFailure:
+    def make_preload_infrastructure_failure(
+        message: str, exception: str
+    ) -> SandboxPreloadFailure:
         return preload_failure_type(
             code="PreloadInfrastructureFailed",
             error=message,
@@ -82,7 +90,9 @@ def _load_agent_from_env() -> SandboxPreloadFailure | None:
             "ValueError",
         )
     if not agent_path:
-        return make_preload_infrastructure_failure("AGENT_PATH is required", "ValueError")
+        return make_preload_infrastructure_failure(
+            "AGENT_PATH is required", "ValueError"
+        )
 
     path = Path(agent_path)
     if not path.exists():
@@ -118,7 +128,9 @@ def _load_agent_from_env() -> SandboxPreloadFailure | None:
             runpy.run_path(str(path))
         except OSError as exc:
             if is_loader_owned_os_error(exc):
-                log_preload_infrastructure_failure("sandbox preload infrastructure failed", exc_info=exc)
+                log_preload_infrastructure_failure(
+                    "sandbox preload infrastructure failed", exc_info=exc
+                )
                 return make_preload_infrastructure_failure(
                     "failed to read mounted agent path",
                     exc.__class__.__name__,
@@ -133,7 +145,9 @@ def _load_agent_from_env() -> SandboxPreloadFailure | None:
 
 
 if sandbox_harness is None:
-    sandbox_harness = SandboxHarness(tool_factory=_tool_factory, preload=_load_agent_from_env)
+    sandbox_harness = SandboxHarness(
+        tool_factory=_tool_factory, preload=_load_agent_from_env
+    )
 
 
 @asynccontextmanager
@@ -159,7 +173,9 @@ async def health() -> dict[str, str]:
 
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Harnyx sandbox runtime.")
-    parser.add_argument("--serve", action="store_true", help="Run the FastAPI app with uvicorn.")
+    parser.add_argument(
+        "--serve", action="store_true", help="Run the FastAPI app with uvicorn."
+    )
     parser.add_argument(
         "--host",
         default=os.getenv("SANDBOX_HOST", "127.0.0.1"),
@@ -177,7 +193,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         import uvicorn
 
         logger.info("starting uvicorn on %s:%s", args.host, args.port)
-        uvicorn.run("harnyx_sandbox.app:app", host=args.host, port=args.port, log_level="info")
+        uvicorn.run(
+            "harnyx_sandbox.app:app", host=args.host, port=args.port, log_level="info"
+        )
     else:
         parser.print_help()
 

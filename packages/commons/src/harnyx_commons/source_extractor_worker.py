@@ -50,28 +50,43 @@ def main() -> None:
         media_type, encoding, url = sys.argv[1:4]
         extracted = extract_source(sys.stdin.buffer.read(), media_type, encoding, url)
         if not extracted.content.strip():
-            raise ExtractionRejectedError("source_unavailable", "source extraction returned no text")
+            raise ExtractionRejectedError(
+                "source_unavailable", "source extraction returned no text"
+            )
         if len(extracted.content) > MAX_EXTRACTED_CHARACTERS:
-            raise ExtractionRejectedError("source_extraction_limit", "source exceeds extracted-character limit")
+            raise ExtractionRejectedError(
+                "source_extraction_limit", "source exceeds extracted-character limit"
+            )
         payload = json.dumps(
-            {"content": extracted.content, "links": [asdict(link) for link in extracted.links]},
+            {
+                "content": extracted.content,
+                "links": [asdict(link) for link in extracted.links],
+            },
             ensure_ascii=False,
             separators=(",", ":"),
         )
         if len(payload) > MAX_EXTRACTED_ENVELOPE_CHARACTERS:
-            raise ExtractionRejectedError("source_extraction_limit", "source link metadata exceeds extraction envelope")
+            raise ExtractionRejectedError(
+                "source_extraction_limit",
+                "source link metadata exceeds extraction envelope",
+            )
         _write(b"O" + payload.encode("utf-8"))
     except ExtractionRejectedError as exc:
         _write_error(exc.code, str(exc))
     except BaseException as exc:
-        _write_error("source_unavailable", f"source extraction failed: {type(exc).__name__}: {exc}")
+        _write_error(
+            "source_unavailable",
+            f"source extraction failed: {type(exc).__name__}: {exc}",
+        )
 
 
 def extract_content(body: bytes, media_type: str, encoding: str, url: str) -> str:
     return extract_source(body, media_type, encoding, url).content
 
 
-def extract_source(body: bytes, media_type: str, encoding: str, url: str) -> ExtractedSource:
+def extract_source(
+    body: bytes, media_type: str, encoding: str, url: str
+) -> ExtractedSource:
     if encoding == "gzip":
         body = gzip.decompress(body)
     elif encoding == "deflate":
@@ -80,14 +95,18 @@ def extract_source(body: bytes, media_type: str, encoding: str, url: str) -> Ext
     if "spreadsheetml" in media_type or normalized_url.endswith(".xlsx"):
         return ExtractedSource(content=_extract_xlsx(body))
     if "macroenabled" in media_type or normalized_url.endswith(".xlsm"):
-        raise ExtractionRejectedError("source_unavailable", "macro-enabled workbooks are unsupported")
+        raise ExtractionRejectedError(
+            "source_unavailable", "macro-enabled workbooks are unsupported"
+        )
     if "pdf" in media_type or normalized_url.endswith(".pdf"):
         import fitz
 
         document = fitz.open(stream=body, filetype="pdf")
         try:
             if document.page_count > MAX_PDF_PAGES:
-                raise ExtractionRejectedError("source_extraction_limit", "PDF exceeds 2,000 pages")
+                raise ExtractionRejectedError(
+                    "source_extraction_limit", "PDF exceeds 2,000 pages"
+                )
             pieces: list[str] = []
             total = 0
             for index in range(1, document.page_count + 1):
@@ -95,7 +114,10 @@ def extract_source(body: bytes, media_type: str, encoding: str, url: str) -> Ext
                 piece = f"[PDF page {index}]\n{text}"
                 total += len(piece)
                 if total > MAX_EXTRACTED_CHARACTERS:
-                    raise ExtractionRejectedError("source_extraction_limit", "PDF exceeds extracted-character limit")
+                    raise ExtractionRejectedError(
+                        "source_extraction_limit",
+                        "PDF exceeds extracted-character limit",
+                    )
                 pieces.append(piece)
             return ExtractedSource(content="\n\n".join(pieces))
         finally:
@@ -103,9 +125,13 @@ def extract_source(body: bytes, media_type: str, encoding: str, url: str) -> Ext
     decoded = body.decode("utf-8", errors="replace")
     if "json" in media_type:
         try:
-            return ExtractedSource(content=json.dumps(json.loads(decoded), ensure_ascii=False, indent=2))
+            return ExtractedSource(
+                content=json.dumps(json.loads(decoded), ensure_ascii=False, indent=2)
+            )
         except json.JSONDecodeError as exc:
-            raise ExtractionRejectedError("source_unavailable", "declared JSON source is malformed") from exc
+            raise ExtractionRejectedError(
+                "source_unavailable", "declared JSON source is malformed"
+            ) from exc
     if "html" not in media_type and "<html" not in decoded[:1000].casefold():
         return ExtractedSource(content=decoded)
     from bs4 import BeautifulSoup
@@ -119,7 +145,12 @@ def extract_source(body: bytes, media_type: str, encoding: str, url: str) -> Ext
             document_base_url = urljoin(url, base_href.strip())
     links: list[ExtractedLink] = []
     seen_links: set[tuple[str, str]] = set()
-    for element, attribute in (("a", "href"), ("link", "href"), ("script", "src"), ("form", "action")):
+    for element, attribute in (
+        ("a", "href"),
+        ("link", "href"),
+        ("script", "src"),
+        ("form", "action"),
+    ):
         for tag in soup.find_all(element):
             target = tag.get(attribute)
             if not isinstance(target, str) or not target.strip():
@@ -127,9 +158,15 @@ def extract_source(body: bytes, media_type: str, encoding: str, url: str) -> Ext
             absolute_url = urljoin(document_base_url, target.strip())
             text = re.sub(r"\s+", " ", tag.get_text(" ", strip=True)).strip()
             if len(absolute_url) > MAX_EXTRACTED_LINK_URL_CHARACTERS:
-                raise ExtractionRejectedError("source_extraction_limit", "source link URL exceeds extraction limit")
+                raise ExtractionRejectedError(
+                    "source_extraction_limit",
+                    "source link URL exceeds extraction limit",
+                )
             if len(text) > MAX_EXTRACTED_LINK_TEXT_CHARACTERS:
-                raise ExtractionRejectedError("source_extraction_limit", "source link text exceeds extraction limit")
+                raise ExtractionRejectedError(
+                    "source_extraction_limit",
+                    "source link text exceeds extraction limit",
+                )
             identity = (absolute_url, text)
             if identity in seen_links:
                 continue
@@ -140,12 +177,19 @@ def extract_source(body: bytes, media_type: str, encoding: str, url: str) -> Ext
     lines: list[str] = []
     for table in soup.find_all("table"):
         for row_index, row in enumerate(table.find_all("tr")):
-            cells = [re.sub(r"\s+", " ", cell.get_text(" ", strip=True)) for cell in row.find_all(["th", "td"])]
+            cells = [
+                re.sub(r"\s+", " ", cell.get_text(" ", strip=True))
+                for cell in row.find_all(["th", "td"])
+            ]
             if cells:
-                prefix = "HEADER" if row_index == 0 or row.find("th") is not None else "ROW"
+                prefix = (
+                    "HEADER" if row_index == 0 or row.find("th") is not None else "ROW"
+                )
                 lines.append(prefix + "\t" + "\t".join(cells))
         table.decompose()
-    lines.extend(line.strip() for line in soup.get_text("\n").splitlines() if line.strip())
+    lines.extend(
+        line.strip() for line in soup.get_text("\n").splitlines() if line.strip()
+    )
     return ExtractedSource(content="\n".join(lines), links=tuple(links))
 
 
@@ -154,9 +198,13 @@ def _extract_xlsx(body: bytes) -> str:
     from openpyxl import load_workbook
 
     try:
-        workbook = load_workbook(io.BytesIO(body), read_only=True, data_only=True, keep_links=False)
+        workbook = load_workbook(
+            io.BytesIO(body), read_only=True, data_only=True, keep_links=False
+        )
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
-        raise ExtractionRejectedError("source_unavailable", "invalid or unsupported XLSX workbook") from exc
+        raise ExtractionRejectedError(
+            "source_unavailable", "invalid or unsupported XLSX workbook"
+        ) from exc
     try:
         lines: list[str] = []
         total = 0
@@ -169,7 +217,9 @@ def _extract_xlsx(body: bytes) -> str:
             total += len(heading) + 1
             for row in worksheet.iter_rows():
                 populated = [
-                    f"{cell.coordinate}={_xlsx_cell_text(cell.value)}" for cell in row if cell.value is not None
+                    f"{cell.coordinate}={_xlsx_cell_text(cell.value)}"
+                    for cell in row
+                    if cell.value is not None
                 ]
                 if not populated:
                     continue
@@ -186,7 +236,9 @@ def _extract_xlsx(body: bytes) -> str:
     except ExtractionRejectedError:
         raise
     except Exception as exc:
-        raise ExtractionRejectedError("source_unavailable", "XLSX row extraction failed") from exc
+        raise ExtractionRejectedError(
+            "source_unavailable", "XLSX row extraction failed"
+        ) from exc
     finally:
         workbook.close()
 
@@ -196,20 +248,36 @@ def _preflight_xlsx_zip(body: bytes) -> None:
         with zipfile.ZipFile(io.BytesIO(body)) as archive:
             entries = archive.infolist()
     except zipfile.BadZipFile as exc:
-        raise ExtractionRejectedError("source_unavailable", "XLSX is not a valid Open XML archive") from exc
+        raise ExtractionRejectedError(
+            "source_unavailable", "XLSX is not a valid Open XML archive"
+        ) from exc
     if len(entries) > MAX_XLSX_ZIP_ENTRIES:
-        raise ExtractionRejectedError("source_extraction_limit", "XLSX archive contains too many entries")
+        raise ExtractionRejectedError(
+            "source_extraction_limit", "XLSX archive contains too many entries"
+        )
     if any(entry.flag_bits & 0x1 for entry in entries):
-        raise ExtractionRejectedError("source_unavailable", "encrypted XLSX workbooks are unsupported")
+        raise ExtractionRejectedError(
+            "source_unavailable", "encrypted XLSX workbooks are unsupported"
+        )
     if any(entry.filename.casefold().endswith(".bin") for entry in entries):
-        raise ExtractionRejectedError("source_unavailable", "macro-enabled XLSX workbooks are unsupported")
+        raise ExtractionRejectedError(
+            "source_unavailable", "macro-enabled XLSX workbooks are unsupported"
+        )
     if sum(entry.file_size for entry in entries) > MAX_XLSX_UNCOMPRESSED_BYTES:
-        raise ExtractionRejectedError("source_extraction_limit", "XLSX archive expands beyond 128 MiB")
+        raise ExtractionRejectedError(
+            "source_extraction_limit", "XLSX archive expands beyond 128 MiB"
+        )
     for entry in entries:
         if not entry.file_size:
             continue
-        if not entry.compress_size or entry.file_size / entry.compress_size > MAX_XLSX_COMPRESSION_RATIO:
-            raise ExtractionRejectedError("source_extraction_limit", "XLSX archive entry compression ratio is unsafe")
+        if (
+            not entry.compress_size
+            or entry.file_size / entry.compress_size > MAX_XLSX_COMPRESSION_RATIO
+        ):
+            raise ExtractionRejectedError(
+                "source_extraction_limit",
+                "XLSX archive entry compression ratio is unsafe",
+            )
 
 
 def _xlsx_cell_text(value: object) -> str:
@@ -232,7 +300,9 @@ def _write_error(code: str, message: str) -> None:
 
 def _set_resource_limits() -> None:
     resource.setrlimit(resource.RLIMIT_CPU, (MAX_CPU_SECONDS, MAX_CPU_SECONDS))
-    resource.setrlimit(resource.RLIMIT_AS, (MAX_ADDRESS_SPACE_BYTES, MAX_ADDRESS_SPACE_BYTES))
+    resource.setrlimit(
+        resource.RLIMIT_AS, (MAX_ADDRESS_SPACE_BYTES, MAX_ADDRESS_SPACE_BYTES)
+    )
 
 
 if __name__ == "__main__":

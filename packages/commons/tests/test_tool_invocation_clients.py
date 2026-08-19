@@ -18,7 +18,9 @@ from harnyx_commons.llm.schema import (
     LlmResponse,
     LlmUsage,
 )
-from harnyx_commons.platform_tool_proxy import platform_tool_proxy_provider_timeout_seconds
+from harnyx_commons.platform_tool_proxy import (
+    platform_tool_proxy_provider_timeout_seconds,
+)
 from harnyx_commons.tools import invocation_clients
 from harnyx_commons.tools.invocation_clients import (
     ChutesEmbeddingProvider,
@@ -66,7 +68,10 @@ class _FakeLlmRegistry:
 
     @property
     def requests_by_provider(self) -> dict[str, list[LlmRequest]]:
-        return {provider_name: provider.requests for provider_name, provider in self._providers.items()}
+        return {
+            provider_name: provider.requests
+            for provider_name, provider in self._providers.items()
+        }
 
     def resolve(self, name: str) -> _FakeLlmProvider:
         provider = self._providers.get(name)
@@ -115,7 +120,9 @@ def _llm_settings_with_tool_overrides(tool_overrides: dict[str, str]) -> LlmSett
     )
 
 
-def test_optional_tool_embedding_provider_builds_chutes_from_tool_embedding_provider_setting() -> None:
+def test_optional_tool_embedding_provider_builds_chutes_from_tool_embedding_provider_setting() -> (
+    None
+):
     settings = LlmSettings.model_construct(
         tool_embedding_provider="chutes",
         chutes_api_key=SecretStr("chutes-key"),
@@ -128,7 +135,9 @@ def test_optional_tool_embedding_provider_builds_chutes_from_tool_embedding_prov
     assert isinstance(provider, ChutesEmbeddingProvider)
 
 
-def test_optional_tool_embedding_provider_builds_openrouter_from_tool_embedding_provider_setting() -> None:
+def test_optional_tool_embedding_provider_builds_openrouter_from_tool_embedding_provider_setting() -> (
+    None
+):
     settings = LlmSettings.model_construct(
         tool_embedding_provider="openrouter",
         chutes_api_key=SecretStr(""),
@@ -141,7 +150,9 @@ def test_optional_tool_embedding_provider_builds_openrouter_from_tool_embedding_
     assert isinstance(provider, OpenRouterEmbeddingProvider)
 
 
-def test_cached_embedding_provider_registry_resolves_provider_specific_clients() -> None:
+def test_cached_embedding_provider_registry_resolves_provider_specific_clients() -> (
+    None
+):
     settings = LlmSettings.model_construct(
         chutes_api_key=SecretStr("chutes-key"),
         openrouter_api_key=SecretStr("openrouter-key"),
@@ -222,7 +233,9 @@ def test_tool_invocation_clients_do_not_resolve_tool_provider_until_invoked(
     clients = build_tool_invocation_clients(
         llm_settings=_llm_settings(),
         bedrock_settings=BedrockSettings.model_construct(region="us-east-1"),
-        vertex_settings=VertexSettings.model_construct(gcp_project_id="project", gcp_location="us-central1"),
+        vertex_settings=VertexSettings.model_construct(
+            gcp_project_id="project", gcp_location="us-central1"
+        ),
     )
 
     assert clients.search_client is None
@@ -235,7 +248,9 @@ def test_tool_invocation_clients_can_require_search_provider() -> None:
         build_tool_invocation_clients(
             llm_settings=_llm_settings(),
             bedrock_settings=BedrockSettings.model_construct(region="us-east-1"),
-            vertex_settings=VertexSettings.model_construct(gcp_project_id="project", gcp_location="us-central1"),
+            vertex_settings=VertexSettings.model_construct(
+                gcp_project_id="project", gcp_location="us-central1"
+            ),
             require_search=True,
         )
 
@@ -244,7 +259,9 @@ def test_tool_invocation_clients_can_skip_routed_tool_provider_policy() -> None:
     clients = build_tool_invocation_clients(
         llm_settings=LlmSettings.model_construct(tool_llm_provider="bedrock"),
         bedrock_settings=BedrockSettings.model_construct(region="us-east-1"),
-        vertex_settings=VertexSettings.model_construct(gcp_project_id="project", gcp_location="us-central1"),
+        vertex_settings=VertexSettings.model_construct(
+            gcp_project_id="project", gcp_location="us-central1"
+        ),
         build_routed_tool_llm_provider=False,
     )
 
@@ -348,7 +365,13 @@ def test_internal_search_provider_builds_firecrawl_with_fixed_endpoint_and_concu
     ("provider", "client_name", "key_field", "concurrency_field", "base_url"),
     [
         ("exa", "ExaClient", "exa_api_key", "exa_max_concurrent", "https://api.exa.ai"),
-        ("tavily", "TavilyClient", "tavily_api_key", "tavily_max_concurrent", "https://api.tavily.com"),
+        (
+            "tavily",
+            "TavilyClient",
+            "tavily_api_key",
+            "tavily_max_concurrent",
+            "https://api.tavily.com",
+        ),
     ],
 )
 def test_internal_new_search_providers_use_configured_credentials_and_concurrency(
@@ -446,8 +469,12 @@ def test_cached_search_registry_shares_ai_and_web_clients_but_rejects_firecrawl_
 ) -> None:
     parallel = object()
     firecrawl = object()
-    monkeypatch.setattr(invocation_clients, "ParallelClient", lambda **_kwargs: parallel)
-    monkeypatch.setattr(invocation_clients, "FirecrawlClient", lambda **_kwargs: firecrawl)
+    monkeypatch.setattr(
+        invocation_clients, "ParallelClient", lambda **_kwargs: parallel
+    )
+    monkeypatch.setattr(
+        invocation_clients, "FirecrawlClient", lambda **_kwargs: firecrawl
+    )
     registry = invocation_clients.CachedWebSearchProviderRegistry(
         llm_settings=LlmSettings.model_construct(
             parallel_api_key=SecretStr("parallel-key"),
@@ -461,7 +488,9 @@ def test_cached_search_registry_shares_ai_and_web_clients_but_rejects_firecrawl_
     assert registry.resolve_web("parallel") is parallel
     assert registry.resolve_ai("parallel") is parallel
     assert registry.resolve_web("firecrawl") is firecrawl
-    with pytest.raises(ValueError, match="AI search provider 'firecrawl' is not supported"):
+    with pytest.raises(
+        ValueError, match="AI search provider 'firecrawl' is not supported"
+    ):
         registry.resolve_ai("firecrawl")  # type: ignore[arg-type]
 
 
@@ -492,7 +521,9 @@ def test_fixed_web_only_search_providers_do_not_build_ai_search_clients(
     lazy_search: bool,
 ) -> None:
     sentinel = object()
-    monkeypatch.setattr(invocation_clients, "build_web_search_provider", lambda _settings: sentinel)
+    monkeypatch.setattr(
+        invocation_clients, "build_web_search_provider", lambda _settings: sentinel
+    )
 
     search_client, ai_search_client = invocation_clients._build_optional_search_clients(
         LlmSettings.model_construct(search_provider=provider),
@@ -505,8 +536,12 @@ def test_fixed_web_only_search_providers_do_not_build_ai_search_clients(
 
 
 @pytest.mark.parametrize("provider", ["desearch", "parallel"])
-def test_cached_web_search_provider_registry_reports_missing_platform_credential(provider: str) -> None:
-    registry = invocation_clients.CachedWebSearchProviderRegistry(llm_settings=LlmSettings.model_construct())
+def test_cached_web_search_provider_registry_reports_missing_platform_credential(
+    provider: str,
+) -> None:
+    registry = invocation_clients.CachedWebSearchProviderRegistry(
+        llm_settings=LlmSettings.model_construct()
+    )
 
     with pytest.raises(ProviderCredentialUnavailableError) as exc_info:
         registry.resolve(provider)
@@ -515,8 +550,12 @@ def test_cached_web_search_provider_registry_reports_missing_platform_credential
 
 
 @pytest.mark.parametrize("provider", ["chutes", "openrouter"])
-def test_cached_embedding_provider_registry_reports_missing_platform_credential(provider: str) -> None:
-    registry = invocation_clients.CachedEmbeddingProviderRegistry(llm_settings=LlmSettings.model_construct())
+def test_cached_embedding_provider_registry_reports_missing_platform_credential(
+    provider: str,
+) -> None:
+    registry = invocation_clients.CachedEmbeddingProviderRegistry(
+        llm_settings=LlmSettings.model_construct()
+    )
 
     with pytest.raises(ProviderCredentialUnavailableError) as exc_info:
         registry.resolve(provider)
@@ -670,20 +709,24 @@ async def test_tool_invocation_clients_route_tool_model_to_custom_endpoint(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     registry = _FakeLlmRegistry()
-    monkeypatch.setattr(invocation_clients, "build_cached_llm_provider_registry", lambda **_: registry)
+    monkeypatch.setattr(
+        invocation_clients, "build_cached_llm_provider_registry", lambda **_: registry
+    )
 
     clients = build_tool_invocation_clients(
         llm_settings=_llm_settings(),
         bedrock_settings=BedrockSettings.model_construct(region="us-east-1"),
-        vertex_settings=VertexSettings.model_construct(gcp_project_id="project", gcp_location="us-central1"),
+        vertex_settings=VertexSettings.model_construct(
+            gcp_project_id="project", gcp_location="us-central1"
+        ),
     )
 
     assert clients.tool_llm_provider is not None
     await clients.tool_llm_provider.invoke(_gemma_tool_request())
 
-    assert registry.requests_by_provider["custom-openai-compatible:gemma4-cloud-run-turbo"][0].provider == (
+    assert registry.requests_by_provider[
         "custom-openai-compatible:gemma4-cloud-run-turbo"
-    )
+    ][0].provider == ("custom-openai-compatible:gemma4-cloud-run-turbo")
 
 
 @pytest.mark.anyio("asyncio")
@@ -691,18 +734,25 @@ async def test_tool_invocation_clients_route_qwen36_tool_model_to_custom_endpoin
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     registry = _FakeLlmRegistry()
-    monkeypatch.setattr(invocation_clients, "build_cached_llm_provider_registry", lambda **_: registry)
+    monkeypatch.setattr(
+        invocation_clients, "build_cached_llm_provider_registry", lambda **_: registry
+    )
 
     clients = build_tool_invocation_clients(
         llm_settings=_llm_settings(),
         bedrock_settings=BedrockSettings.model_construct(region="us-east-1"),
-        vertex_settings=VertexSettings.model_construct(gcp_project_id="project", gcp_location="us-central1"),
+        vertex_settings=VertexSettings.model_construct(
+            gcp_project_id="project", gcp_location="us-central1"
+        ),
     )
 
     assert clients.tool_llm_provider is not None
     await clients.tool_llm_provider.invoke(_qwen36_tool_request())
 
-    assert registry.requests_by_provider[QWEN36_ROUTE_TARGET][0].provider == QWEN36_ROUTE_TARGET
+    assert (
+        registry.requests_by_provider[QWEN36_ROUTE_TARGET][0].provider
+        == QWEN36_ROUTE_TARGET
+    )
 
 
 @pytest.mark.anyio("asyncio")
@@ -712,13 +762,21 @@ async def test_tool_invocation_clients_keep_chutes_selected_model_on_chutes(
     model: str,
 ) -> None:
     registry = _FakeLlmRegistry()
-    monkeypatch.setattr(invocation_clients, "build_cached_llm_provider_registry", lambda **_: registry)
-    llm_settings = _llm_settings_without_qwen36_override() if model == QWEN36_MODEL else _llm_settings()
+    monkeypatch.setattr(
+        invocation_clients, "build_cached_llm_provider_registry", lambda **_: registry
+    )
+    llm_settings = (
+        _llm_settings_without_qwen36_override()
+        if model == QWEN36_MODEL
+        else _llm_settings()
+    )
 
     clients = build_tool_invocation_clients(
         llm_settings=llm_settings,
         bedrock_settings=BedrockSettings.model_construct(region="us-east-1"),
-        vertex_settings=VertexSettings.model_construct(gcp_project_id="project", gcp_location="us-central1"),
+        vertex_settings=VertexSettings.model_construct(
+            gcp_project_id="project", gcp_location="us-central1"
+        ),
     )
 
     assert clients.tool_llm_provider is not None
@@ -734,14 +792,22 @@ async def test_tool_invocation_clients_keep_chutes_selected_model_on_chutes(
         LlmSettings.model_construct(tool_llm_provider="bedrock"),
         LlmSettings.model_construct(
             tool_llm_provider="chutes",
-            llm_model_provider_overrides_json=json.dumps({"tool": {"sample-tool-model": "bedrock"}}),
+            llm_model_provider_overrides_json=json.dumps(
+                {"tool": {"sample-tool-model": "bedrock"}}
+            ),
         ),
     ],
 )
-def test_tool_invocation_clients_reject_bedrock_tool_routes(llm_settings: LlmSettings) -> None:
-    with pytest.raises(ValueError, match="TOOL_LLM_PROVIDER='bedrock' is not supported"):
+def test_tool_invocation_clients_reject_bedrock_tool_routes(
+    llm_settings: LlmSettings,
+) -> None:
+    with pytest.raises(
+        ValueError, match="TOOL_LLM_PROVIDER='bedrock' is not supported"
+    ):
         build_tool_invocation_clients(
             llm_settings=llm_settings,
             bedrock_settings=BedrockSettings.model_construct(region="us-east-1"),
-            vertex_settings=VertexSettings.model_construct(gcp_project_id="project", gcp_location="us-central1"),
+            vertex_settings=VertexSettings.model_construct(
+                gcp_project_id="project", gcp_location="us-central1"
+            ),
         )

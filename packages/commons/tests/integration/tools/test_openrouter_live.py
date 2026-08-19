@@ -81,7 +81,11 @@ def _openrouter_reasoning_request(*, model: str) -> LlmRequest:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('Think briefly, then reply with only "ok".'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'Think briefly, then reply with only "ok".'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,
@@ -114,7 +118,9 @@ def _openrouter_reasoning_provider_extra(*, model: str) -> dict[str, object]:
     native_model = OPENROUTER_INTERNAL_TO_NATIVE_MODEL.get(model, model)
     provider = OPENROUTER_REASONING_PROVIDER_BY_NATIVE_MODEL.get(native_model)
     if provider is None:
-        raise AssertionError(f"No OpenRouter reasoning provider pin configured for {model!r}")
+        raise AssertionError(
+            f"No OpenRouter reasoning provider pin configured for {model!r}"
+        )
     return {
         "provider": {
             "only": [provider],
@@ -145,7 +151,9 @@ async def test_openrouter_provider_invokes_cheapest_chat_model_live() -> None:
     assert response.metadata["effective_model"] == model
     assert response.metadata["actual_cost_evidence"]["upstream_provider"]
     assert response.metadata["actual_cost_evidence"]["upstream_model"]
-    assert response.metadata["actual_cost_evidence"]["provider_request_id"] == response.id
+    assert (
+        response.metadata["actual_cost_evidence"]["provider_request_id"] == response.id
+    )
     assert response.usage.reasoning_tokens is not None
     assert response.usage.reasoning_tokens > 0
 
@@ -167,7 +175,9 @@ async def test_openrouter_byok_completion_settles_original_response_cost_live() 
     assert isinstance(usage, Mapping)
     assert usage.get("is_byok") is True
     openrouter_cost = usage.get("cost")
-    assert isinstance(openrouter_cost, int | float) and not isinstance(openrouter_cost, bool)
+    assert isinstance(openrouter_cost, int | float) and not isinstance(
+        openrouter_cost, bool
+    )
     cost_details = usage.get("cost_details")
     assert isinstance(cost_details, Mapping)
     upstream_inference_cost = cost_details.get("upstream_inference_cost")
@@ -205,7 +215,8 @@ async def test_openrouter_provider_reasoning_live() -> None:
     assert response.metadata["effective_provider"] == "openrouter"
     assert response.metadata["effective_model"] == model
     assert response.choices[0].message.reasoning or (
-        response.usage.reasoning_tokens is not None and response.usage.reasoning_tokens > 0
+        response.usage.reasoning_tokens is not None
+        and response.usage.reasoning_tokens > 0
     )
     assert response.usage.reasoning_tokens is not None
     assert response.usage.reasoning_tokens > 0
@@ -260,7 +271,9 @@ async def test_openrouter_embedding_client_invokes_qwen3_8b_live() -> None:
         assert response.id
 
 
-async def test_openrouter_two_turn_function_tool_loop_with_reasoning_replay_live() -> None:
+async def test_openrouter_two_turn_function_tool_loop_with_reasoning_replay_live() -> (
+    None
+):
     model = OPENROUTER_LIVE_CHAT_MODEL
     settings = LlmSettings()
     assert settings.openrouter_api_key_value, "OPENROUTER_API_KEY must be configured"
@@ -291,7 +304,10 @@ async def test_openrouter_two_turn_function_tool_loop_with_reasoning_replay_live
                 temperature=0.0,
                 max_output_tokens=256,
                 tools=(tool,),
-                tool_choice={"type": "function", "function": {"name": "lookup_weather"}},
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "lookup_weather"},
+                },
                 thinking=LlmThinkingConfig(enabled=True, effort="low"),
                 extra=_openrouter_reasoning_provider_extra(model=model),
                 timeout_seconds=180.0,
@@ -360,7 +376,11 @@ async def test_new_openrouter_model_exact_route_contract_live(model: str) -> Non
     direct_messages = (
         LlmMessage(
             role="user",
-            content=(LlmMessageContentPart.input_text('Think briefly, then reply with only "ok".'),),
+            content=(
+                LlmMessageContentPart.input_text(
+                    'Think briefly, then reply with only "ok".'
+                ),
+            ),
         ),
     )
     user_message = LlmMessage(
@@ -382,7 +402,10 @@ async def test_new_openrouter_model_exact_route_contract_live(model: str) -> Non
             LlmRequest(
                 messages=(user_message,),
                 tools=(tool,),
-                tool_choice={"type": "function", "function": {"name": "lookup_weather"}},
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "lookup_weather"},
+                },
                 **common,
             )
         )

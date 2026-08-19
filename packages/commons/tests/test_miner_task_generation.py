@@ -36,7 +36,9 @@ class StubLlmProvider(LlmProviderPort):
         self.calls: list[GroundedLlmRequest | LlmRequest] = []
         self._generated_query_texts = generated_query_texts
 
-    async def invoke(self, request: AbstractLlmRequest) -> LlmResponse:  # pragma: no cover - interface
+    async def invoke(
+        self, request: AbstractLlmRequest
+    ) -> LlmResponse:  # pragma: no cover - interface
         typed_request = cast(GroundedLlmRequest | LlmRequest, request)
         self.calls.append(typed_request)
         use_case = typed_request.use_case
@@ -87,6 +89,7 @@ class RetryingStubLlmProvider(BaseLlmProvider):
         use_case = request.use_case
 
         if use_case == "miner_task_dataset_generation":
+
             async def _call(_: AbstractLlmRequest) -> LlmResponse:
                 if self.generation_attempts >= len(self._generation_payloads):
                     raise AssertionError("unexpected extra generation attempt")
@@ -95,7 +98,9 @@ class RetryingStubLlmProvider(BaseLlmProvider):
                 return _response_from_text(
                     response_id=f"dataset-{self.generation_attempts}",
                     text=_generation_payload_json(payload),
-                    usage=LlmUsage(prompt_tokens=11, completion_tokens=17, total_tokens=28),
+                    usage=LlmUsage(
+                        prompt_tokens=11, completion_tokens=17, total_tokens=28
+                    ),
                 )
 
             def _always_pass_verifier(_: LlmResponse) -> tuple[bool, bool, str | None]:
@@ -157,8 +162,14 @@ async def test_miner_task_dataset_builder_returns_generic_tasks() -> None:
     assert len(tasks) == 2
     assert len(generation_usage) == 1
     assert len(reference_usage) == 2
-    assert tasks[0].query.text == "Summarize the latest SEC guidance on stablecoin reserves."
-    assert tasks[1].query.text == "Compare Claude 4.5 Sonnet and Gemini 2.5 Flash for coding tasks."
+    assert (
+        tasks[0].query.text
+        == "Summarize the latest SEC guidance on stablecoin reserves."
+    )
+    assert (
+        tasks[1].query.text
+        == "Compare Claude 4.5 Sonnet and Gemini 2.5 Flash for coding tasks."
+    )
     assert tasks[0].reference_answer.text.startswith("Reference answer for:")
     assert tasks[1].reference_answer.text.startswith("Reference answer for:")
     assert tasks[0].reference_answer.citations is not None
@@ -172,7 +183,9 @@ async def test_miner_task_dataset_builder_returns_generic_tasks() -> None:
     assert generation_request.grounded is False
     assert generation_request.output_mode == "structured"
 
-    generation_system_prompt = "\n".join(_text_parts(generation_request.messages[0].content))
+    generation_system_prompt = "\n".join(
+        _text_parts(generation_request.messages[0].content)
+    )
     generation_prompt = "\n".join(_text_parts(generation_request.messages[-1].content))
     assert "at least one independent-source synthesis move" in generation_system_prompt
     assert "no single evidence item can answer completely" in generation_system_prompt
@@ -191,7 +204,9 @@ async def test_miner_task_dataset_builder_returns_generic_tasks() -> None:
 
     reference_request = provider.calls[1]
     reference_prompt = "\n".join(_text_parts(reference_request.messages[0].content))
-    reference_user_prompt = "\n".join(_text_parts(reference_request.messages[-1].content))
+    reference_user_prompt = "\n".join(
+        _text_parts(reference_request.messages[-1].content)
+    )
     assert "Return exactly one JSON object" in reference_prompt
     assert "citation note is scorer-visible evidence" in reference_prompt
     assert "claim-bearing note" in reference_prompt
@@ -211,7 +226,9 @@ async def test_miner_task_dataset_builder_returns_generic_tasks() -> None:
     assert "null or empty citations" in reference_user_prompt
 
 
-async def test_miner_task_dataset_builder_dismisses_incomplete_reference_citations() -> None:
+async def test_miner_task_dataset_builder_dismisses_incomplete_reference_citations() -> (
+    None
+):
     class IncompleteCitationStubLlmProvider(LlmProviderPort):
         def __init__(self) -> None:
             self.calls: list[GroundedLlmRequest | LlmRequest] = []
@@ -224,7 +241,9 @@ async def test_miner_task_dataset_builder_dismisses_incomplete_reference_citatio
                 response = _response_from_text(
                     response_id="dataset-1",
                     text=_generation_payload_json(("What happened?",)),
-                    usage=LlmUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+                    usage=LlmUsage(
+                        prompt_tokens=1, completion_tokens=1, total_tokens=2
+                    ),
                 )
                 return _apply_postprocessor(request=typed_request, response=response)
 
@@ -293,7 +312,9 @@ async def test_miner_task_dataset_builder_dismisses_incomplete_reference_citatio
     assert citations[0].note == "Complete support"
 
 
-async def test_miner_task_dataset_builder_rejects_bedrock_reference_generation() -> None:
+async def test_miner_task_dataset_builder_rejects_bedrock_reference_generation() -> (
+    None
+):
     provider = StubLlmProvider(("What changed at AWS Bedrock this quarter?",))
     builder = MinerTaskDatasetBuilder(
         generation_llm=provider,
@@ -301,7 +322,9 @@ async def test_miner_task_dataset_builder_rejects_bedrock_reference_generation()
         clock=lambda: datetime(2026, 3, 6, tzinfo=UTC),
     )
 
-    with pytest.raises(ValueError, match="grounded mode not supported for provider 'bedrock'"):
+    with pytest.raises(
+        ValueError, match="grounded mode not supported for provider 'bedrock'"
+    ):
         await builder.build(
             MinerTaskDatasetRequest(
                 batch_id=uuid4(),
@@ -413,7 +436,9 @@ async def test_miner_task_dataset_builder_accepts_buffered_duplicates_after_dedu
     assert "miner-task dataset generated fewer tasks than requested" in caplog.text
 
 
-async def test_miner_task_dataset_builder_retries_duplicate_heavy_under_minimum() -> None:
+async def test_miner_task_dataset_builder_retries_duplicate_heavy_under_minimum() -> (
+    None
+):
     provider = RetryingStubLlmProvider(
         (
             (
@@ -481,7 +506,9 @@ async def test_miner_task_dataset_builder_rejects_below_minimum_task_total() -> 
         clock=lambda: datetime(2026, 3, 6, tzinfo=UTC),
     )
 
-    with pytest.raises(RuntimeError, match="generated unique task count below minimum_task_total"):
+    with pytest.raises(
+        RuntimeError, match="generated unique task count below minimum_task_total"
+    ):
         await builder.build(
             MinerTaskDatasetRequest(
                 batch_id=uuid4(),
@@ -529,7 +556,9 @@ class BlankReferenceStubLlmProvider(LlmProviderPort):
         return _apply_postprocessor(request=typed_request, response=response)
 
 
-async def test_miner_task_dataset_builder_rejects_blank_non_vertex_reference_answers() -> None:
+async def test_miner_task_dataset_builder_rejects_blank_non_vertex_reference_answers() -> (
+    None
+):
     provider = BlankReferenceStubLlmProvider()
     builder = MinerTaskDatasetBuilder(
         generation_llm=provider,
@@ -537,7 +566,9 @@ async def test_miner_task_dataset_builder_rejects_blank_non_vertex_reference_ans
         clock=lambda: datetime(2026, 3, 6, tzinfo=UTC),
     )
 
-    with pytest.raises(ValueError, match="grounded mode not supported for provider 'chutes'"):
+    with pytest.raises(
+        ValueError, match="grounded mode not supported for provider 'chutes'"
+    ):
         await builder.build(
             MinerTaskDatasetRequest(
                 batch_id=uuid4(),

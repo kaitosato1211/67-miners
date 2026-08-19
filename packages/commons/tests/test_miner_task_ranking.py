@@ -24,8 +24,12 @@ from harnyx_commons.miner_task_ranking import (
 
 def test_run_ranking_cost_usd_uses_reference_total_with_embedding_cost() -> None:
     details = EvaluationDetails(
-        score_breakdown=ScoreBreakdown(comparison_score=1.0, total_score=1.0, scoring_version="test"),
-        total_tool_usage=ToolUsageSummary(llm_cost=0.12, search_tool_cost=0.03, embedding_cost=0.05),
+        score_breakdown=ScoreBreakdown(
+            comparison_score=1.0, total_score=1.0, scoring_version="test"
+        ),
+        total_tool_usage=ToolUsageSummary(
+            llm_cost=0.12, search_tool_cost=0.03, embedding_cost=0.05
+        ),
     )
 
     assert run_ranking_cost_usd(details) == pytest.approx(0.20)
@@ -66,7 +70,9 @@ def test_aggregate_ranking_rows_uses_per_task_validator_medians() -> None:
     assert bundle.median_elapsed_ms[artifact_2] == pytest.approx(3500.0)
 
 
-def test_aggregate_ranking_rows_omits_elapsed_when_any_validator_elapsed_is_missing() -> None:
+def test_aggregate_ranking_rows_omits_elapsed_when_any_validator_elapsed_is_missing() -> (
+    None
+):
     validator_a = uuid4()
     validator_b = uuid4()
     artifact = uuid4()
@@ -128,8 +134,12 @@ def test_current_ranking_cascade_uses_ceiling_aware_ten_percentage_point_score_m
     assert score_rule.required_absolute_improvement == pytest.approx(
         min(0.10, (task_count - incumbent_total) / task_count)
     )
-    assert score_rule.observed_absolute_improvement == pytest.approx((challenger_total - incumbent_total) / task_count)
-    assert trace.final_artifact_id == (challenger if expected_status is RankingRuleStatus.PASSED else incumbent)
+    assert score_rule.observed_absolute_improvement == pytest.approx(
+        (challenger_total - incumbent_total) / task_count
+    )
+    assert trace.final_artifact_id == (
+        challenger if expected_status is RankingRuleStatus.PASSED else incumbent
+    )
 
 
 @pytest.mark.parametrize(
@@ -187,7 +197,10 @@ def test_current_ranking_cascade_runtime_reduction_binds_relative_and_absolute_r
             vectors={incumbent: [0.5], challenger: [0.5]},
             totals={incumbent: 0.5, challenger: 0.5},
             costs={incumbent: 10.0, challenger: 10.0},
-            median_elapsed_ms={incumbent: incumbent_runtime, challenger: challenger_runtime},
+            median_elapsed_ms={
+                incumbent: incumbent_runtime,
+                challenger: challenger_runtime,
+            },
         ),
     )
 
@@ -217,7 +230,11 @@ def test_historical_ranking_cascade_retains_relative_twenty_percent_margins() ->
     evaluation = trace.steps[0].evaluation
     assert evaluation is not None
     assert evaluation.selected_rule is None
-    assert [rule.required_relative_improvement for rule in evaluation.rules] == [0.20, 0.20, 0.20]
+    assert [rule.required_relative_improvement for rule in evaluation.rules] == [
+        0.20,
+        0.20,
+        0.20,
+    ]
     assert evaluation.rules[0].required_absolute_improvement is None
     assert trace.final_artifact_id == incumbent
 
@@ -289,10 +306,16 @@ def test_ranking_cascade_score_margin_is_independent_of_efficiency() -> None:
 
     assert worse_trace.final_artifact_id == worse_efficiency
     assert worse_trace.steps[0].evaluation is not None
-    assert worse_trace.steps[0].evaluation.selected_rule is RankingDecisionRule.SCORE_MARGIN
+    assert (
+        worse_trace.steps[0].evaluation.selected_rule
+        is RankingDecisionRule.SCORE_MARGIN
+    )
     assert missing_trace.final_artifact_id == missing_efficiency
     assert missing_trace.steps[0].evaluation is not None
-    assert missing_trace.steps[0].evaluation.selected_rule is RankingDecisionRule.SCORE_MARGIN
+    assert (
+        missing_trace.steps[0].evaluation.selected_rule
+        is RankingDecisionRule.SCORE_MARGIN
+    )
 
 
 @pytest.mark.parametrize(
@@ -339,7 +362,9 @@ def test_ranking_cascade_cost_reduction_requires_runtime_non_regression(
     assert evaluation.rules[1].status is expected_status
     assert evaluation.cost_non_regressing is True
     assert evaluation.runtime_non_regressing is expected_non_regressing
-    assert trace.final_artifact_id == (challenger if expected_champion == "challenger" else incumbent)
+    assert trace.final_artifact_id == (
+        challenger if expected_champion == "challenger" else incumbent
+    )
 
 
 @pytest.mark.parametrize(
@@ -386,10 +411,14 @@ def test_ranking_cascade_runtime_reduction_requires_cost_non_regression(
     assert evaluation.rules[2].status is expected_status
     assert evaluation.cost_non_regressing is expected_non_regressing
     assert evaluation.runtime_non_regressing is True
-    assert trace.final_artifact_id == (challenger if expected_champion == "challenger" else incumbent)
+    assert trace.final_artifact_id == (
+        challenger if expected_champion == "challenger" else incumbent
+    )
 
 
-def test_ranking_cascade_alternating_efficiency_dethrones_do_not_regress_either_dimension() -> None:
+def test_ranking_cascade_alternating_efficiency_dethrones_do_not_regress_either_dimension() -> (
+    None
+):
     cascade = RankingCascade()
     incumbent = uuid4()
     faster_challenger = uuid4()
@@ -415,7 +444,10 @@ def test_ranking_cascade_alternating_efficiency_dethrones_do_not_regress_either_
     )
 
     assert trace.final_artifact_id == cheaper_challenger
-    assert [step.evaluation.selected_rule if step.evaluation else None for step in trace.steps] == [
+    assert [
+        step.evaluation.selected_rule if step.evaluation else None
+        for step in trace.steps
+    ] == [
         RankingDecisionRule.RUNTIME_REDUCTION,
         RankingDecisionRule.COST_REDUCTION,
     ]
@@ -481,19 +513,26 @@ def test_ranking_cascade_trace_records_successful_dethrone_sequence() -> None:
         challenger_b,
     ]
     assert [step.dethroned for step in trace.steps] == [True, False, True]
-    assert [step.evaluation.selected_rule if step.evaluation else None for step in trace.steps] == [
+    assert [
+        step.evaluation.selected_rule if step.evaluation else None
+        for step in trace.steps
+    ] == [
         RankingDecisionRule.SCORE_MARGIN,
         None,
         RankingDecisionRule.COST_REDUCTION,
     ]
     assert trace.steps[0].evaluation is not None
     assert trace.steps[0].evaluation.rules[0].observed_relative_improvement is None
-    assert trace.steps[0].evaluation.rules[0].observed_absolute_improvement == pytest.approx(0.1)
+    assert trace.steps[0].evaluation.rules[
+        0
+    ].observed_absolute_improvement == pytest.approx(0.1)
     assert trace.steps[1].evaluation is not None
     assert trace.steps[1].evaluation.score_non_regressing is False
     assert trace.steps[1].evaluation.rules[1].status is RankingRuleStatus.FAILED
     assert trace.steps[2].evaluation is not None
-    assert trace.steps[2].evaluation.rules[1].observed_relative_improvement == pytest.approx(0.3)
+    assert trace.steps[2].evaluation.rules[
+        1
+    ].observed_relative_improvement == pytest.approx(0.3)
 
 
 def test_ranking_cascade_trace_records_championless_champion_lineage() -> None:
@@ -505,8 +544,12 @@ def test_ranking_cascade_trace_records_championless_champion_lineage() -> None:
         final_artifact_id=final_champion,
         steps=(
             RankingCascadeStep(None, provisional_champion, provisional_champion, False),
-            RankingCascadeStep(provisional_champion, rejected, provisional_champion, False),
-            RankingCascadeStep(provisional_champion, final_champion, final_champion, True),
+            RankingCascadeStep(
+                provisional_champion, rejected, provisional_champion, False
+            ),
+            RankingCascadeStep(
+                provisional_champion, final_champion, final_champion, True
+            ),
         ),
     )
 
@@ -527,7 +570,9 @@ def test_ranking_cascade_trace_records_championless_champion_lineage() -> None:
     )
 
 
-def test_ranking_cascade_trace_treats_positive_replacement_of_zero_incumbent_as_dethrone() -> None:
+def test_ranking_cascade_trace_treats_positive_replacement_of_zero_incumbent_as_dethrone() -> (
+    None
+):
     cascade = RankingCascade()
     incumbent = uuid4()
     challenger = uuid4()
@@ -620,7 +665,9 @@ def test_ranking_cascade_trace_preserves_rule_thresholds_and_precedence() -> Non
 def test_ordered_challengers_excludes_only_the_incumbent() -> None:
     incumbent = uuid4()
     challenger = uuid4()
-    assert ordered_challengers(initial=incumbent, candidate_artifact_ids=[incumbent, challenger]) == [challenger]
+    assert ordered_challengers(
+        initial=incumbent, candidate_artifact_ids=[incumbent, challenger]
+    ) == [challenger]
 
 
 def test_compose_champion_weights_returns_winner_take_all() -> None:
@@ -628,7 +675,9 @@ def test_compose_champion_weights_returns_winner_take_all() -> None:
     assert compose_champion_weights(None) == {}
 
 
-def test_main_participant_priority_uses_reverse_main_lineage_then_reverse_qualifying_order() -> None:
+def test_main_participant_priority_uses_reverse_main_lineage_then_reverse_qualifying_order() -> (
+    None
+):
     incumbent = uuid4()
     dethroner_a = uuid4()
     dethroner_b = uuid4()
@@ -645,11 +694,18 @@ def test_main_participant_priority_uses_reverse_main_lineage_then_reverse_qualif
 
     assert main_participant_priority(
         main_trace=trace,
-        qualifying_participant_order=(incumbent, dethroner_a, dethroner_b, non_dethroner),
+        qualifying_participant_order=(
+            incumbent,
+            dethroner_a,
+            dethroner_b,
+            non_dethroner,
+        ),
     ) == (dethroner_b, dethroner_a, incumbent, non_dethroner)
 
 
-def test_main_participant_priority_uses_reverse_qualifying_order_without_final_champion() -> None:
+def test_main_participant_priority_uses_reverse_qualifying_order_without_final_champion() -> (
+    None
+):
     incumbent = uuid4()
     challenger_a = uuid4()
     challenger_b = uuid4()

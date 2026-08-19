@@ -26,7 +26,9 @@ class StubProvider:
     def __init__(self) -> None:
         self.requests: list[LlmRequest] = []
 
-    async def invoke(self, request: LlmRequest) -> LlmResponse:  # pragma: no cover - simple stub
+    async def invoke(
+        self, request: LlmRequest
+    ) -> LlmResponse:  # pragma: no cover - simple stub
         self.requests.append(request)
         return LlmResponse(
             id="stub",

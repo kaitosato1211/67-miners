@@ -7,8 +7,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
-from harnyx_validator.application.ports.platform import PlatformPort, PlatformWeightsUnavailableError
-from harnyx_validator.application.ports.subtensor import SubtensorClientPort, WeightSubmissionTooEarlyError
+from harnyx_validator.application.ports.platform import (
+    PlatformPort,
+    PlatformWeightsUnavailableError,
+)
+from harnyx_validator.application.ports.subtensor import (
+    SubtensorClientPort,
+    WeightSubmissionTooEarlyError,
+)
 
 weights_logger = logging.getLogger("harnyx_validator.weights.ranking")
 
@@ -73,7 +79,9 @@ class WeightSubmissionService:
         champion_uid = selection.champion_uid
         if not weights:
             raise RuntimeError("platform returned empty weights")
-        weights_logger.debug("submitting weights to subtensor", extra={"data": {"weights": weights}})
+        weights_logger.debug(
+            "submitting weights to subtensor", extra={"data": {"weights": weights}}
+        )
         tx_hash = self._subtensor.submit_weights(weights)
         submitted_at = self._clock()
         weights_logger.info(
@@ -88,7 +96,9 @@ class WeightSubmissionService:
                 }
             },
         )
-        return WeightSubmissionResult(champion_uid=champion_uid, weights=weights, tx_hash=tx_hash)
+        return WeightSubmissionResult(
+            champion_uid=champion_uid, weights=weights, tx_hash=tx_hash
+        )
 
 
 __all__ = ["WeightSubmissionResult", "WeightSubmissionService"]

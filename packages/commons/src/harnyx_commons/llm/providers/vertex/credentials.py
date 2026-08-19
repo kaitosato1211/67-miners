@@ -10,7 +10,10 @@ from typing import Any
 
 from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 
-from harnyx_commons.gcp.credentials import decode_service_account_b64, load_service_account_info
+from harnyx_commons.gcp.credentials import (
+    decode_service_account_b64,
+    load_service_account_info,
+)
 
 _CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
 _SERVICE_ACCOUNT_B64_SOURCE = "GCP_SERVICE_ACCOUNT_CREDENTIAL_BASE64"
@@ -27,8 +30,12 @@ def prepare_credentials(
     if credentials_path:
         credential_path = credentials_path
     elif service_account_b64:
-        serialized = decode_service_account_b64(service_account_b64, source=_SERVICE_ACCOUNT_B64_SOURCE)
-        credentials_info = load_service_account_info(serialized, source=_SERVICE_ACCOUNT_B64_SOURCE)
+        serialized = decode_service_account_b64(
+            service_account_b64, source=_SERVICE_ACCOUNT_B64_SOURCE
+        )
+        credentials_info = load_service_account_info(
+            serialized, source=_SERVICE_ACCOUNT_B64_SOURCE
+        )
         credential_path = _persist_credentials(serialized)
     else:
         credential_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -81,4 +88,8 @@ def _persist_credentials(serialized: str) -> str:
         return path
 
 
-__all__ = ["prepare_credentials", "cleanup_credentials_file", "ServiceAccountCredentials"]
+__all__ = [
+    "prepare_credentials",
+    "cleanup_credentials_file",
+    "ServiceAccountCredentials",
+]

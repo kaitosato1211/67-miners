@@ -36,7 +36,9 @@ class _Submission:
     specifics: _Specifics
 
 
-def test_delivery_exclusion_selects_first_validator_owned_completed_pair_failure() -> None:
+def test_delivery_exclusion_selects_first_validator_owned_completed_pair_failure() -> (
+    None
+):
     observed_at = datetime(2026, 4, 29, 4, 0, tzinfo=UTC)
     completed_at = datetime(2026, 4, 29, 4, 1, tzinfo=UTC)
     validator_owned_artifact_id = uuid4()
@@ -82,7 +84,9 @@ def test_delivery_exclusion_uses_observed_at_when_completed_at_is_missing() -> N
     assert decision.occurred_at == observed_at
 
 
-def test_delivery_exclusion_ignores_historical_timeout_inconclusive_pair_failures() -> None:
+def test_delivery_exclusion_ignores_historical_timeout_inconclusive_pair_failures() -> (
+    None
+):
     observed_at = datetime(2026, 4, 29, 4, 0, tzinfo=UTC)
 
     decision = delivery_exclusion_from_completed_pair_results(
@@ -107,8 +111,12 @@ def test_delivery_exclusion_ignores_miner_owned_pair_failures() -> None:
     assert decision is None
 
 
-def test_sandbox_failure_shape_classifiers_expose_validator_attribution_policy() -> None:
-    assert is_timeout_sandbox_invocation(status_code=504, detail_exception="TimeoutError")
+def test_sandbox_failure_shape_classifiers_expose_validator_attribution_policy() -> (
+    None
+):
+    assert is_timeout_sandbox_invocation(
+        status_code=504, detail_exception="TimeoutError"
+    )
     assert is_script_validation_sandbox_invocation(detail_code="MissingEntrypoint")
     assert is_provider_caused_terminal_failure(
         detail_code="UnhandledException",
@@ -144,7 +152,9 @@ def test_platform_tool_proxy_interrupted_receipt_is_not_timeout_evidence() -> No
     assert not is_platform_tool_proxy_timeout_receipt(receipt)
 
 
-def test_uncaught_platform_tool_proxy_timeout_requires_timeout_receipt_and_tool_failure_shape() -> None:
+def test_uncaught_platform_tool_proxy_timeout_requires_timeout_receipt_and_tool_failure_shape() -> (
+    None
+):
     assert is_uncaught_platform_tool_proxy_timeout_sandbox_invocation(
         detail_code="UnhandledException",
         detail_exception="ToolInvocationError",
@@ -198,5 +208,7 @@ def _submission(
             artifact_id=artifact_id or uuid4(),
             task_id=task_id or uuid4(),
         ),
-        specifics=_Specifics(error=EvaluationError(code=code, message=f"{code.value} happened")),
+        specifics=_Specifics(
+            error=EvaluationError(code=code, message=f"{code.value} happened")
+        ),
     )

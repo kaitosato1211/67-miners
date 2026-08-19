@@ -86,7 +86,9 @@ def apply_miner_emission_cap(
         batch_score,
         max_miner_emission_fraction=max_miner_emission_fraction,
     )
-    scaled: dict[int, float] = {uid: float(weight) / total * miner_fraction for uid, weight in base.items()}
+    scaled: dict[int, float] = {
+        uid: float(weight) / total * miner_fraction for uid, weight in base.items()
+    }
     scaled[OWNER_UID] = 1.0 - miner_fraction
     return scaled
 
@@ -124,7 +126,10 @@ def participant_emission_fraction(
         return 0.0
     payable_count = min(
         participant_count,
-        floor((TOTAL_EMISSION_FRACTION + _TOTAL_WEIGHT_EPSILON) / miner_participation_emission),
+        floor(
+            (TOTAL_EMISSION_FRACTION + _TOTAL_WEIGHT_EPSILON)
+            / miner_participation_emission
+        ),
     )
     return min(TOTAL_EMISSION_FRACTION, payable_count * miner_participation_emission)
 
@@ -135,8 +140,12 @@ def compose_participant_emission_weights(
     miner_participation_emission: float = DEFAULT_MINER_PARTICIPATION_EMISSION,
 ) -> dict[int, float]:
     _validate_miner_participation_emission(miner_participation_emission)
-    distinct_uids = tuple(dict.fromkeys(uid for uid in registered_participant_uids if uid != OWNER_UID))
-    return _capped_allocations_in_order(tuple((uid, miner_participation_emission) for uid in distinct_uids))
+    distinct_uids = tuple(
+        dict.fromkeys(uid for uid in registered_participant_uids if uid != OWNER_UID)
+    )
+    return _capped_allocations_in_order(
+        tuple((uid, miner_participation_emission) for uid in distinct_uids)
+    )
 
 
 def compose_flat_participant_emission_allocations(
@@ -151,7 +160,10 @@ def compose_flat_participant_emission_allocations(
             raise ValueError("participant key must be non-empty")
         distinct_keys.setdefault(participant_key, None)
     return _capped_allocations_in_order(
-        tuple((participant_key, miner_participation_emission) for participant_key in distinct_keys)
+        tuple(
+            (participant_key, miner_participation_emission)
+            for participant_key in distinct_keys
+        )
     )
 
 
@@ -168,7 +180,10 @@ def compose_base_participant_emission_allocations(
         if not participant_key:
             raise ValueError("participant key must be non-empty")
         distinct_keys.setdefault(participant_key, None)
-    return {participant_key: miner_participation_emission for participant_key in distinct_keys}
+    return {
+        participant_key: miner_participation_emission
+        for participant_key in distinct_keys
+    }
 
 
 def compose_tiered_participant_emission_allocations(
@@ -205,7 +220,10 @@ def compose_novelty_distribution_weights(
         if participant.classification == "novel"
     }
     for participant in selected:
-        if participant.artifact_id in main_artifact_ids and participant.classification == "novel":
+        if (
+            participant.artifact_id in main_artifact_ids
+            and participant.classification == "novel"
+        ):
             weights[participant.participant_key] = 5
     return weights
 
@@ -236,10 +254,18 @@ def compose_artifact_participant_distribution_weights(
         if not participant.participant_key:
             raise ValueError("participant key must be non-empty")
         if participant.artifact_id is None:
-            raise ValueError("artifact-weighted participant emission requires an artifact")
+            raise ValueError(
+                "artifact-weighted participant emission requires an artifact"
+            )
         if participant.classification is None:
-            raise ValueError("artifact-weighted participant emission requires a classification")
-        if not isfinite(participant.score) or participant.score < 0.0 or participant.score > 1.0:
+            raise ValueError(
+                "artifact-weighted participant emission requires a classification"
+            )
+        if (
+            not isfinite(participant.score)
+            or participant.score < 0.0
+            or participant.score > 1.0
+        ):
             raise ValueError("participant score must be between 0.0 and 1.0")
         if participant.artifact_id in selected_by_artifact:
             raise ValueError("participant artifact ids must be unique")
@@ -254,7 +280,9 @@ def compose_artifact_participant_distribution_weights(
         participant = selected_by_artifact[artifact_id]
         classification = participant.classification
         if classification is None:
-            raise ValueError("artifact-weighted participant emission requires a classification")
+            raise ValueError(
+                "artifact-weighted participant emission requires a classification"
+            )
         novelty_multiplier = _novelty_multiplier(classification)
         weights[artifact_id] = ParticipantEmissionArtifactWeight(
             participation_stage_multiplier=stage_multiplier,
@@ -340,7 +368,9 @@ def compose_emission_weights(*components: dict[int, float]) -> dict[int, float]:
     if _exceeds_total_emission(miner_fraction):
         raise ValueError("emission exceeds total weight")
     # Assigning miner emission to owner UID burns it; owner is not a miner payout recipient.
-    weights[OWNER_UID] = TOTAL_EMISSION_FRACTION - min(TOTAL_EMISSION_FRACTION, miner_fraction)
+    weights[OWNER_UID] = TOTAL_EMISSION_FRACTION - min(
+        TOTAL_EMISSION_FRACTION, miner_fraction
+    )
     return weights
 
 
@@ -351,13 +381,21 @@ def compose_prioritized_emission(
 ) -> PrioritizedEmissionComposition:
     """Fill champion, main and general emission capacity in policy order."""
 
-    weights = {uid: weight for uid, weight in champion.items() if uid != OWNER_UID and weight > 0.0}
+    weights = {
+        uid: weight
+        for uid, weight in champion.items()
+        if uid != OWNER_UID and weight > 0.0
+    }
     used = fsum(weights.values())
     if _exceeds_total_emission(used):
         raise ValueError("champion emission exceeds total weight")
     admission = admit_prioritized_emission(
         {uid: weight for uid, weight in main_additions.items() if uid != OWNER_UID},
-        {uid: weight for uid, weight in general_participation.items() if uid != OWNER_UID},
+        {
+            uid: weight
+            for uid, weight in general_participation.items()
+            if uid != OWNER_UID
+        },
         reserved_fraction=used,
     )
     for component in (
@@ -367,7 +405,9 @@ def compose_prioritized_emission(
         for uid, weight in component.items():
             weights[uid] = weights.get(uid, 0.0) + weight
     emitted_fraction = fsum(weights.values())
-    weights[OWNER_UID] = TOTAL_EMISSION_FRACTION - min(TOTAL_EMISSION_FRACTION, emitted_fraction)
+    weights[OWNER_UID] = TOTAL_EMISSION_FRACTION - min(
+        TOTAL_EMISSION_FRACTION, emitted_fraction
+    )
     return PrioritizedEmissionComposition(
         weights=weights,
         accepted_main_additions=admission.accepted_main_additions,
@@ -385,8 +425,10 @@ def admit_prioritized_emission(
 ) -> PrioritizedEmissionAdmission[_ParticipantKey]:
     """Reserve capacity in champion, main and general policy order before UID projection."""
 
-    if not isfinite(reserved_fraction) or reserved_fraction < 0.0 or _exceeds_total_emission(
-        reserved_fraction
+    if (
+        not isfinite(reserved_fraction)
+        or reserved_fraction < 0.0
+        or _exceeds_total_emission(reserved_fraction)
     ):
         raise ValueError("reserved emission fraction must be between 0.0 and 1.0")
     accepted_main, dropped_main, used = _admit_prioritized_component(
@@ -412,10 +454,16 @@ def select_participant_emission_scores(
     for participant in participant_scores:
         if not participant.participant_key:
             raise ValueError("participant key must be non-empty")
-        if not isfinite(participant.score) or participant.score < 0.0 or participant.score > 1.0:
+        if (
+            not isfinite(participant.score)
+            or participant.score < 0.0
+            or participant.score > 1.0
+        ):
             raise ValueError("participant score must be between 0.0 and 1.0")
         existing = selected.get(participant.participant_key)
-        if existing is None or _participant_selection_key(participant) > _participant_selection_key(existing):
+        if existing is None or _participant_selection_key(
+            participant
+        ) > _participant_selection_key(existing):
             selected[participant.participant_key] = participant
     return tuple(selected[participant_key] for participant_key in sorted(selected))
 
@@ -427,7 +475,9 @@ def _participant_fixed_reward_ratio(
         return 1.0
     if classification in {"near_duplicate", "novel"}:
         return 0.25
-    raise ValueError(f"unsupported participant similarity classification: {classification}")
+    raise ValueError(
+        f"unsupported participant similarity classification: {classification}"
+    )
 
 
 def _participant_selection_key(
@@ -439,7 +489,9 @@ def _participant_selection_key(
         "notable_change": 2,
         "novel": 3,
     }[participant.classification]
-    artifact_key = "" if participant.artifact_id is None else str(participant.artifact_id)
+    artifact_key = (
+        "" if participant.artifact_id is None else str(participant.artifact_id)
+    )
     return participant.score, novelty_rank, artifact_key
 
 
@@ -508,7 +560,9 @@ def _artifact_participation_stage_multipliers(
     for participant in ordered:
         artifact_id = participant.artifact_id
         if artifact_id is None:
-            raise ValueError("artifact-weighted participant emission requires an artifact")
+            raise ValueError(
+                "artifact-weighted participant emission requires an artifact"
+            )
         if artifact_id in main_participant_artifact_ids:
             multipliers[artifact_id] = 5
         elif participant.score <= 0.0:

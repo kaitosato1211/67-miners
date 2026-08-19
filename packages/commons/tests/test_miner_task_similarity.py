@@ -1,4 +1,7 @@
-from harnyx_commons.miner_task_similarity import SimilarityVoteInput, tally_similarity_votes
+from harnyx_commons.miner_task_similarity import (
+    SimilarityVoteInput,
+    tally_similarity_votes,
+)
 
 
 def test_similarity_vote_tally_passes_and_uses_lower_median_classification() -> None:
@@ -46,7 +49,9 @@ def test_similarity_vote_tally_zero_responses_has_no_pass_result() -> None:
     assert tally.passes is None
 
 
-def test_similarity_vote_tally_preserves_legacy_binary_votes_without_inventing_novelty() -> None:
+def test_similarity_vote_tally_preserves_legacy_binary_votes_without_inventing_novelty() -> (
+    None
+):
     tally = tally_similarity_votes(
         (
             SimilarityVoteInput(status="responded", classification="not_duplicate"),
@@ -74,7 +79,9 @@ def test_similarity_vote_tally_uses_explicit_four_outcome_order() -> None:
     assert tally.eligible_classification == "near_duplicate"
 
 
-def test_similarity_vote_tally_even_boundary_prefers_notable_change_over_novel() -> None:
+def test_similarity_vote_tally_even_boundary_prefers_notable_change_over_novel() -> (
+    None
+):
     tally = tally_similarity_votes(
         (
             SimilarityVoteInput(status="responded", classification="notable_change"),

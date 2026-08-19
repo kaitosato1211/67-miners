@@ -224,7 +224,7 @@ Use completed-batch tools by purpose:
 - `get_task_results(batch_id, artifact_id, task_id)` for full result detail,
   attempts, and ordered `execution_log` summaries for one task in `results[]`.
 - `get_task_execution_log_entry(batch_id, artifact_id, task_id,
-  validator_hotkey, entry_index, attempt_number?)` for one selected summary
+validator_hotkey, entry_index, attempt_number?)` for one selected summary
   entry’s redacted request and response. Supply `attempt_number` for an
   attempt-owned entry; omit it for the historical top-level fallback.
 
@@ -232,16 +232,16 @@ Use completed-batch tools by purpose:
 
 Work from the first failed condition that applies.
 
-| Symptom | Check | Tool or Source |
-|---------|-------|----------------|
-| Upload not accepted | Submit response, local hash, signing wallet/hotkey, current candidate or finalized non-terminal membership metadata | `harnyx-miner-submit`, `harnyx-miner-hash`, `get_latest_submissions`, `get_miner_task_batch` |
-| Accepted but not in completed batch | `submitted_at` versus `cutoff_at`, current candidate or finalized non-terminal membership, completed batch artifact/result visibility | `get_latest_submissions`, `get_miner_task_batch` |
-| Batch still running | Delivery state and progress only; do not look for public result rows yet | `get_miner_task_batch` |
-| Execution did not happen | Delivery state/progress, then the selected artifact's `error_counts` after completion | `get_miner_task_batch`, `get_miner_task_batch_artifact_comparison` |
-| Timeout, crash, or budget issue | Attempts, `elapsed_ms`, `execution_log`, `specifics.error`, cost totals | `get_miner_task_batch_results`, then `get_task_results` for the chosen `task_id` |
-| Weak answer | Reference answer from batch task metadata; miner response/citations/score details from artifact result rows joined by `task_id` | `get_miner_task_batch`, `get_miner_task_batch_results`, then `get_task_results` when full task detail is needed |
-| Judge rationale is surprising | `specifics.score_breakdown.reasoning.text` when present | `get_miner_task_batch_results` or `get_task_results` |
-| Need direct target-vs-champion answer comparison | Re-run local eval in `vs-champion` mode and compare the report's `target` and `opponent` fields | `harnyx-miner-local-eval` |
+| Symptom                                          | Check                                                                                                                                 | Tool or Source                                                                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Upload not accepted                              | Submit response, local hash, signing wallet/hotkey, current candidate or finalized non-terminal membership metadata                   | `harnyx-miner-submit`, `harnyx-miner-hash`, `get_latest_submissions`, `get_miner_task_batch`                    |
+| Accepted but not in completed batch              | `submitted_at` versus `cutoff_at`, current candidate or finalized non-terminal membership, completed batch artifact/result visibility | `get_latest_submissions`, `get_miner_task_batch`                                                                |
+| Batch still running                              | Delivery state and progress only; do not look for public result rows yet                                                              | `get_miner_task_batch`                                                                                          |
+| Execution did not happen                         | Delivery state/progress, then the selected artifact's `error_counts` after completion                                                 | `get_miner_task_batch`, `get_miner_task_batch_artifact_comparison`                                              |
+| Timeout, crash, or budget issue                  | Attempts, `elapsed_ms`, `execution_log`, `specifics.error`, cost totals                                                               | `get_miner_task_batch_results`, then `get_task_results` for the chosen `task_id`                                |
+| Weak answer                                      | Reference answer from batch task metadata; miner response/citations/score details from artifact result rows joined by `task_id`       | `get_miner_task_batch`, `get_miner_task_batch_results`, then `get_task_results` when full task detail is needed |
+| Judge rationale is surprising                    | `specifics.score_breakdown.reasoning.text` when present                                                                               | `get_miner_task_batch_results` or `get_task_results`                                                            |
+| Need direct target-vs-champion answer comparison | Re-run local eval in `vs-champion` mode and compare the report's `target` and `opponent` fields                                       | `harnyx-miner-local-eval`                                                                                       |
 
 For weak answers, join the data like this:
 

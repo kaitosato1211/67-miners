@@ -1,6 +1,7 @@
 # Harnyx API flows (sequence diagrams)
 
 All Mermaid **sequence diagrams** live here (one document). For request/response shapes, use the generated endpoint references:
+
 - Platform: [generated/platform.md](generated/platform.md)
 - Validator: [generated/validator.md](generated/validator.md)
 - Sandbox: [generated/sandbox.md](generated/sandbox.md)
@@ -21,13 +22,13 @@ These diagrams are intentionally **linear** (no `alt` / `par` / `loop`) to keep 
 
 ## Flow catalog (fast scan)
 
-| Domain | Flow | Goal | Actors | Auth / Context |
-|--------|------|------|--------|------|
-| Subnet runtime | Miner config | configure retry count; upload, read, or delete redacted provider credential status | Miner ↔ Platform | `Authorization: Bittensor ...` |
-| Subnet runtime | Miner script upload | upload script artifact | Miner ↔ Platform | `Authorization: Bittensor ...` |
-| Subnet runtime | Miner-task batch | materialize platform-owned work, poll assignments, run sandbox, and submit task results | Platform ↔ Validator ↔ Sandbox | `Authorization: Bittensor ...` + `x-platform-token` + `x-session-id` + `x-host-container-url` |
-| Subnet runtime | Tool execution | agent invokes host tools | Sandbox agent ↔ Tool host | `x-platform-token` + `x-session-id` |
-| Subnet ops | Validator registration and weights | register API base URL; read weights | Validator ↔ Platform | `Authorization: Bittensor ...` |
+| Domain         | Flow                               | Goal                                                                                    | Actors                         | Auth / Context                                                                                |
+| -------------- | ---------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
+| Subnet runtime | Miner config                       | configure retry count; upload, read, or delete redacted provider credential status      | Miner ↔ Platform               | `Authorization: Bittensor ...`                                                                |
+| Subnet runtime | Miner script upload                | upload script artifact                                                                  | Miner ↔ Platform               | `Authorization: Bittensor ...`                                                                |
+| Subnet runtime | Miner-task batch                   | materialize platform-owned work, poll assignments, run sandbox, and submit task results | Platform ↔ Validator ↔ Sandbox | `Authorization: Bittensor ...` + `x-platform-token` + `x-session-id` + `x-host-container-url` |
+| Subnet runtime | Tool execution                     | agent invokes host tools                                                                | Sandbox agent ↔ Tool host      | `x-platform-token` + `x-session-id`                                                           |
+| Subnet ops     | Validator registration and weights | register API base URL; read weights                                                     | Validator ↔ Platform           | `Authorization: Bittensor ...`                                                                |
 
 ---
 
@@ -37,14 +38,14 @@ These flows are the subnet’s core evaluation path.
 
 ### Miner config
 
-| Overview | |
-|---|---|
-| **What’s happening** | Miner manages platform-stored config for a signing hotkey. |
-| **Execution status** | Stored provider credentials are used by active miner-task batch execution through scoped platform tool proxy calls. Raw provider API keys are never returned to validators or sandboxes. |
+| Overview               |                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What’s happening**   | Miner manages platform-stored config for a signing hotkey.                                                                                                                                                                                                                                                                                                       |
+| **Execution status**   | Stored provider credentials are used by active miner-task batch execution through scoped platform tool proxy calls. Raw provider API keys are never returned to validators or sandboxes.                                                                                                                                                                         |
 | **Credential cleanup** | On successful metagraph refresh, platform prunes provider credentials for miner hotkeys absent from the refreshed metagraph, but defers deletion while that hotkey has a script submitted after the latest completed source-batch cutoff or current champion ownership. Empty registered-hotkey snapshots and suspiciously broad cleanup candidates are skipped. |
-| **Actors** | Miner ↔ Platform |
-| **Auth** | `Authorization: Bittensor ss58="...",sig="..."` |
-| **Happy path** | `GET`, `PUT`, or `DELETE /v1/miner-config` returns retry count and redacted provider status. |
+| **Actors**             | Miner ↔ Platform                                                                                                                                                                                                                                                                                                                                                 |
+| **Auth**               | `Authorization: Bittensor ss58="...",sig="..."`                                                                                                                                                                                                                                                                                                                  |
+| **Happy path**         | `GET`, `PUT`, or `DELETE /v1/miner-config` returns retry count and redacted provider status.                                                                                                                                                                                                                                                                     |
 
 ```mermaid
 sequenceDiagram
@@ -67,6 +68,7 @@ sequenceDiagram
 ```
 
 **Endpoints involved**
+
 - Platform:
   - [GET /v1/miner-config](generated/platform.md#endpoint-get-v1-miner-config)
   - [PUT /v1/miner-config](generated/platform.md#endpoint-put-v1-miner-config)
@@ -76,12 +78,12 @@ sequenceDiagram
 
 ### Miner script upload
 
-| Overview | |
-|---|---|
+| Overview             |                                                                       |
+| -------------------- | --------------------------------------------------------------------- |
 | **What’s happening** | Miner uploads a script artifact that later becomes a batch candidate. |
-| **Actors** | Miner ↔ Platform |
-| **Auth** | `Authorization: Bittensor ss58="...",sig="..."` |
-| **Happy path** | `POST /v1/miners/scripts` returns `{ artifact_id, ... }` |
+| **Actors**           | Miner ↔ Platform                                                      |
+| **Auth**             | `Authorization: Bittensor ss58="...",sig="..."`                       |
+| **Happy path**       | `POST /v1/miners/scripts` returns `{ artifact_id, ... }`              |
 
 ```mermaid
 sequenceDiagram
@@ -95,19 +97,20 @@ sequenceDiagram
 ```
 
 **Endpoints involved**
+
 - Platform (miner): [POST /v1/miners/scripts](generated/platform.md#endpoint-post-v1-miners-scripts)
 
 ---
 
 ### Miner-task batch
 
-| Overview | |
-|---|---|
-| **What’s happening** | Platform owns the batch work ledger; validator polls for assigned task attempts, fetches artifacts, runs `query`, and submits results back to platform. |
-| **Actors** | Platform ↔ Validator worker ↔ Sandbox |
-| **Auth** | Validator↔Platform is Bittensor-signed; Validator↔Sandbox uses `x-platform-token` + `x-session-id` + `x-host-container-url`. |
-| **Happy path** | accept a durable unfinished batch → workers materialize expected work → poll task assignment → fetch artifact → run `query` → submit result |
-| **Assignment gate** | Platform assigns work only to registered, healthy, metagraph-authorized validators that have a `validator_allowlist_entry` row for `miner_task_batch_delivery`. |
+| Overview             |                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What’s happening** | Platform owns the batch work ledger; validator polls for assigned task attempts, fetches artifacts, runs `query`, and submits results back to platform.         |
+| **Actors**           | Platform ↔ Validator worker ↔ Sandbox                                                                                                                           |
+| **Auth**             | Validator↔Platform is Bittensor-signed; Validator↔Sandbox uses `x-platform-token` + `x-session-id` + `x-host-container-url`.                                    |
+| **Happy path**       | accept a durable unfinished batch → workers materialize expected work → poll task assignment → fetch artifact → run `query` → submit result                     |
+| **Assignment gate**  | Platform assigns work only to registered, healthy, metagraph-authorized validators that have a `validator_allowlist_entry` row for `miner_task_batch_delivery`. |
 
 #### 1) Platform accepts a batch, then workers construct expected work
 
@@ -191,6 +194,7 @@ sequenceDiagram
 ```
 
 **Endpoints involved**
+
 - Platform:
   - [POST /v1/miner-task-batches/batch](generated/platform.md#endpoint-post-v1-miner-task-batches-batch)
   - [GET /v1/miner-task-batches/{batch_id}/artifacts/{artifact_id}](generated/platform.md#endpoint-get-v1-miner-task-batches-batch_id-artifacts-artifact_id)
@@ -209,12 +213,12 @@ sequenceDiagram
 
 ### Tool execution
 
-| Overview | |
-|---|---|
+| Overview             |                                                                              |
+| -------------------- | ---------------------------------------------------------------------------- |
 | **What’s happening** | Sandboxed agent code invokes host-managed tools (search/LLM/etc.) over HTTP. |
-| **Actors** | Agent (in sandbox) ↔ Tool host (validator) |
-| **Auth** | `x-platform-token` + `x-session-id` |
-| **Happy path** | `POST /v1/tools/execute` returns `ToolExecuteResponseDTO` |
+| **Actors**           | Agent (in sandbox) ↔ Tool host (validator)                                   |
+| **Auth**             | `x-platform-token` + `x-session-id`                                          |
+| **Happy path**       | `POST /v1/tools/execute` returns `ToolExecuteResponseDTO`                    |
 
 ```mermaid
 sequenceDiagram
@@ -227,6 +231,7 @@ sequenceDiagram
 ```
 
 **Endpoints involved**
+
 - Validator: [POST /v1/tools/execute](generated/validator.md#endpoint-post-v1-tools-execute)
 
 ---
@@ -237,13 +242,13 @@ These flows are about validator lifecycle and platform coordination.
 
 ### Validator registration and weights
 
-| Overview | |
-|---|---|
-| **What’s happening** | Validator registers its public API base URL, then reads the current weights. |
-| **Actors** | Validator ↔ Platform |
-| **Auth** | `Authorization: Bittensor ss58="...",sig="..."` |
-| **Happy path** | `POST /v1/validators/register` → `GET /v1/weights` |
-| **Allowlist** | The batch-delivery allowlist does not gate registration or `GET /v1/weights`. |
+| Overview             |                                                                               |
+| -------------------- | ----------------------------------------------------------------------------- |
+| **What’s happening** | Validator registers its public API base URL, then reads the current weights.  |
+| **Actors**           | Validator ↔ Platform                                                          |
+| **Auth**             | `Authorization: Bittensor ss58="...",sig="..."`                               |
+| **Happy path**       | `POST /v1/validators/register` → `GET /v1/weights`                            |
+| **Allowlist**        | The batch-delivery allowlist does not gate registration or `GET /v1/weights`. |
 
 ```mermaid
 sequenceDiagram
@@ -262,6 +267,7 @@ sequenceDiagram
 ```
 
 **Endpoints involved**
+
 - Platform:
   - [POST /v1/validators/register](generated/platform.md#endpoint-post-v1-validators-register)
   - [GET /v1/weights](generated/platform.md#endpoint-get-v1-weights)

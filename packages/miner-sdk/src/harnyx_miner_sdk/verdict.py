@@ -39,7 +39,9 @@ class VerdictOptions:
         seen: set[int] = set()
         for entry in self.options:
             if entry.value in seen:
-                raise ValueError(f"verdict_options contains duplicate value {entry.value!r}")
+                raise ValueError(
+                    f"verdict_options contains duplicate value {entry.value!r}"
+                )
             seen.add(entry.value)
             normalized.append(entry)
 
@@ -53,7 +55,9 @@ class VerdictOptions:
         object.__setattr__(self, "options", tuple(normalized))
 
     def __repr__(self) -> str:
-        entries = ", ".join(f"{entry.value}={entry.description}" for entry in self.options)
+        entries = ", ".join(
+            f"{entry.value}={entry.description}" for entry in self.options
+        )
         return f"VerdictOptions({entries})"
 
     def validate(self, value: int) -> int:
@@ -77,6 +81,7 @@ class VerdictOptions:
             if entry.value == value:
                 return entry.description
         raise ValueError(f"verdict option missing for value {value!r}")
+
 
 __all__ = [
     "VerdictOption",

@@ -40,7 +40,9 @@ def _ensure_docker_available(docker_bin: str) -> None:
             text=True,
         )
     except Exception as exc:  # pragma: no cover - depends on host tooling
-        raise RuntimeError(f"Docker CLI is required for this test suite: {exc}") from exc
+        raise RuntimeError(
+            f"Docker CLI is required for this test suite: {exc}"
+        ) from exc
 
 
 def _ensure_image_present(docker_bin: str, image: str) -> None:
@@ -82,7 +84,9 @@ def sandbox_launcher() -> Callable[[str], SandboxDeployment]:
         module_rel_path = Path(*agent_module.split(".")).with_suffix(".py")
         module_path = _REPO_ROOT / module_rel_path
         if not module_path.exists():
-            raise RuntimeError(f"agent module file not found: module={agent_module} path={module_path}")
+            raise RuntimeError(
+                f"agent module file not found: module={agent_module} path={module_path}"
+            )
         artifact = stage_agent_source(
             state_dir=state_dir,
             container_root=DEFAULT_STATE_DIR,

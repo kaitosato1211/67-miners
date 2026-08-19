@@ -7,7 +7,9 @@ import pytest
 from harnyx_miner_sdk.safe_exec import SafeExecError, safe_exec
 
 
-def test_safe_exec_runs_multistatement_python_with_functions_imports_and_control_flow() -> None:
+def test_safe_exec_runs_multistatement_python_with_functions_imports_and_control_flow() -> (
+    None
+):
     code = """
 import statistics
 
@@ -24,7 +26,9 @@ result = describe(ordered)
     assert safe_exec(code, {"values": [6, 2, 4]}) == {"count": 3, "mean": 4}
 
 
-def test_safe_exec_uses_one_fresh_namespace_for_variables_and_defined_functions() -> None:
+def test_safe_exec_uses_one_fresh_namespace_for_variables_and_defined_functions() -> (
+    None
+):
     code = """
 offset = 2
 
@@ -75,7 +79,9 @@ def test_safe_exec_requires_result_assignment() -> None:
         {"value": float("inf")},
     ],
 )
-def test_safe_exec_rejects_reserved_names_and_non_json_variables(variables: object) -> None:
+def test_safe_exec_rejects_reserved_names_and_non_json_variables(
+    variables: object,
+) -> None:
     with pytest.raises(SafeExecError):
         safe_exec("result = 1", variables)  # type: ignore[arg-type]
 

@@ -24,15 +24,25 @@ class LlmMessage:
 
     def __post_init__(self) -> None:
         if self.tool_calls and self.role != "assistant":
-            raise ValueError("LlmMessage.tool_calls are only valid for assistant messages")
+            raise ValueError(
+                "LlmMessage.tool_calls are only valid for assistant messages"
+            )
         if self.reasoning_details and self.role != "assistant":
-            raise ValueError("LlmMessage.reasoning_details are only valid for assistant messages")
+            raise ValueError(
+                "LlmMessage.reasoning_details are only valid for assistant messages"
+            )
         if not self.content and not (self.role == "assistant" and self.tool_calls):
-            raise ValueError("LlmMessage.content must include at least one content part")
+            raise ValueError(
+                "LlmMessage.content must include at least one content part"
+            )
         for part in self.content:
-            if isinstance(part, (LlmInputTextPart, LlmInputImagePart, LlmInputToolResultPart)):
+            if isinstance(
+                part, (LlmInputTextPart, LlmInputImagePart, LlmInputToolResultPart)
+            ):
                 continue
-            raise TypeError(f"unsupported request content part type: {type(part).__name__}")
+            raise TypeError(
+                f"unsupported request content part type: {type(part).__name__}"
+            )
 
 
 @dataclass(frozen=True)
@@ -63,7 +73,9 @@ class LlmThinkingConfig:
         if self.effort is not None and self.effort not in ("low", "medium", "high"):
             raise ValueError("thinking.effort must be one of: low, medium, high")
         if self.budget is not None and self.effort is not None:
-            raise ValueError("thinking.budget and thinking.effort are mutually exclusive")
+            raise ValueError(
+                "thinking.budget and thinking.effort are mutually exclusive"
+            )
 
 
 @dataclass(frozen=True)
@@ -154,7 +166,9 @@ class LlmInputToolResultPart:
     tool_call_id: str
     name: str | None
     output_json: str
-    type: Literal["input_tool_result"] = field(init=False, default=INPUT_TOOL_RESULT_PART_TYPE)
+    type: Literal["input_tool_result"] = field(
+        init=False, default=INPUT_TOOL_RESULT_PART_TYPE
+    )
 
     def __post_init__(self) -> None:
         if not isinstance(self.tool_call_id, str):
@@ -171,7 +185,9 @@ class LlmInputToolResultPart:
             raise ValueError("input_tool_result output_json must be non-empty")
 
 
-LlmInputContentPart: TypeAlias = LlmInputTextPart | LlmInputImagePart | LlmInputToolResultPart
+LlmInputContentPart: TypeAlias = (
+    LlmInputTextPart | LlmInputImagePart | LlmInputToolResultPart
+)
 
 
 @dataclass(frozen=True)
@@ -242,9 +258,13 @@ class LlmUsage:
         other_usage = other or LlmUsage()
         return LlmUsage(
             prompt_tokens=_sum(self.prompt_tokens, other_usage.prompt_tokens),
-            completion_tokens=_sum(self.completion_tokens, other_usage.completion_tokens),
+            completion_tokens=_sum(
+                self.completion_tokens, other_usage.completion_tokens
+            ),
             total_tokens=_sum(self.total_tokens, other_usage.total_tokens),
-            prompt_cached_tokens=_sum(self.prompt_cached_tokens, other_usage.prompt_cached_tokens),
+            prompt_cached_tokens=_sum(
+                self.prompt_cached_tokens, other_usage.prompt_cached_tokens
+            ),
             reasoning_tokens=_sum(self.reasoning_tokens, other_usage.reasoning_tokens),
             web_search_calls=_sum(self.web_search_calls, other_usage.web_search_calls),
         )
@@ -252,7 +272,9 @@ class LlmUsage:
     def __radd__(self, other: object) -> LlmUsage:
         if other in (0, None):
             return self
-        raise TypeError(f"unsupported operand type(s) for +: {type(other)!r} and 'LlmUsage'")
+        raise TypeError(
+            f"unsupported operand type(s) for +: {type(other)!r} and 'LlmUsage'"
+        )
 
     def __iadd__(self, other: LlmUsage | None) -> LlmUsage:
         return self + other

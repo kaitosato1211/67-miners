@@ -88,7 +88,9 @@ def classify_anthropic_exception(
     if isinstance(exc, AnthropicAPIError):
         status_code = (
             exc.status_code
-            if isinstance(exc, (AnthropicAPIStatusError, AnthropicAPIResponseValidationError))
+            if isinstance(
+                exc, (AnthropicAPIStatusError, AnthropicAPIResponseValidationError)
+            )
             else None
         )
         message = str(exc)
@@ -100,7 +102,9 @@ def classify_anthropic_exception(
 
 
 def resolve_anthropic_thinking_budget(
-    *, reasoning_effort: str | None, max_tokens: int | None,
+    *,
+    reasoning_effort: str | None,
+    max_tokens: int | None,
 ) -> int | None:
     if reasoning_effort is None:
         return None
@@ -112,7 +116,9 @@ def resolve_anthropic_thinking_budget(
     try:
         budget = int(effort_raw)
     except ValueError:
-        raise ValueError("Anthropic thinking budget must be an integer token count") from None
+        raise ValueError(
+            "Anthropic thinking budget must be an integer token count"
+        ) from None
 
     if budget < 1024:
         raise ValueError("Anthropic thinking budget must be at least 1024 tokens")
@@ -123,14 +129,20 @@ def resolve_anthropic_thinking_budget(
 
 
 def build_claude_web_search_tool(extra: Mapping[str, Any] | None) -> dict[str, Any]:
-    options = (extra or {}).get("web_search_options", {}) if isinstance(extra, Mapping) else {}
+    options = (
+        (extra or {}).get("web_search_options", {})
+        if isinstance(extra, Mapping)
+        else {}
+    )
     max_uses = int(options.get("max_uses", 100))
     allowed = options.get("allowed_domains")
     blocked = options.get("blocked_domains")
     user_location = options.get("user_location")
 
     if allowed and blocked:
-        raise ValueError("Provide only one of allowed_domains or blocked_domains for web search")
+        raise ValueError(
+            "Provide only one of allowed_domains or blocked_domains for web search"
+        )
 
     config: dict[str, Any] = {
         "type": "web_search_20250305",
@@ -185,15 +197,15 @@ def build_anthropic_response(response: Any) -> LlmResponse:
     usage = LlmUsage(
         prompt_tokens=usage_data.input_tokens,
         completion_tokens=usage_data.output_tokens,
-        total_tokens=(
-            (usage_data.input_tokens or 0)
-            + (usage_data.output_tokens or 0)
-        ) or None,
+        total_tokens=((usage_data.input_tokens or 0) + (usage_data.output_tokens or 0))
+        or None,
         reasoning_tokens=None,
     )
 
     server_tool_use = usage_data.server_tool_use
-    web_search_calls = int(server_tool_use.web_search_requests or 0) if server_tool_use else 0
+    web_search_calls = (
+        int(server_tool_use.web_search_requests or 0) if server_tool_use else 0
+    )
 
     usage = usage + LlmUsage(web_search_calls=web_search_calls)
     metadata: dict[str, Any] | None = None

@@ -33,4 +33,3 @@ class WeightSubmission:
 
 
 __all__ = ["WeightSubmission"]
-

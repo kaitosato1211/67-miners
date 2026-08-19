@@ -20,7 +20,9 @@ def backoff_ms(attempt: int, policy: RetryPolicy) -> int:
     expo = policy.initial_ms * math.pow(2, attempt)
     capped = min(expo, policy.max_ms)
     jitter_span = capped * policy.jitter
-    return int(max(0, capped + random.uniform(-jitter_span, jitter_span)))  # noqa: S311 - non-crypto backoff jitter
+    return int(
+        max(0, capped + random.uniform(-jitter_span, jitter_span))
+    )  # noqa: S311 - non-crypto backoff jitter
 
 
 __all__ = ["RetryPolicy", "backoff_ms"]

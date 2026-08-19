@@ -3,11 +3,13 @@
 This directory documents the **subnet-facing HTTP endpoints** which miners/validators interact with.
 
 ## Endpoint references (generated)
+
 - Platform (miners/validators): [generated/platform.md](generated/platform.md)
 - Validator: [generated/validator.md](generated/validator.md)
 - Sandbox: [generated/sandbox.md](generated/sandbox.md)
 
 ## Public benchmark
+
 - Live page: [`dashboard.harnyx.ai/benchmark`](https://dashboard.harnyx.ai/benchmark)
 
 The benchmark page is the public surface for inspecting benchmark history and sampled run detail.
@@ -35,6 +37,7 @@ The benchmark page is the public surface for inspecting benchmark history and sa
 - If OpenAPI `security` is missing/empty, the endpoint is public (`Auth: None.` in generated docs).
 
 ## Flows (sequence diagrams)
+
 All Mermaid sequence diagrams live in [flows.md](flows.md), grouped by domain:
 
 - Subnet runtime (Platform ↔ Validator ↔ Miner)

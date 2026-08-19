@@ -22,7 +22,9 @@ class _FakeHotkey:
 
 
 class _FakeClient:
-    def __init__(self, *, response: httpx.Response, requests: list[dict[str, Any]], **_: object) -> None:
+    def __init__(
+        self, *, response: httpx.Response, requests: list[dict[str, Any]], **_: object
+    ) -> None:
         self._response = response
         self._requests = requests
 
@@ -32,7 +34,9 @@ class _FakeClient:
     def __exit__(self, *args: object) -> None:
         _ = args
 
-    def request(self, method: str, path: str, *, headers: dict[str, str], content: bytes = b"") -> httpx.Response:
+    def request(
+        self, method: str, path: str, *, headers: dict[str, str], content: bytes = b""
+    ) -> httpx.Response:
         self._requests.append(
             {
                 "method": method,
@@ -52,7 +56,11 @@ def _install_fakes(
     hotkey = _FakeHotkey()
     requests: list[dict[str, Any]] = []
     monkeypatch.setenv("PLATFORM_BASE_URL", "https://platform.example.com")
-    monkeypatch.setattr(config_module.bt, "Wallet", lambda name, hotkey: SimpleNamespace(hotkey=_FakeHotkey()))
+    monkeypatch.setattr(
+        config_module.bt,
+        "Wallet",
+        lambda name, hotkey: SimpleNamespace(hotkey=_FakeHotkey()),
+    )
 
     def _wallet(name: str, hotkey: str) -> SimpleNamespace:
         _ = (name, hotkey)
@@ -73,16 +81,22 @@ def _install_fakes(
 
 
 def test_get_config_signs_empty_body_request(monkeypatch: pytest.MonkeyPatch) -> None:
-    hotkey, requests = _install_fakes(monkeypatch, response=httpx.Response(200, json={"provider_credentials": {}}))
+    hotkey, requests = _install_fakes(
+        monkeypatch, response=httpx.Response(200, json={"provider_credentials": {}})
+    )
 
-    assert config_module.get_config(wallet_name="wallet", hotkey_name="hotkey") == {"provider_credentials": {}}
+    assert config_module.get_config(wallet_name="wallet", hotkey_name="hotkey") == {
+        "provider_credentials": {}
+    }
 
     assert requests == [
         {
             "method": "GET",
             "path": "/v1/miner-config",
             "headers": {
-                "Authorization": 'Bittensor ss58="5FakeMinerHotkey",sig="' + "ab" * 64 + '"',
+                "Authorization": 'Bittensor ss58="5FakeMinerHotkey",sig="'
+                + "ab" * 64
+                + '"',
             },
             "content": b"",
         }
@@ -90,7 +104,9 @@ def test_get_config_signs_empty_body_request(monkeypatch: pytest.MonkeyPatch) ->
     assert hotkey.signed[0].startswith(b"GET\n/v1/miner-config\n")
 
 
-def test_put_provider_credential_sends_supported_provider_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_put_provider_credential_sends_supported_provider_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     hotkey, requests = _install_fakes(monkeypatch)
 
     config_module.put_provider_credential(
@@ -110,7 +126,9 @@ def test_put_provider_credential_sends_supported_provider_payload(monkeypatch: p
     assert hotkey.signed[0].startswith(b"PUT\n/v1/miner-config\n")
 
 
-def test_delete_provider_credential_sends_key_only_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_delete_provider_credential_sends_key_only_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _hotkey, requests = _install_fakes(monkeypatch)
 
     config_module.delete_provider_credential(
@@ -120,7 +138,9 @@ def test_delete_provider_credential_sends_key_only_payload(monkeypatch: pytest.M
     )
 
     assert requests[0]["method"] == "DELETE"
-    assert json.loads(requests[0]["content"]) == {"key": "provider_credentials.parallel"}
+    assert json.loads(requests[0]["content"]) == {
+        "key": "provider_credentials.parallel"
+    }
 
 
 def test_put_ai_gateway_provider_credential_sends_supported_provider_payload(
@@ -142,7 +162,9 @@ def test_put_ai_gateway_provider_credential_sends_supported_provider_payload(
     }
 
 
-def test_put_task_retry_count_sends_supported_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_put_task_retry_count_sends_supported_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _hotkey, requests = _install_fakes(monkeypatch)
 
     config_module.put_task_retry_count(
@@ -160,7 +182,9 @@ def test_put_task_retry_count_sends_supported_payload(monkeypatch: pytest.Monkey
     }
 
 
-def test_provider_credential_cli_rejects_unknown_provider_and_empty_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_provider_credential_cli_rejects_unknown_provider_and_empty_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _install_fakes(monkeypatch)
 
     with pytest.raises(ValueError, match="unsupported provider"):
@@ -180,7 +204,9 @@ def test_provider_credential_cli_rejects_unknown_provider_and_empty_key(monkeypa
         )
 
 
-def test_task_retry_count_cli_rejects_out_of_range_value(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_task_retry_count_cli_rejects_out_of_range_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _install_fakes(monkeypatch)
 
     with pytest.raises(ValueError, match="task retry count must be between 0 and 3"):
@@ -191,7 +217,9 @@ def test_task_retry_count_cli_rejects_out_of_range_value(monkeypatch: pytest.Mon
         )
 
 
-def test_provider_credential_failures_do_not_echo_submitted_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_provider_credential_failures_do_not_echo_submitted_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _install_fakes(
         monkeypatch,
         response=httpx.Response(409, text="server echoed secret-provider-key"),

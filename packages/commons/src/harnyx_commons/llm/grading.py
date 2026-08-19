@@ -10,7 +10,12 @@ from pydantic import BaseModel
 from harnyx_commons.domain.verdict import VerdictOptions
 from harnyx_commons.llm.json_utils import pydantic_postprocessor
 from harnyx_commons.llm.provider import LlmProviderPort
-from harnyx_commons.llm.schema import LlmMessage, LlmMessageContentPart, LlmRequest, LlmUsage
+from harnyx_commons.llm.schema import (
+    LlmMessage,
+    LlmMessageContentPart,
+    LlmRequest,
+    LlmUsage,
+)
 
 _SYSTEM_PROMPT = (
     "You are a strict grader. Given a claim, a reference justification, and a miner "
@@ -37,7 +42,9 @@ class JustificationGraderConfig:
 class JustificationGrader:
     """Tiny wrapper that asks an LLM to judge justification quality."""
 
-    def __init__(self, provider: LlmProviderPort, config: JustificationGraderConfig) -> None:
+    def __init__(
+        self, provider: LlmProviderPort, config: JustificationGraderConfig
+    ) -> None:
         self._provider = provider
         self._config = config
 

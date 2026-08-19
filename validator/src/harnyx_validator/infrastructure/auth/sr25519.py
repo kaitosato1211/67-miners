@@ -27,7 +27,9 @@ class BittensorSr25519InboundVerifier:
     refresh_interval_seconds: float = 300.0
     on_refresh_succeeded: Callable[[], None] | None = None
     on_refresh_failed: Callable[[str], None] | None = None
-    _authorized_hotkeys: frozenset[str] | None = field(default=None, init=False, repr=False)
+    _authorized_hotkeys: frozenset[str] | None = field(
+        default=None, init=False, repr=False
+    )
     _authorized_hotkeys_lock: Lock = field(default_factory=Lock, init=False, repr=False)
     _refresh_stop: Event = field(default_factory=Event, init=False, repr=False)
     _refresh_thread: Thread | None = field(default=None, init=False, repr=False)
@@ -126,7 +128,9 @@ class BittensorSr25519InboundVerifier:
         if owner is None:
             raise VerificationError("unknown_hotkey", "hotkey owner not found on chain")
         if owner != self.owner_coldkey_ss58:
-            raise VerificationError("not_owner", "caller hotkey is not owned by subnet owner coldkey")
+            raise VerificationError(
+                "not_owner", "caller hotkey is not owned by subnet owner coldkey"
+            )
 
     def _fetch_hotkey_owner(self, hotkey_ss58: str) -> str | None:
         subtensor = bt.Subtensor(network=self.network)
@@ -155,7 +159,9 @@ class BittensorSr25519InboundVerifier:
             try:
                 self.refresh_authorization_state()
             except Exception as exc:
-                wait_seconds = min(self.refresh_interval_seconds, _FAILED_REFRESH_RETRY_SECONDS)
+                wait_seconds = min(
+                    self.refresh_interval_seconds, _FAILED_REFRESH_RETRY_SECONDS
+                )
                 if self.on_refresh_failed is not None:
                     self.on_refresh_failed(str(exc))
                 logger.exception(

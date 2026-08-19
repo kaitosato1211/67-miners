@@ -50,14 +50,20 @@ from harnyx_commons.miner_task_benchmark import (
     sample_benchmark_items,
     unsupported_benchmark_scoring_version_error,
 )
-from harnyx_commons.miner_task_scoring import EvaluationScoringConfig, EvaluationScoringService
+from harnyx_commons.miner_task_scoring import (
+    EvaluationScoringConfig,
+    EvaluationScoringService,
+)
 from harnyx_miner.agent_source import (
     agent_sha256,
     load_agent_bytes,
     require_existing_agent_path,
 )
 from harnyx_miner.env import load_public_env
-from harnyx_validator.application.dto.evaluation import MinerTaskRunSubmission, ScriptArtifactSpec
+from harnyx_validator.application.dto.evaluation import (
+    MinerTaskRunSubmission,
+    ScriptArtifactSpec,
+)
 from harnyx_validator.version import VALIDATOR_RELEASE_VERSION
 
 if TYPE_CHECKING:
@@ -177,7 +183,11 @@ class _BenchmarkItemResult:
 
     @property
     def state(self) -> BenchmarkItemState:
-        return BenchmarkItemState.COMPLETED if self.score is not None else BenchmarkItemState.FAILED
+        return (
+            BenchmarkItemState.COMPLETED
+            if self.score is not None
+            else BenchmarkItemState.FAILED
+        )
 
 
 class _InvocationOnlyScoringService(EvaluationScoringService):
@@ -283,7 +293,9 @@ async def _amain(argv: Sequence[str] | None) -> None:
         scoring_version=args.scoring_version,
     )
     if not is_supported_benchmark_scoring_version(snapshot.manifest.scoring_version):
-        raise unsupported_benchmark_scoring_version_error(snapshot.manifest.scoring_version)
+        raise unsupported_benchmark_scoring_version_error(
+            snapshot.manifest.scoring_version
+        )
     run_id = benchmark_run_id_for_source_batch(
         suite_slug=snapshot.manifest.suite_slug,
         source_batch_id=source_batch_id,
@@ -390,9 +402,9 @@ async def _amain(argv: Sequence[str] | None) -> None:
                 "mean_total_score": summary["mean_total_score"],
                 "item_count": summary["item_count"],
                 "error_count": summary["error_count"],
-                "total_cost_usd": _require_mapping(summary["cost_totals"], label="summary cost_totals")[
-                    "total_cost_usd"
-                ],
+                "total_cost_usd": _require_mapping(
+                    summary["cost_totals"], label="summary cost_totals"
+                )["total_cost_usd"],
             },
             sort_keys=True,
         )
@@ -428,7 +440,9 @@ def _build_target_artifact_spec(
     content_hash = agent_sha256(target_bytes)
     return ScriptArtifactSpec(
         uid=_LOCAL_BENCHMARK_UID,
-        artifact_id=uuid5(NAMESPACE_URL, f"harnyx-local-benchmark:{run_id}:{content_hash}"),
+        artifact_id=uuid5(
+            NAMESPACE_URL, f"harnyx-local-benchmark:{run_id}:{content_hash}"
+        ),
         content_hash=content_hash,
         size_bytes=len(target_bytes),
     )
@@ -447,7 +461,9 @@ def _build_correctness_scoring_bundle() -> _BenchmarkScoringBundle:
     llm_settings = LlmSettings()
     model = llm_settings.benchmark_llm_model.strip()
     if not model:
-        raise RuntimeError("BENCHMARK_LLM_MODEL must be configured to run local benchmark scoring")
+        raise RuntimeError(
+            "BENCHMARK_LLM_MODEL must be configured to run local benchmark scoring"
+        )
     registry = build_cached_llm_provider_registry(
         llm_settings=llm_settings,
         bedrock_settings=BedrockSettings(),
@@ -461,7 +477,8 @@ def _build_correctness_scoring_bundle() -> _BenchmarkScoringBundle:
         temperature=llm_settings.benchmark_llm_temperature,
         max_output_tokens=llm_settings.benchmark_llm_max_output_tokens,
         reasoning_effort=llm_settings.benchmark_llm_reasoning_effort,
-        timeout_seconds=llm_settings.benchmark_llm_timeout_seconds or llm_settings.llm_timeout_seconds,
+        timeout_seconds=llm_settings.benchmark_llm_timeout_seconds
+        or llm_settings.llm_timeout_seconds,
     )
     return _BenchmarkScoringBundle(
         service=_CorrectnessLocalBenchmarkScoringService(
@@ -502,7 +519,8 @@ def _build_weighted_rubric_scoring_bundle() -> _BenchmarkScoringBundle:
         temperature=rubric_settings.temperature,
         max_output_tokens=None,
         reasoning_effort=rubric_settings.reasoning_effort,
-        timeout_seconds=rubric_settings.timeout_seconds or llm_settings.llm_timeout_seconds,
+        timeout_seconds=rubric_settings.timeout_seconds
+        or llm_settings.llm_timeout_seconds,
     )
     return _BenchmarkScoringBundle(
         service=_WeightedRubricLocalBenchmarkScoringService(
@@ -548,7 +566,9 @@ async def _evaluate_and_score_items(
 ) -> tuple[_BenchmarkItemResult, ...]:
     semaphore = asyncio.Semaphore(parallelism)
 
-    async def _run_item(item: BenchmarkDatasetItem, task: MinerTask) -> _BenchmarkItemResult:
+    async def _run_item(
+        item: BenchmarkDatasetItem, task: MinerTask
+    ) -> _BenchmarkItemResult:
         async with semaphore:
             return await _evaluate_and_score_item(
                 runtime=runtime,
@@ -607,7 +627,9 @@ async def _evaluate_and_score_item(
             error_code=str(failure.error_code),
             error_message=failure.message,
         )
-    submission_by_task = {submission.run.task_id: submission for submission in outcome.submissions}
+    submission_by_task = {
+        submission.run.task_id: submission for submission in outcome.submissions
+    }
     return await _score_item_submission(
         item=item,
         task=task,
@@ -767,7 +789,9 @@ def _aggregate_local_report_metrics(
     results: Sequence[_BenchmarkItemResult],
     scoring: _BenchmarkScoringBundle,
 ) -> BenchmarkRunMetrics:
-    metrics = aggregate_benchmark_metrics(tuple(_item_outcome(result) for result in results))
+    metrics = aggregate_benchmark_metrics(
+        tuple(_item_outcome(result) for result in results)
+    )
     if not scoring.uses_numeric_scores:
         return metrics
     return replace(metrics, correct_item_count=None)
@@ -784,7 +808,9 @@ def _item_outcome(result: _BenchmarkItemResult) -> BenchmarkItemOutcome:
     )
 
 
-def _item_report(result: _BenchmarkItemResult, *, scoring: _BenchmarkScoringBundle) -> dict[str, object]:
+def _item_report(
+    result: _BenchmarkItemResult, *, scoring: _BenchmarkScoringBundle
+) -> dict[str, object]:
     return {
         "item_index": result.item.item_index,
         "task_id": str(result.task.task_id),
@@ -794,11 +820,16 @@ def _item_report(result: _BenchmarkItemResult, *, scoring: _BenchmarkScoringBund
         "answer_type": result.item.answer_type.value,
         "generated_answer": (
             _serialize_answer(result.submission.run.response)
-            if result.submission is not None and result.submission.run.response is not None
+            if result.submission is not None
+            and result.submission.run.response is not None
             else None
         ),
         "is_correct": result.score.is_correct if result.score is not None else None,
-        "score": result.score.score if result.score is not None else scoring.failed_item_report_score,
+        "score": (
+            result.score.score
+            if result.score is not None
+            else scoring.failed_item_report_score
+        ),
         "score_reason": result.score.score_reason if result.score is not None else None,
         "score_detail": result.score.score_detail if result.score is not None else None,
         "invocation": _submission_detail(result.submission),
@@ -813,7 +844,9 @@ def _item_report(result: _BenchmarkItemResult, *, scoring: _BenchmarkScoringBund
     }
 
 
-def _submission_detail(submission: MinerTaskRunSubmission | None) -> dict[str, object] | None:
+def _submission_detail(
+    submission: MinerTaskRunSubmission | None,
+) -> dict[str, object] | None:
     if submission is None:
         return None
     run = submission.run
@@ -824,7 +857,11 @@ def _submission_detail(submission: MinerTaskRunSubmission | None) -> dict[str, o
         "elapsed_ms": run.details.elapsed_ms,
         "attempt_count": submission.session.active_attempt,
         "session_status": submission.session.status.value,
-        "error": run.details.error.model_dump(mode="json") if run.details.error is not None else None,
+        "error": (
+            run.details.error.model_dump(mode="json")
+            if run.details.error is not None
+            else None
+        ),
         "cost_totals": _cost_totals_from_submission(submission),
         "token_usage": submission.usage.model_dump(mode="json"),
     }
@@ -837,7 +874,9 @@ def _serialize_answer(answer: object) -> dict[str, object]:
     return model_dump(mode="json", exclude_none=True)
 
 
-def _aggregate_cost_totals(submissions: Sequence[MinerTaskRunSubmission]) -> dict[str, object]:
+def _aggregate_cost_totals(
+    submissions: Sequence[MinerTaskRunSubmission],
+) -> dict[str, object]:
     total_llm_cost = 0.0
     total_search_cost = 0.0
     total_embedding_cost = 0.0
@@ -868,7 +907,9 @@ def _aggregate_cost_totals(submissions: Sequence[MinerTaskRunSubmission]) -> dic
     }
 
 
-def _cost_totals_from_submission(submission: MinerTaskRunSubmission) -> dict[str, object]:
+def _cost_totals_from_submission(
+    submission: MinerTaskRunSubmission,
+) -> dict[str, object]:
     return _aggregate_cost_totals((submission,))
 
 

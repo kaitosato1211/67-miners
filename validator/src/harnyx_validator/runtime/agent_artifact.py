@@ -87,7 +87,11 @@ def resolve_platform_agent_spec(
     except AgentSourceValidationError as exc:
         logger.error(
             "Platform agent failed script validation during staging",
-            extra={"batch_id": str(batch_id), "uid": artifact.uid, "artifact_id": str(artifact.artifact_id)},
+            extra={
+                "batch_id": str(batch_id),
+                "uid": artifact.uid,
+                "artifact_id": str(artifact.artifact_id),
+            },
             exc_info=exc,
         )
         raise ArtifactPreparationError(
@@ -98,7 +102,11 @@ def resolve_platform_agent_spec(
     except Exception as exc:
         logger.error(
             "Failed to stage platform agent",
-            extra={"batch_id": str(batch_id), "uid": artifact.uid, "artifact_id": str(artifact.artifact_id)},
+            extra={
+                "batch_id": str(batch_id),
+                "uid": artifact.uid,
+                "artifact_id": str(artifact.artifact_id),
+            },
             exc_info=exc,
         )
         raise ArtifactPreparationError(
@@ -132,7 +140,10 @@ def _fetch_platform_artifact(
             return platform_client.fetch_artifact(batch_id, artifact.artifact_id)
         except Exception as exc:
             last_error = exc
-            if _is_retryable_fetch_error(exc) and attempt_number < _FETCH_RETRY_ATTEMPTS:
+            if (
+                _is_retryable_fetch_error(exc)
+                and attempt_number < _FETCH_RETRY_ATTEMPTS
+            ):
                 backoff_seconds = _fetch_backoff_seconds(attempt_number)
                 logger.warning(
                     "Transient platform artifact fetch failed; retrying",
@@ -149,7 +160,11 @@ def _fetch_platform_artifact(
                 continue
             logger.error(
                 "Failed to fetch platform agent",
-                extra={"batch_id": str(batch_id), "uid": artifact.uid, "artifact_id": str(artifact.artifact_id)},
+                extra={
+                    "batch_id": str(batch_id),
+                    "uid": artifact.uid,
+                    "artifact_id": str(artifact.artifact_id),
+                },
                 exc_info=exc,
             )
             raise ArtifactPreparationError(

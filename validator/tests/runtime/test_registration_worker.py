@@ -21,7 +21,9 @@ def test_registration_refresh_worker_waits_until_initial_registration_ready() ->
     assert delay == 60.0
 
 
-def test_registration_refresh_worker_records_success_and_resets_failure_backoff() -> None:
+def test_registration_refresh_worker_records_success_and_resets_failure_backoff() -> (
+    None
+):
     calls: list[str] = []
     status_provider = StatusProvider()
     status_provider.mark_platform_registration_succeeded()
@@ -61,11 +63,16 @@ def test_registration_refresh_worker_records_failure_without_clearing_ready() ->
     assert delay == 5.0
     assert status_provider.platform_registration_ready()
     assert status_provider.platform_registration_error() is None
-    assert status_provider.state.platform_registration_last_refresh_error == "platform unavailable"
+    assert (
+        status_provider.state.platform_registration_last_refresh_error
+        == "platform unavailable"
+    )
     assert status_provider.state.platform_registration_refresh_failure_count == 1
 
 
-def test_registration_refresh_worker_exponential_backoff_caps_at_refresh_interval() -> None:
+def test_registration_refresh_worker_exponential_backoff_caps_at_refresh_interval() -> (
+    None
+):
     status_provider = StatusProvider()
     status_provider.mark_platform_registration_succeeded()
 

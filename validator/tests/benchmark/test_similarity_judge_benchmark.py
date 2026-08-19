@@ -22,9 +22,15 @@ from harnyx_commons.llm.schema import (
     LlmUsage,
 )
 from harnyx_commons.llm.tool_models import parse_miner_selected_llm_provider_model
-from harnyx_commons.miner_task_similarity import SimilarityJudgeRequest, SimilarityJudgeResult
+from harnyx_commons.miner_task_similarity import (
+    SimilarityJudgeRequest,
+    SimilarityJudgeResult,
+)
 from harnyx_miner_sdk.query import Query, Response
-from harnyx_miner_sdk.tools.search_models import FetchPageResponse, SearchWebSearchResponse
+from harnyx_miner_sdk.tools.search_models import (
+    FetchPageResponse,
+    SearchWebSearchResponse,
+)
 from validator.tests.benchmark.similarity_judge_benchmark import (
     FINAL_LABELS,
     PAIRWISE_LABELS,
@@ -42,9 +48,7 @@ from validator.tests.benchmark.similarity_judge_benchmark import (
     summarize_metrics,
 )
 
-_CASES_PATH = (
-    Path(__file__).parent / "data" / "similarity_judge_benchmark_cases.jsonl"
-)
+_CASES_PATH = Path(__file__).parent / "data" / "similarity_judge_benchmark_cases.jsonl"
 _REALISM_SAMPLE_PATH = (
     Path(__file__).parent / "data" / "similarity_judge_realism_sample.json"
 )
@@ -174,7 +178,9 @@ class _ScriptedJudge:
         provider: InvocationRecordingProvider,
         delegate: _ScriptedProvider,
         classifications: Mapping[UUID, PairwiseGold],
-        outcomes: Mapping[UUID, LlmResponse | Exception | _PostprocessFailure] | None = None,
+        outcomes: (
+            Mapping[UUID, LlmResponse | Exception | _PostprocessFailure] | None
+        ) = None,
     ) -> None:
         self._provider = provider
         self._delegate = delegate
@@ -194,7 +200,9 @@ class _ScriptedJudge:
         if isinstance(outcome, _PostprocessFailure):
             raise outcome.error
         pairwise = self._classifications[request.reference_artifact_id]
-        raw_classification = "novel" if pairwise == "architectural_replacement" else pairwise
+        raw_classification = (
+            "novel" if pairwise == "architectural_replacement" else pairwise
+        )
         return SimilarityJudgeResult(
             classification=raw_classification,
             reasoning=f"scripted {pairwise}",
@@ -211,13 +219,21 @@ def _llm_request(request: SimilarityJudgeRequest) -> LlmRequest:
         messages=(
             LlmMessage(
                 role="system",
-                content=(LlmMessageContentPart.input_text("similarity benchmark prompt"),),
+                content=(
+                    LlmMessageContentPart.input_text("similarity benchmark prompt"),
+                ),
             ),
             LlmMessage(
                 role="user",
                 content=(
                     LlmMessageContentPart.input_text(
-                        json.dumps({"reference_artifact_id": str(request.reference_artifact_id)})
+                        json.dumps(
+                            {
+                                "reference_artifact_id": str(
+                                    request.reference_artifact_id
+                                )
+                            }
+                        )
                     ),
                 ),
             ),
@@ -280,7 +296,9 @@ async def _run(
     tmp_path: Path,
     *,
     classifications: Mapping[UUID, PairwiseGold] | None = None,
-    outcomes: Mapping[UUID, LlmResponse | Exception | _PostprocessFailure] | None = None,
+    outcomes: (
+        Mapping[UUID, LlmResponse | Exception | _PostprocessFailure] | None
+    ) = None,
 ):
     groups = _groups()
     scripted_classifications = _classifications(groups)
@@ -339,13 +357,9 @@ def test_checked_in_dataset_has_realistic_executable_artifact_contract() -> None
     }
     references = [reference for group in groups for reference in group.references]
     eligible = [
-        reference
-        for group in groups
-        for reference in eligible_comparisons(group)
+        reference for group in groups for reference in eligible_comparisons(group)
     ]
-    pairwise_support = Counter(
-        reference.expected_pairwise for reference in eligible
-    )
+    pairwise_support = Counter(reference.expected_pairwise for reference in eligible)
     final_support = Counter(group.expected_final for group in groups)
 
     assert actual_artifact_ids == _EXPECTED_ARTIFACT_IDS
@@ -366,7 +380,8 @@ def test_checked_in_dataset_has_realistic_executable_artifact_contract() -> None
             alias.asname or alias.name
             for node in module.body
             if isinstance(node, ast.ImportFrom)
-            and node.module in {
+            and node.module
+            in {
                 "harnyx_miner_sdk.api",
                 "harnyx_miner_sdk.decorators",
                 "harnyx_miner_sdk.query",
@@ -568,7 +583,9 @@ async def test_checked_in_artifact_ordinary_paths_execute_with_sdk_stubs(
         assert response.text
 
 
-def test_production_false_novel_case_protects_reachability_over_dead_architecture() -> None:
+def test_production_false_novel_case_protects_reachability_over_dead_architecture() -> (
+    None
+):
     group = next(
         group
         for group in _groups()
@@ -652,20 +669,18 @@ def test_production_distillations_cover_true_redesigns_and_same_root_changes() -
         )
         assert str(group.production_evidence.candidate_artifact_id) == artifact_id
         assert group.production_evidence.distilled_reproduction is True
-        if (
-            case_id.startswith("notable-production-")
-            or case_id
-            in {
-                "notable-unreachable-parallel-controller",
-                "near-production-constraint-ledger",
-            }
-        ):
-            assert set(group.production_evidence.observed_production_classifications) == {
-                "novel"
-            }
+        if case_id.startswith("notable-production-") or case_id in {
+            "notable-unreachable-parallel-controller",
+            "near-production-constraint-ledger",
+        }:
+            assert set(
+                group.production_evidence.observed_production_classifications
+            ) == {"novel"}
 
 
-def test_novel_gold_cases_expose_reachable_implementations_not_architecture_names() -> None:
+def test_novel_gold_cases_expose_reachable_implementations_not_architecture_names() -> (
+    None
+):
     required_reachable_functions = {
         "novel-json-contract-solver": {"validate_contract", "execute_contract"},
         "novel-vfs-investigation-state": {"line_id"},
@@ -770,7 +785,9 @@ def _static_string(
     return None
 
 
-def _reachable_functions(call_graph: Mapping[str, set[str]], entrypoint: str) -> set[str]:
+def _reachable_functions(
+    call_graph: Mapping[str, set[str]], entrypoint: str
+) -> set[str]:
     reachable: set[str] = set()
     pending = [entrypoint]
     while pending:
@@ -920,7 +937,11 @@ async def test_retry_exhaustion_retains_its_attached_response_before_failure_gat
     error = LlmRetryExhaustedError("retry exhausted", response=response, attempts=1)
 
     summary, _, _ = await _run(tmp_path, outcomes={reference_id: error})
-    failed_row = next(row for row in _pair_rows(summary) if row["observed_pairwise"] == "provider_failure")
+    failed_row = next(
+        row
+        for row in _pair_rows(summary)
+        if row["observed_pairwise"] == "provider_failure"
+    )
 
     assert summary.provider_failure_count == 1
     assert summary.pairwise_multi_step_underclassification_count == 0
@@ -940,7 +961,11 @@ async def test_provider_error_retains_its_attached_response_before_failure_gate(
     error = LlmProviderError("provider failed", response=response)
 
     summary, _, _ = await _run(tmp_path, outcomes={reference_id: error})
-    failed_row = next(row for row in _pair_rows(summary) if row["observed_pairwise"] == "provider_failure")
+    failed_row = next(
+        row
+        for row in _pair_rows(summary)
+        if row["observed_pairwise"] == "provider_failure"
+    )
 
     assert summary.provider_failure_count == 1
     assert failed_row["error"]["type"] == "LlmProviderError"
@@ -960,15 +985,23 @@ async def test_structured_output_failure_retains_current_invocation_response(
     )
 
     summary, _, _ = await _run(tmp_path, outcomes={reference_id: outcome})
-    failed_row = next(row for row in _pair_rows(summary) if row["observed_pairwise"] == "provider_failure")
+    failed_row = next(
+        row
+        for row in _pair_rows(summary)
+        if row["observed_pairwise"] == "provider_failure"
+    )
 
-    assert failed_row["similarity_request"]["reference_artifact_id"] == str(reference_id)
+    assert failed_row["similarity_request"]["reference_artifact_id"] == str(
+        reference_id
+    )
     assert failed_row["error"] == {
         "message": "structured output validation failed",
         "type": "RuntimeError",
     }
     assert failed_row["llm_response"]["id"] == "malformed-response"
-    assert failed_row["llm_response"]["raw_response"]["model"] == "served-gemma-revision"
+    assert (
+        failed_row["llm_response"]["raw_response"]["model"] == "served-gemma-revision"
+    )
     run_directory = Path(summary.run_directory)
     assert (run_directory / "manifest.json").is_file()
     assert (run_directory / "candidate_results.jsonl").is_file()
@@ -987,7 +1020,13 @@ async def test_failure_without_response_does_not_reuse_previous_pair_response(
     }
 
     summary, _, _ = await _run(tmp_path, outcomes=outcomes)
-    failed_row = next(row for row in _pair_rows(summary) if row["observed_pairwise"] == "provider_failure")
+    failed_row = next(
+        row
+        for row in _pair_rows(summary)
+        if row["observed_pairwise"] == "provider_failure"
+    )
 
-    assert failed_row["similarity_request"]["reference_artifact_id"] == str(second.artifact_id)
+    assert failed_row["similarity_request"]["reference_artifact_id"] == str(
+        second.artifact_id
+    )
     assert failed_row["llm_response"] is None

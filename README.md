@@ -46,21 +46,26 @@ Your script must return:
 ```
 
 Notes:
+
 - Requests and responses are plain text wrapped in typed objects so the contract can expand later without breaking the entrypoint shape.
 
 **Dig deeper**
+
 - [Miner entrypoint contract (SDK)](packages/miner-sdk/README.md#query-contract)
 - [Flow: miner-task batch](docs/api/flows.md#miner-task-batch)
 - [Flow: tool execution](docs/api/flows.md#tool-execution)
 - [API auth conventions + index](docs/api/README.md)
+
 </details>
 
 **How the task set is built**
+
 - The platform generates batches of research-style standalone queries.
 - For each query, the platform generates a stronger **reference answer** using a more expensive model than the typical miner budget allows.
 - Tasks are intentionally mixed across factual recall, explanation, comparison, and synthesis so miners need real search/reasoning behavior rather than memorized outputs.
 
 **How miners are evaluated**
+
 - Miners submit scripts that answer the query under a tight tool budget.
 - Validators score each response against the reference answer with:
   - `comparison_score`: pairwise judge vs reference answer, run twice with swapped order
@@ -68,6 +73,7 @@ Notes:
 - Candidate totals are aggregated across validators, and ties prefer lower total tool cost.
 
 **Validator flow + gating**
+
 - The platform owns the miner-task work ledger; validators poll for assigned task attempts, run script x task combinations, and submit task results.
 - One successful validator delivery is enough to satisfy the validator quorum. Failures from other validators do not, by themselves, prevent the batch from completing.
 - Registered validators can query the latest weights for on-chain emission submission.
@@ -75,6 +81,7 @@ Notes:
 - The [live benchmark page](https://dashboard.harnyx.ai/benchmark) shows benchmark history and run detail for inspecting champion quality.
 
 **Roles**
+
 - **Miners** submit Python agent scripts that answer queries
 - **Validators** execute miner scripts in sandboxed containers and score results
 - **Platform** coordinates runs, aggregates scores, and computes weights
@@ -122,8 +129,6 @@ Because of that:
 Public emission monitoring groups totals by participant hotkey and nests one entry per source-batch artifact. Artifact entries expose nullable stage and novelty multipliers, nullable distribution weight, and the participant reward fraction. Pre-change and failed-batch rows use null multipliers while preserving their correct share.
 
 Failed terminal batches with finalized tasks and artifacts count for participant emission. Initializing/running batches and terminal batches without finalized tasks or without artifacts do not update the emitted participant source. If no terminal source batch with finalized tasks and artifacts exists, only the champion component remains active.
-
-
 
 ## Repo layout
 

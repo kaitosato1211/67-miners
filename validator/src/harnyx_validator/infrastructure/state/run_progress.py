@@ -53,22 +53,30 @@ class FileBackedRunProgress:
         UUID,
         dict[tuple[UUID, UUID], RunSubmissionBlobRef],
     ] = field(default_factory=dict)
-    sequence_by_pair_by_batch: dict[UUID, dict[tuple[UUID, UUID], int]] = field(default_factory=dict)
-    pair_by_sequence_by_batch: dict[UUID, dict[int, tuple[UUID, UUID]]] = field(default_factory=dict)
-    detail_by_sequence_by_batch: dict[UUID, dict[int, tuple[str, UUID | tuple[UUID, UUID]]]] = field(
+    sequence_by_pair_by_batch: dict[UUID, dict[tuple[UUID, UUID], int]] = field(
         default_factory=dict
     )
-    attempt_refs_by_session_by_batch: dict[UUID, dict[UUID, AttemptAuditBlobRef]] = field(
+    pair_by_sequence_by_batch: dict[UUID, dict[int, tuple[UUID, UUID]]] = field(
         default_factory=dict
     )
-    latest_attempt_number_by_batch: dict[UUID, dict[tuple[UUID, UUID], int]] = field(default_factory=dict)
+    detail_by_sequence_by_batch: dict[
+        UUID, dict[int, tuple[str, UUID | tuple[UUID, UUID]]]
+    ] = field(default_factory=dict)
+    attempt_refs_by_session_by_batch: dict[UUID, dict[UUID, AttemptAuditBlobRef]] = (
+        field(default_factory=dict)
+    )
+    latest_attempt_number_by_batch: dict[UUID, dict[tuple[UUID, UUID], int]] = field(
+        default_factory=dict
+    )
     next_sequence_by_batch: dict[UUID, int] = field(default_factory=dict)
     session_context_by_id: dict[UUID, _SessionRunContext] = field(default_factory=dict)
     provider_counters_by_batch: dict[
         UUID,
         dict[tuple[str, str], _ProviderEvidenceCounter],
     ] = field(default_factory=dict)
-    failed_provider_keys_by_session: dict[UUID, set[tuple[str, str]]] = field(default_factory=dict)
+    failed_provider_keys_by_session: dict[UUID, set[tuple[str, str]]] = field(
+        default_factory=dict
+    )
     blob_store: RunSubmissionBlobStore = field(init=False)
     attempt_blob_store: AttemptAuditBlobStore = field(init=False)
     _lock: RLock = field(default_factory=RLock, init=False, repr=False)
@@ -89,11 +97,15 @@ class FileBackedRunProgress:
             existing = self.batches_by_id.get(batch.batch_id)
             if existing is not None:
                 if existing != batch:
-                    raise RuntimeError("batch_id already exists with different contents")
+                    raise RuntimeError(
+                        "batch_id already exists with different contents"
+                    )
                 return
 
             self.batches_by_id[batch.batch_id] = batch
-            self.expected_by_batch[batch.batch_id] = len(batch.tasks) * len(batch.artifacts)
+            self.expected_by_batch[batch.batch_id] = len(batch.tasks) * len(
+                batch.artifacts
+            )
             self.submission_refs_by_batch.setdefault(batch.batch_id, {})
             self.sequence_by_pair_by_batch.setdefault(batch.batch_id, {})
             self.pair_by_sequence_by_batch.setdefault(batch.batch_id, {})
@@ -113,12 +125,16 @@ class FileBackedRunProgress:
 
     def record_terminated_attempt(self, attempt: MinerTaskAttemptAuditRecord) -> None:
         with self._lock:
-            attempt_refs = self.attempt_refs_by_session_by_batch.setdefault(attempt.batch_id, {})
+            attempt_refs = self.attempt_refs_by_session_by_batch.setdefault(
+                attempt.batch_id, {}
+            )
             existing_ref = attempt_refs.get(attempt.validator_session_id)
             if existing_ref is not None:
                 existing = self.attempt_blob_store.read(existing_ref)
                 if existing != attempt:
-                    raise RuntimeError("batch already recorded a different attempt for session")
+                    raise RuntimeError(
+                        "batch already recorded a different attempt for session"
+                    )
                 return
 
             sequence = int(self.next_sequence_by_batch.get(attempt.batch_id, 1))
@@ -127,16 +143,22 @@ class FileBackedRunProgress:
                 sequence=sequence,
                 attempt=attempt,
             )
-            self.detail_by_sequence_by_batch.setdefault(attempt.batch_id, {})[sequence] = (
+            self.detail_by_sequence_by_batch.setdefault(attempt.batch_id, {})[
+                sequence
+            ] = (
                 "terminated_attempt",
                 attempt.validator_session_id,
             )
             self._record_latest_attempt_number(attempt)
             self.next_sequence_by_batch[attempt.batch_id] = sequence + 1
 
-    def next_attempt_number(self, batch_id: UUID, artifact_id: UUID, task_id: UUID) -> int:
+    def next_attempt_number(
+        self, batch_id: UUID, artifact_id: UUID, task_id: UUID
+    ) -> int:
         with self._lock:
-            latest_attempt_number = self.latest_attempt_number_by_batch.get(batch_id, {}).get((artifact_id, task_id), 0)
+            latest_attempt_number = self.latest_attempt_number_by_batch.get(
+                batch_id, {}
+            ).get((artifact_id, task_id), 0)
             return latest_attempt_number + 1
 
     def _merged_provider_counters(
@@ -176,7 +198,9 @@ class FileBackedRunProgress:
         session_id: UUID,
     ) -> None:
         with self._lock:
-            self.session_context_by_id[session_id] = _SessionRunContext(batch_id=batch_id)
+            self.session_context_by_id[session_id] = _SessionRunContext(
+                batch_id=batch_id
+            )
 
     def record_provider_call(
         self,
@@ -190,7 +214,9 @@ class FileBackedRunProgress:
             context = self.session_context_by_id.get(session_id)
             if context is None:
                 return
-            counter = self.provider_counters_by_batch.setdefault(context.batch_id, {}).setdefault(
+            counter = self.provider_counters_by_batch.setdefault(
+                context.batch_id, {}
+            ).setdefault(
                 key,
                 _ProviderEvidenceCounter(),
             )
@@ -209,7 +235,9 @@ class FileBackedRunProgress:
             context = self.session_context_by_id.get(session_id)
             if context is None:
                 return
-            counter = self.provider_counters_by_batch.setdefault(context.batch_id, {}).setdefault(
+            counter = self.provider_counters_by_batch.setdefault(
+                context.batch_id, {}
+            ).setdefault(
                 key,
                 _ProviderEvidenceCounter(),
             )
@@ -220,7 +248,9 @@ class FileBackedRunProgress:
             keys = self.failed_provider_keys_by_session.setdefault(session_id, set())
             keys.add(key)
 
-    def consume_provider_failures(self, session_id: UUID) -> tuple[ProviderEvidenceSnapshot, ...]:
+    def consume_provider_failures(
+        self, session_id: UUID
+    ) -> tuple[ProviderEvidenceSnapshot, ...]:
         with self._lock:
             keys = self.failed_provider_keys_by_session.pop(session_id, None)
             if not keys:
@@ -230,7 +260,9 @@ class FileBackedRunProgress:
                 return ()
             snapshots: list[ProviderEvidenceSnapshot] = []
             for key in sorted(keys):
-                snapshot = self._provider_evidence_snapshot(batch_id=context.batch_id, key=key)
+                snapshot = self._provider_evidence_snapshot(
+                    batch_id=context.batch_id, key=key
+                )
                 if snapshot is None:
                     continue
                 snapshots.append(snapshot)
@@ -246,7 +278,9 @@ class FileBackedRunProgress:
             provider_counters = self.provider_counters_by_batch.get(batch_id, {})
             snapshots: list[ProviderEvidenceSnapshot] = []
             for provider, model in sorted(provider_counters):
-                snapshot = self._provider_evidence_snapshot(batch_id=batch_id, key=(provider, model))
+                snapshot = self._provider_evidence_snapshot(
+                    batch_id=batch_id, key=(provider, model)
+                )
                 if snapshot is None:
                     continue
                 snapshots.append(snapshot)
@@ -284,7 +318,11 @@ class FileBackedRunProgress:
             detail_by_sequence = self.detail_by_sequence_by_batch.get(batch_id, {})
             attempt_refs = self.attempt_refs_by_session_by_batch.get(batch_id, {})
             latest_sequence = self._latest_sequence(batch_id)
-            requested_sequences = tuple(range(after_sequence + 1, min(latest_sequence, after_sequence + limit) + 1))
+            requested_sequences = tuple(
+                range(
+                    after_sequence + 1, min(latest_sequence, after_sequence + limit) + 1
+                )
+            )
             requested_refs: list[RunSubmissionBlobRef | None] = []
             requested_attempt_refs: list[AttemptAuditBlobRef | None] = []
             for sequence in requested_sequences:
@@ -297,7 +335,9 @@ class FileBackedRunProgress:
                 kind, key = detail
                 if kind == "completed_run":
                     if not isinstance(key, tuple):
-                        raise RuntimeError("completed progress sequence points at invalid key")
+                        raise RuntimeError(
+                            "completed progress sequence points at invalid key"
+                        )
                     ref = refs.get(key)
                     if ref is None:
                         raise RuntimeError("progress sequence points at missing result")
@@ -306,25 +346,37 @@ class FileBackedRunProgress:
                     continue
                 if kind == "terminated_attempt":
                     if not isinstance(key, UUID):
-                        raise RuntimeError("attempt progress sequence points at invalid key")
+                        raise RuntimeError(
+                            "attempt progress sequence points at invalid key"
+                        )
                     ref = attempt_refs.get(key)
                     if ref is None:
-                        raise RuntimeError("progress sequence points at missing attempt")
+                        raise RuntimeError(
+                            "progress sequence points at missing attempt"
+                        )
                     requested_refs.append(None)
                     requested_attempt_refs.append(ref)
                     continue
                 raise RuntimeError("progress sequence has unsupported detail kind")
 
-            blob_indexes = [index for index, ref in enumerate(requested_refs) if ref is not None]
-            hydrated = self.blob_store.read_many(tuple(ref for ref in requested_refs if ref is not None))
+            blob_indexes = [
+                index for index, ref in enumerate(requested_refs) if ref is not None
+            ]
+            hydrated = self.blob_store.read_many(
+                tuple(ref for ref in requested_refs if ref is not None)
+            )
             submissions_by_index = dict(zip(blob_indexes, hydrated, strict=True))
             attempt_blob_indexes = [
-                index for index, ref in enumerate(requested_attempt_refs) if ref is not None
+                index
+                for index, ref in enumerate(requested_attempt_refs)
+                if ref is not None
             ]
             hydrated_attempts = self.attempt_blob_store.read_many(
                 tuple(ref for ref in requested_attempt_refs if ref is not None)
             )
-            attempts_by_index = dict(zip(attempt_blob_indexes, hydrated_attempts, strict=True))
+            attempts_by_index = dict(
+                zip(attempt_blob_indexes, hydrated_attempts, strict=True)
+            )
 
         items: list[SequencedProgressDetail] = []
         for index, sequence in enumerate(requested_sequences):
@@ -362,14 +414,36 @@ class FileBackedRunProgress:
         with self._lock:
             removed = self.batches_by_id.pop(batch_id, None) is not None
             removed = self.expected_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.submission_refs_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.sequence_by_pair_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.pair_by_sequence_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.detail_by_sequence_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.attempt_refs_by_session_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.latest_attempt_number_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.next_sequence_by_batch.pop(batch_id, None) is not None or removed
-            removed = self.provider_counters_by_batch.pop(batch_id, None) is not None or removed
+            removed = (
+                self.submission_refs_by_batch.pop(batch_id, None) is not None or removed
+            )
+            removed = (
+                self.sequence_by_pair_by_batch.pop(batch_id, None) is not None
+                or removed
+            )
+            removed = (
+                self.pair_by_sequence_by_batch.pop(batch_id, None) is not None
+                or removed
+            )
+            removed = (
+                self.detail_by_sequence_by_batch.pop(batch_id, None) is not None
+                or removed
+            )
+            removed = (
+                self.attempt_refs_by_session_by_batch.pop(batch_id, None) is not None
+                or removed
+            )
+            removed = (
+                self.latest_attempt_number_by_batch.pop(batch_id, None) is not None
+                or removed
+            )
+            removed = (
+                self.next_sequence_by_batch.pop(batch_id, None) is not None or removed
+            )
+            removed = (
+                self.provider_counters_by_batch.pop(batch_id, None) is not None
+                or removed
+            )
 
             session_ids = tuple(
                 session_id
@@ -377,8 +451,15 @@ class FileBackedRunProgress:
                 if context.batch_id == batch_id
             )
             for session_id in session_ids:
-                removed = self.session_context_by_id.pop(session_id, None) is not None or removed
-                removed = self.failed_provider_keys_by_session.pop(session_id, None) is not None or removed
+                removed = (
+                    self.session_context_by_id.pop(session_id, None) is not None
+                    or removed
+                )
+                removed = (
+                    self.failed_provider_keys_by_session.pop(session_id, None)
+                    is not None
+                    or removed
+                )
 
             blobs_removed = self.blob_store.delete_batch(batch_id)
             attempt_blobs_removed = self.attempt_blob_store.delete_batch(batch_id)
@@ -425,7 +506,9 @@ class FileBackedRunProgress:
         result: MinerTaskRunSubmission,
         sequence_by_pair: dict[tuple[UUID, UUID], int] | None = None,
         pair_by_sequence: dict[int, tuple[UUID, UUID]] | None = None,
-        detail_by_sequence: dict[int, tuple[str, UUID | tuple[UUID, UUID]]] | None = None,
+        detail_by_sequence: (
+            dict[int, tuple[str, UUID | tuple[UUID, UUID]]] | None
+        ) = None,
         next_sequence: int | None = None,
         commit_next_sequence: bool = True,
     ) -> int:
@@ -434,7 +517,9 @@ class FileBackedRunProgress:
         if pair_by_sequence is None:
             pair_by_sequence = self.pair_by_sequence_by_batch.setdefault(batch_id, {})
         if detail_by_sequence is None:
-            detail_by_sequence = self.detail_by_sequence_by_batch.setdefault(batch_id, {})
+            detail_by_sequence = self.detail_by_sequence_by_batch.setdefault(
+                batch_id, {}
+            )
         if next_sequence is None:
             next_sequence = int(self.next_sequence_by_batch.get(batch_id, 1))
 
@@ -473,7 +558,9 @@ class FileBackedRunProgress:
             self.next_sequence_by_batch[batch_id] = next_sequence
         return next_sequence
 
-    def _record_latest_attempt_number(self, attempt: MinerTaskAttemptAuditRecord) -> None:
+    def _record_latest_attempt_number(
+        self, attempt: MinerTaskAttemptAuditRecord
+    ) -> None:
         self._merge_latest_attempt_number(
             batch_id=attempt.batch_id,
             artifact_id=attempt.artifact_id,
@@ -491,15 +578,23 @@ class FileBackedRunProgress:
     ) -> None:
         if attempt_number < 1:
             raise RuntimeError("attempt_number must be >= 1")
-        latest_attempt_numbers = self.latest_attempt_number_by_batch.setdefault(batch_id, {})
+        latest_attempt_numbers = self.latest_attempt_number_by_batch.setdefault(
+            batch_id, {}
+        )
         key = (artifact_id, task_id)
-        latest_attempt_numbers[key] = max(latest_attempt_numbers.get(key, 0), attempt_number)
+        latest_attempt_numbers[key] = max(
+            latest_attempt_numbers.get(key, 0), attempt_number
+        )
 
-    def _provider_evidence_unlocked(self, batch_id: UUID) -> tuple[ProviderEvidenceSnapshot, ...]:
+    def _provider_evidence_unlocked(
+        self, batch_id: UUID
+    ) -> tuple[ProviderEvidenceSnapshot, ...]:
         provider_counters = self.provider_counters_by_batch.get(batch_id, {})
         snapshots: list[ProviderEvidenceSnapshot] = []
         for provider, model in sorted(provider_counters):
-            snapshot = self._provider_evidence_snapshot(batch_id=batch_id, key=(provider, model))
+            snapshot = self._provider_evidence_snapshot(
+                batch_id=batch_id, key=(provider, model)
+            )
             if snapshot is None:
                 continue
             snapshots.append(snapshot)

@@ -37,7 +37,13 @@ def _log_platform_resolution(platform_base_url: str) -> None:
         addresses = sorted({info[4][0] for info in resolved})
         logger.info(
             "platform base url resolved",
-            extra={"data": {"platform_host": host, "platform_port": port, "resolved_addrs": addresses}},
+            extra={
+                "data": {
+                    "platform_host": host,
+                    "platform_port": port,
+                    "resolved_addrs": addresses,
+                }
+            },
         )
     except OSError as exc:
         logger.warning(
@@ -82,7 +88,9 @@ class PlatformRegistrationClient:
             "Accept": "application/json",
         }
         try:
-            with httpx.Client(base_url=self.platform_base_url, timeout=self.timeout_seconds) as client:
+            with httpx.Client(
+                base_url=self.platform_base_url, timeout=self.timeout_seconds
+            ) as client:
                 response = client.post(path, content=body, headers=headers)
                 response.raise_for_status()
         except Exception as exc:  # pragma: no cover - network path
@@ -136,12 +144,16 @@ def register_with_retry(
                         "error_type": type(exc).__name__,
                         "error": str(exc),
                         "cause_type": type(cause).__name__ if cause else None,
-                        "cause_errno": cause.errno if isinstance(cause, OSError) else None,
+                        "cause_errno": (
+                            cause.errno if isinstance(cause, OSError) else None
+                        ),
                     }
                 },
             )
             time.sleep(delay_seconds)
-    raise RegistrationError(str(last_error) if last_error else "platform registration failed")
+    raise RegistrationError(
+        str(last_error) if last_error else "platform registration failed"
+    )
 
 
 __all__ = ["PlatformRegistrationClient", "register_with_retry", "RegistrationError"]

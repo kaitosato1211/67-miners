@@ -28,8 +28,12 @@ def judge_usage_from_response(
         default_model=default_model,
         call_count=call_count,
         actual_cost=_actual_cost_for_judge(response, call_count=call_count),
-        actual_cost_provider=_metadata_optional_string(response, "actual_cost_provider"),
-        actual_cost_evidence=_metadata_optional_string(response, "actual_cost_evidence"),
+        actual_cost_provider=_metadata_optional_string(
+            response, "actual_cost_provider"
+        ),
+        actual_cost_evidence=_metadata_optional_string(
+            response, "actual_cost_evidence"
+        ),
     )
 
 
@@ -44,7 +48,9 @@ def judge_usage_without_actual_cost_from_response(
         response,
         default_provider=default_provider,
         default_model=default_model,
-        call_count=_metadata_positive_int(response, "billable_response_count", fallback=1),
+        call_count=_metadata_positive_int(
+            response, "billable_response_count", fallback=1
+        ),
         actual_cost=None,
         actual_cost_provider=None,
         actual_cost_evidence=None,
@@ -66,11 +72,17 @@ def _build_judge_usage(
         model=_metadata_string(response, "selected_model", default_model),
         call_count=call_count,
         prompt_tokens=_usage_token(response.usage.prompt_tokens, "prompt_tokens"),
-        completion_tokens=_usage_token(response.usage.completion_tokens, "completion_tokens"),
+        completion_tokens=_usage_token(
+            response.usage.completion_tokens, "completion_tokens"
+        ),
         total_tokens=_usage_token(response.usage.total_tokens, "total_tokens"),
-        reasoning_tokens=_optional_usage_token(response.usage.reasoning_tokens, "reasoning_tokens"),
+        reasoning_tokens=_optional_usage_token(
+            response.usage.reasoning_tokens, "reasoning_tokens"
+        ),
         actual_cost_usd=actual_cost,
-        actual_cost_source="provider_actual" if actual_cost is not None else "unavailable",
+        actual_cost_source=(
+            "provider_actual" if actual_cost is not None else "unavailable"
+        ),
         actual_cost_provider=actual_cost_provider,
         actual_cost_evidence=actual_cost_evidence,
     )
@@ -101,8 +113,12 @@ def merge_judge_usage(usages: Iterable[JudgeUsageSummary | None]) -> JudgeUsageS
         prompt_tokens=sum(model.prompt_tokens for model in merged_models),
         completion_tokens=sum(model.completion_tokens for model in merged_models),
         total_tokens=sum(model.total_tokens for model in merged_models),
-        reasoning_tokens=_coalesce_reasoning_tokens(model.reasoning_tokens for model in merged_models),
-        actual_cost_usd=_sum_actual_costs(tuple(model.actual_cost_usd for model in merged_models)),
+        reasoning_tokens=_coalesce_reasoning_tokens(
+            model.reasoning_tokens for model in merged_models
+        ),
+        actual_cost_usd=_sum_actual_costs(
+            tuple(model.actual_cost_usd for model in merged_models)
+        ),
         models=merged_models,
     )
 
@@ -132,9 +148,13 @@ def _merge_model_usage(
         prompt_tokens=sum(usage.prompt_tokens for usage in usages),
         completion_tokens=sum(usage.completion_tokens for usage in usages),
         total_tokens=sum(usage.total_tokens for usage in usages),
-        reasoning_tokens=_coalesce_reasoning_tokens(usage.reasoning_tokens for usage in usages),
+        reasoning_tokens=_coalesce_reasoning_tokens(
+            usage.reasoning_tokens for usage in usages
+        ),
         actual_cost_usd=actual_cost,
-        actual_cost_source="provider_actual" if actual_cost is not None else "unavailable",
+        actual_cost_source=(
+            "provider_actual" if actual_cost is not None else "unavailable"
+        ),
         actual_cost_provider=actual_metadata.provider,
         actual_cost_evidence=actual_metadata.evidence,
     )
@@ -150,9 +170,19 @@ def _sum_actual_costs(costs: tuple[float | None, ...]) -> float | None:
     return round(sum(costs), 12)
 
 
-def _merge_actual_cost_metadata(usages: tuple[JudgeModelUsage, ...]) -> _ActualCostMetadata:
-    providers = {usage.actual_cost_provider for usage in usages if usage.actual_cost_provider is not None}
-    evidence = {usage.actual_cost_evidence for usage in usages if usage.actual_cost_evidence is not None}
+def _merge_actual_cost_metadata(
+    usages: tuple[JudgeModelUsage, ...],
+) -> _ActualCostMetadata:
+    providers = {
+        usage.actual_cost_provider
+        for usage in usages
+        if usage.actual_cost_provider is not None
+    }
+    evidence = {
+        usage.actual_cost_evidence
+        for usage in usages
+        if usage.actual_cost_evidence is not None
+    }
     return _ActualCostMetadata(
         provider=providers.pop() if len(providers) == 1 else None,
         evidence=evidence.pop() if len(evidence) == 1 else None,

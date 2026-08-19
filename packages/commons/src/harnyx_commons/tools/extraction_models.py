@@ -27,7 +27,9 @@ class ExtractPagesRequest(BaseModel):
 
     @field_validator("urls")
     @classmethod
-    def _canonicalize_and_deduplicate_urls(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+    def _canonicalize_and_deduplicate_urls(
+        cls, value: tuple[str, ...]
+    ) -> tuple[str, ...]:
         return tuple(dict.fromkeys(canonicalize_extraction_url(url) for url in value))
 
 

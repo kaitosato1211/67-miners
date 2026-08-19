@@ -14,8 +14,7 @@ class ToolInvoker(Protocol):
         *,
         args: Sequence[Any] | None = None,
         kwargs: Mapping[str, Any] | None = None,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
 
 _ACTIVE_INVOKER: ToolInvoker | None = None

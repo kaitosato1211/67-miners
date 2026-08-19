@@ -29,7 +29,9 @@ def _client(
             base_url="https://api.firecrawl.dev",
             api_key="firecrawl-key",
             client=http_client,
-            retry_policy=RetryPolicy(attempts=attempts, initial_ms=0, max_ms=0, jitter=0.0),
+            retry_policy=RetryPolicy(
+                attempts=attempts, initial_ms=0, max_ms=0, jitter=0.0
+            ),
             include_payloads_in_logs=False,
         ),
         http_client,
@@ -71,7 +73,10 @@ async def test_search_web_normalizes_results_and_optional_billing_metadata() -> 
     request = observed[0]
     assert request.url.path == "/v2/search"
     assert request.headers["authorization"] == "Bearer firecrawl-key"
-    assert json.loads(request.content) == {"query": "(one) OR (two)", "sources": ["web"]}
+    assert json.loads(request.content) == {
+        "query": "(one) OR (two)",
+        "sources": ["web"],
+    }
     assert result.response.data[0].model_dump() == {
         "link": "https://example.com/article",
         "snippet": "Result summary",
@@ -89,7 +94,9 @@ async def test_search_web_zero_limit_returns_without_provider_request() -> None:
     client, http_client = _client(handler)
     try:
         result = await client.search_web(
-            SearchWebSearchRequest(provider="firecrawl", search_queries=("harnyx",), num=0)
+            SearchWebSearchRequest(
+                provider="firecrawl", search_queries=("harnyx",), num=0
+            )
         )
     finally:
         await http_client.aclose()
@@ -108,7 +115,9 @@ async def test_search_web_clamps_limit_and_accepts_empty_results() -> None:
     client, http_client = _client(handler)
     try:
         result = await client.search_web(
-            SearchWebSearchRequest(provider="firecrawl", search_queries=("harnyx",), num=101)
+            SearchWebSearchRequest(
+                provider="firecrawl", search_queries=("harnyx",), num=101
+            )
         )
     finally:
         await http_client.aclose()
@@ -126,8 +135,12 @@ async def test_search_web_clamps_limit_and_accepts_empty_results() -> None:
         {"success": True, "data": {"web": [{"url": "   "}]}},
     ],
 )
-async def test_search_web_rejects_malformed_result_contract(response_json: object) -> None:
-    client, http_client = _client(lambda _request: httpx.Response(200, json=response_json))
+async def test_search_web_rejects_malformed_result_contract(
+    response_json: object,
+) -> None:
+    client, http_client = _client(
+        lambda _request: httpx.Response(200, json=response_json)
+    )
     try:
         with pytest.raises(ToolProviderError, match="response invalid"):
             await client.search_web(
@@ -145,7 +158,9 @@ async def test_search_web_rejects_query_over_500_characters_without_request() ->
     try:
         with pytest.raises(ValueError, match="500 characters"):
             await client.search_web(
-                SearchWebSearchRequest(provider="firecrawl", search_queries=("x" * 499,))
+                SearchWebSearchRequest(
+                    provider="firecrawl", search_queries=("x" * 499,)
+                )
             )
     finally:
         await http_client.aclose()
@@ -158,7 +173,9 @@ async def test_search_web_rejects_query_over_500_characters_without_request() ->
         httpx.Response(200, json=[]),
     ],
 )
-async def test_search_web_maps_malformed_json_to_provider_failure(response: httpx.Response) -> None:
+async def test_search_web_maps_malformed_json_to_provider_failure(
+    response: httpx.Response,
+) -> None:
     client, http_client = _client(lambda _request: response)
     try:
         with pytest.raises(ToolProviderError, match="response invalid"):
@@ -169,7 +186,9 @@ async def test_search_web_maps_malformed_json_to_provider_failure(response: http
         await http_client.aclose()
 
 
-async def test_fetch_page_normalizes_documented_scrape_shape_without_billing_metadata() -> None:
+async def test_fetch_page_normalizes_documented_scrape_shape_without_billing_metadata() -> (
+    None
+):
     payloads: list[object] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -180,7 +199,10 @@ async def test_fetch_page_normalizes_documented_scrape_shape_without_billing_met
                 "success": True,
                 "data": {
                     "markdown": "# Example\n\nContent",
-                    "metadata": {"title": "Example", "sourceURL": "https://example.com/final"},
+                    "metadata": {
+                        "title": "Example",
+                        "sourceURL": "https://example.com/final",
+                    },
                 },
             },
         )
@@ -237,7 +259,9 @@ async def test_fetch_page_forwards_raw_html_format_and_normalizes_raw_html() -> 
     assert payloads == [
         {"url": "https://example.com", "formats": ["rawHtml"], "onlyMainContent": True}
     ]
-    assert [item.content for item in result.response.data] == ["<main>Raw content</main>"]
+    assert [item.content for item in result.response.data] == [
+        "<main>Raw content</main>"
+    ]
 
 
 async def test_fetch_page_returns_every_requested_format_in_request_order() -> None:
@@ -296,7 +320,9 @@ async def test_fetch_page_returns_every_requested_format_in_request_order() -> N
 
 
 @pytest.mark.parametrize("raw_html", [None, "", "   "])
-async def test_fetch_page_rejects_missing_or_blank_requested_raw_html(raw_html: object) -> None:
+async def test_fetch_page_rejects_missing_or_blank_requested_raw_html(
+    raw_html: object,
+) -> None:
     client, http_client = _client(
         lambda _request: httpx.Response(
             200,
@@ -379,22 +405,31 @@ async def test_fetch_page_rejects_missing_or_blank_markdown(markdown: object) ->
     )
     try:
         with pytest.raises(ToolProviderError, match="response invalid"):
-            await client.fetch_page(FetchPageRequest(provider="firecrawl", url="https://example.com"))
+            await client.fetch_page(
+                FetchPageRequest(provider="firecrawl", url="https://example.com")
+            )
     finally:
         await http_client.aclose()
 
 
-@pytest.mark.parametrize("metadata", [{"sourceURL": {}}, {"url": []}, {"sourceURL": 42}])
+@pytest.mark.parametrize(
+    "metadata", [{"sourceURL": {}}, {"url": []}, {"sourceURL": 42}]
+)
 async def test_fetch_page_rejects_non_string_metadata_urls(metadata: object) -> None:
     client, http_client = _client(
         lambda _request: httpx.Response(
             200,
-            json={"success": True, "data": {"markdown": "content", "metadata": metadata}},
+            json={
+                "success": True,
+                "data": {"markdown": "content", "metadata": metadata},
+            },
         )
     )
     try:
         with pytest.raises(ToolProviderError, match="response invalid"):
-            await client.fetch_page(FetchPageRequest(provider="firecrawl", url="https://example.com"))
+            await client.fetch_page(
+                FetchPageRequest(provider="firecrawl", url="https://example.com")
+            )
     finally:
         await http_client.aclose()
 
@@ -414,7 +449,9 @@ async def test_rate_limit_respects_retry_after(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(firecrawl_module.asyncio, "sleep", record_sleep)
     client, http_client = _client(lambda _request: next(responses), attempts=2)
     try:
-        await client.search_web(SearchWebSearchRequest(provider="firecrawl", search_queries=("harnyx",)))
+        await client.search_web(
+            SearchWebSearchRequest(provider="firecrawl", search_queries=("harnyx",))
+        )
     finally:
         await http_client.aclose()
 
@@ -433,7 +470,9 @@ async def test_non_retryable_statuses_fail_once(status: int) -> None:
     client, http_client = _client(handler, attempts=3)
     try:
         with pytest.raises(ToolProviderError) as exc_info:
-            await client.search_web(SearchWebSearchRequest(provider="firecrawl", search_queries=("harnyx",)))
+            await client.search_web(
+                SearchWebSearchRequest(provider="firecrawl", search_queries=("harnyx",))
+            )
     finally:
         await http_client.aclose()
 

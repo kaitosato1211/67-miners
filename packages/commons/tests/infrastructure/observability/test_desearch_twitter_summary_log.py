@@ -22,9 +22,12 @@ def _tweet(*, tweet_id: int, created_at: str) -> dict[str, object]:
     }
 
 
-async def test_search_links_twitter_emits_summary_log(caplog: pytest.LogCaptureFixture) -> None:
+async def test_search_links_twitter_emits_summary_log(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     tweets = [
-        _tweet(tweet_id=100 + idx, created_at=f"2026-01-14T00:00:{idx:02d}Z") for idx in range(25)
+        _tweet(tweet_id=100 + idx, created_at=f"2026-01-14T00:00:{idx:02d}Z")
+        for idx in range(25)
     ]
 
     def handler(request: httpx.Request) -> httpx.Response:

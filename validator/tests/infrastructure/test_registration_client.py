@@ -30,7 +30,9 @@ def _assert_signed_body(request: httpx.Request, keypair: bt.Keypair) -> None:
     match = _HEADER_PATTERN.match(header)
     assert match is not None
     assert match.group("ss58") == keypair.ss58_address
-    canonical = build_canonical_request(request.method, request.url.path, request.content)
+    canonical = build_canonical_request(
+        request.method, request.url.path, request.content
+    )
     assert keypair.verify(canonical, bytes.fromhex(match.group("sig")))
 
 
@@ -48,7 +50,9 @@ def test_registration_client_posts_runtime_metadata_in_signed_body(monkeypatch) 
         def __exit__(self, exc_type, exc, tb) -> None:
             return None
 
-        def post(self, path: str, *, content: bytes, headers: dict[str, str]) -> httpx.Response:
+        def post(
+            self, path: str, *, content: bytes, headers: dict[str, str]
+        ) -> httpx.Response:
             captured["request"] = httpx.Request(
                 "POST",
                 f"{self._base_url}{path}",
@@ -96,10 +100,14 @@ def test_register_with_retry_forwards_metadata(monkeypatch) -> None:
     class _RecordingClient:
         platform_base_url = "https://platform.invalid"
 
-        def register(self, public_url: str, metadata_arg: ValidatorRegistrationMetadata) -> None:
+        def register(
+            self, public_url: str, metadata_arg: ValidatorRegistrationMetadata
+        ) -> None:
             calls.append((public_url, metadata_arg))
 
-    monkeypatch.setattr(registration_module, "_log_platform_resolution", lambda _base_url: None)
+    monkeypatch.setattr(
+        registration_module, "_log_platform_resolution", lambda _base_url: None
+    )
     register_with_retry(
         _RecordingClient(),  # type: ignore[arg-type]
         "https://validator.invalid",

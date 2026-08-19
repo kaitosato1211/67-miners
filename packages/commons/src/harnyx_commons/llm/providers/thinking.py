@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from typing import cast
 
 from harnyx_commons.llm.schema import LlmThinkingConfig, ReasoningEffort
-from harnyx_commons.llm.tool_models import ModelThinkingCapability, model_thinking_capability
+from harnyx_commons.llm.tool_models import (
+    ModelThinkingCapability,
+    model_thinking_capability,
+)
 
 _TYPED_REASONING_EFFORTS = frozenset(("low", "medium", "high"))
 

@@ -32,7 +32,10 @@ from harnyx_commons.llm.schema import (
     LlmRequest,
     LlmResponse,
 )
-from harnyx_commons.miner_task_similarity import SimilarityJudgeRequest, SimilarityJudgeResult
+from harnyx_commons.miner_task_similarity import (
+    SimilarityJudgeRequest,
+    SimilarityJudgeResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -221,10 +224,12 @@ class _ArchitectureAssessmentModel(BaseModel):
 class _SimilarityClassificationModel(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    classification: Literal["duplicate", "near_duplicate", "notable_change", "novel"] = Field(
-        description="Behavior classification relative to the selected reference."
+    classification: Literal[
+        "duplicate", "near_duplicate", "notable_change", "novel"
+    ] = Field(description="Behavior classification relative to the selected reference.")
+    reasoning: str = Field(
+        description="Validator-owned classification explanation.", min_length=1
     )
-    reasoning: str = Field(description="Validator-owned classification explanation.", min_length=1)
     mechanism_change: str | None = Field(
         description="Concrete behavior change required for near_duplicate, notable_change, and novel.",
     )
@@ -249,7 +254,9 @@ class _SimilarityClassificationModel(BaseModel):
             )
         }
         if self.classification == "duplicate" and statuses != {"preserved"}:
-            raise ValueError("duplicate requires every architectural dimension to be preserved")
+            raise ValueError(
+                "duplicate requires every architectural dimension to be preserved"
+            )
         if self.classification == "near_duplicate" and (
             "localized_change" not in statuses
             or not statuses <= {"preserved", "localized_change"}
@@ -264,7 +271,9 @@ class _SimilarityClassificationModel(BaseModel):
                 "notable_change requires a substantial same-root change or a partial replacement"
             )
         if self.classification == "novel" and statuses != {"replaced"}:
-            raise ValueError("novel requires all three architectural dimensions to be replaced")
+            raise ValueError(
+                "novel requires all three architectural dimensions to be replaced"
+            )
         return self
 
 
@@ -317,7 +326,9 @@ class SimilarityJudge:
                 if failed_usage is not None:
                     failed_candidate_usage.append(failed_usage)
                 if failed_candidate_usage:
-                    _attach_similarity_judge_usage(exc, merge_judge_usage(failed_candidate_usage))
+                    _attach_similarity_judge_usage(
+                        exc, merge_judge_usage(failed_candidate_usage)
+                    )
                 logger.warning(
                     "similarity_judge.candidate_failed",
                     extra={
@@ -341,10 +352,14 @@ class SimilarityJudge:
             )
         assert last_error is not None
         if failed_candidate_usage:
-            _attach_similarity_judge_usage(last_error, merge_judge_usage(failed_candidate_usage))
+            _attach_similarity_judge_usage(
+                last_error, merge_judge_usage(failed_candidate_usage)
+            )
         raise last_error
 
-    def _build_request(self, request: SimilarityJudgeRequest, *, model: str) -> LlmRequest:
+    def _build_request(
+        self, request: SimilarityJudgeRequest, *, model: str
+    ) -> LlmRequest:
         return LlmRequest(
             provider=self._config.provider,
             model=model,
@@ -393,7 +408,9 @@ def _validated_similarity_candidate_response(
             response=response,
         )
     try:
-        classification = _SimilarityClassificationModel.model_validate(response.postprocessed)
+        classification = _SimilarityClassificationModel.model_validate(
+            response.postprocessed
+        )
     except ValidationError as exc:
         raise LlmProviderError(str(exc), response=response) from exc
     selected_provider, selected_model = _selected_route_metadata(
@@ -436,7 +453,9 @@ def _build_similarity_payload(request: SimilarityJudgeRequest) -> dict[str, obje
     }
 
 
-def _similarity_reasoning_text(classification_model: _SimilarityClassificationModel) -> str:
+def _similarity_reasoning_text(
+    classification_model: _SimilarityClassificationModel,
+) -> str:
     assessment = classification_model.architecture_assessment
     lines = [
         classification_model.reasoning,
@@ -547,7 +566,9 @@ def _failure_log_data(
     }
 
 
-def _attach_similarity_judge_usage(exc: Exception, judge_usage: JudgeUsageSummary) -> Exception:
+def _attach_similarity_judge_usage(
+    exc: Exception, judge_usage: JudgeUsageSummary
+) -> Exception:
     exc.__dict__["judge_usage"] = judge_usage
     return exc
 

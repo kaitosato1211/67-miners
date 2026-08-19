@@ -40,7 +40,9 @@ class LocalToolHostHandle:
         except TimeoutError as err:
             raise RuntimeError("local tool host did not stop cleanly") from err
         except asyncio.CancelledError:  # pragma: no cover - defensive
-            raise RuntimeError("local tool host was cancelled during shutdown") from None
+            raise RuntimeError(
+                "local tool host was cancelled during shutdown"
+            ) from None
 
 
 async def start_local_tool_host(
@@ -80,7 +82,9 @@ async def start_local_tool_host(
                 try:
                     await serve_task
                 except Exception as exc:  # pragma: no cover - startup failure
-                    raise RuntimeError("local tool host exited before startup completed") from exc
+                    raise RuntimeError(
+                        "local tool host exited before startup completed"
+                    ) from exc
                 raise RuntimeError("local tool host exited before startup completed")
             if asyncio.get_running_loop().time() >= deadline:
                 server.should_exit = True

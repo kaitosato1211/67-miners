@@ -56,22 +56,22 @@ uv sync --all-packages --dev
 
 Create a `.env` at the repo root (copy from `.env.example`) and fill:
 
-| Variable | Purpose |
-|----------|---------|
-| `CHUTES_API_KEY` | Evaluation scoring and `llm_chat` tool calls |
-| `OPENROUTER_API_KEY` | Optional: required only for local tooling that calls OpenRouter with an operator-owned key; miner-paid `provider="openrouter"` calls use the OpenRouter credential stored in miner config |
-| `AI_GATEWAY_API_KEY` | Optional: required only for local tooling that calls AI Gateway with an operator-owned key; miner-paid `provider="ai_gateway"` calls use the AI Gateway credential stored in miner config |
-| `DESEARCH_API_KEY` | Optional: required if your agent uses search tools |
-| `FIRECRAWL_API_KEY` | Optional: required for local `search_web` and `fetch_page` calls with `SEARCH_PROVIDER=firecrawl`; miner-paid calls use the stored Firecrawl credential |
-| `EXA_API_KEY` | Optional: required for local `search_web` and `fetch_page` calls with `SEARCH_PROVIDER=exa`; miner-paid calls use the stored Exa credential |
-| `TAVILY_API_KEY` | Optional: required for local `search_web` and `fetch_page` calls with `SEARCH_PROVIDER=tavily`; miner-paid calls use the stored Tavily credential |
-| `FIRECRAWL_MAX_CONCURRENT` | Optional Firecrawl client concurrency limit; defaults to `100` |
-| `SEARCH_PROVIDER` | Optional: required if your agent uses search tools |
-| `PLATFORM_BASE_URL` | Public monitoring and script uploads |
-| `BENCHMARK_LLM_PROVIDER` | Optional `correctness-v1` benchmark judge provider; defaults to `chutes` |
-| `BENCHMARK_LLM_MODEL` | Required when running a `correctness-v1` local benchmark |
-| `BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER` | Required with `BENCHMARK_RUBRIC_JUDGE_LLM_MODEL` for `weighted-rubric-v1` local benchmark scoring |
-| `BENCHMARK_RUBRIC_JUDGE_LLM_MODEL` | Required with `BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER` for `weighted-rubric-v1` local benchmark scoring |
+| Variable                              | Purpose                                                                                                                                                                                   |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CHUTES_API_KEY`                      | Evaluation scoring and `llm_chat` tool calls                                                                                                                                              |
+| `OPENROUTER_API_KEY`                  | Optional: required only for local tooling that calls OpenRouter with an operator-owned key; miner-paid `provider="openrouter"` calls use the OpenRouter credential stored in miner config |
+| `AI_GATEWAY_API_KEY`                  | Optional: required only for local tooling that calls AI Gateway with an operator-owned key; miner-paid `provider="ai_gateway"` calls use the AI Gateway credential stored in miner config |
+| `DESEARCH_API_KEY`                    | Optional: required if your agent uses search tools                                                                                                                                        |
+| `FIRECRAWL_API_KEY`                   | Optional: required for local `search_web` and `fetch_page` calls with `SEARCH_PROVIDER=firecrawl`; miner-paid calls use the stored Firecrawl credential                                   |
+| `EXA_API_KEY`                         | Optional: required for local `search_web` and `fetch_page` calls with `SEARCH_PROVIDER=exa`; miner-paid calls use the stored Exa credential                                               |
+| `TAVILY_API_KEY`                      | Optional: required for local `search_web` and `fetch_page` calls with `SEARCH_PROVIDER=tavily`; miner-paid calls use the stored Tavily credential                                         |
+| `FIRECRAWL_MAX_CONCURRENT`            | Optional Firecrawl client concurrency limit; defaults to `100`                                                                                                                            |
+| `SEARCH_PROVIDER`                     | Optional: required if your agent uses search tools                                                                                                                                        |
+| `PLATFORM_BASE_URL`                   | Public monitoring and script uploads                                                                                                                                                      |
+| `BENCHMARK_LLM_PROVIDER`              | Optional `correctness-v1` benchmark judge provider; defaults to `chutes`                                                                                                                  |
+| `BENCHMARK_LLM_MODEL`                 | Required when running a `correctness-v1` local benchmark                                                                                                                                  |
+| `BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER` | Required with `BENCHMARK_RUBRIC_JUDGE_LLM_MODEL` for `weighted-rubric-v1` local benchmark scoring                                                                                         |
+| `BENCHMARK_RUBRIC_JUDGE_LLM_MODEL`    | Required with `BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER` for `weighted-rubric-v1` local benchmark scoring                                                                                      |
 
 The checked-in default is `SEARCH_PROVIDER=desearch`. `search_web` and `fetch_page` calls also support `parallel`, `firecrawl`, `exa`, and `tavily`; set the matching provider and API key. Provider-specific `provider_extra` values are retrieval-only and strictly validated; deep research, provider answers, and autonomous reasoning controls are not supported.
 If you set either benchmark judge provider to `vertex`, also configure Vertex credentials such as `GCP_PROJECT_ID` and `GCP_LOCATION`. For DRACO with Gemini 3.1 Pro Preview, use `BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER=vertex`, `BENCHMARK_RUBRIC_JUDGE_LLM_MODEL=gemini-3.1-pro-preview`, and `GCP_LOCATION=global`. `BENCHMARK_LLM_*` settings do not enable `weighted-rubric-v1` by fallback; rubric scoring uses only the dedicated `BENCHMARK_RUBRIC_JUDGE_LLM_*` settings.
@@ -248,6 +248,7 @@ CitationRef(
 Miner evaluations run under a per-session budget, and that budget **may vary between evaluations** — don’t assume a fixed value.
 
 Tool calls return a budget snapshot:
+
 - `session_budget_usd`
 - `session_hard_limit_usd`
 - `session_used_budget_usd`
@@ -279,11 +280,11 @@ Treat `allowed_embedding_provider_models[provider]` the same way for `embed_text
 
 Current allowed `llm_chat` provider/model ids in this repo:
 
-| Provider | Model ids |
-|----------|-----------|
-| `chutes` | `deepseek-ai/DeepSeek-V3.2-TEE`, `moonshotai/Kimi-K2.6-TEE`, `Qwen/Qwen3.6-27B-TEE`, `Qwen/Qwen3.8-27B-TEE`, `google/gemma-4-31B-turbo-TEE`, `zai-org/GLM-5.2-TEE`, `Qwen/Qwen3.5-397B-A17B-TEE` |
+| Provider     | Model ids                                                                                                                                                                                                                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `chutes`     | `deepseek-ai/DeepSeek-V3.2-TEE`, `moonshotai/Kimi-K2.6-TEE`, `Qwen/Qwen3.6-27B-TEE`, `Qwen/Qwen3.8-27B-TEE`, `google/gemma-4-31B-turbo-TEE`, `zai-org/GLM-5.2-TEE`, `Qwen/Qwen3.5-397B-A17B-TEE`                                                                                                                                                 |
 | `openrouter` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b`, `deepseek/deepseek-v3.2`, `z-ai/glm-5`, `qwen/qwen3.6-27b`, `qwen/qwen3.8-27b`, `google/gemma-4-31b-it`, `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-flash-0731`, `deepseek/deepseek-v4-pro`, `z-ai/glm-5.2`, `thinkingmachines/inkling`, `qwen/qwen3.5-397b-a17b`, `meta/muse-glimmer-30b` |
-| `ai_gateway` | `thinkingmachines/inkling`, `zai/glm-5.2-fast`, `openai/gpt-oss-20b`, `zai/glm-4.7`, `google/gemma-4-31b-it`, `openai/gpt-oss-120b`, `minimax/minimax-m2.7`, `zai/glm-4.7-flash`, `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-flash-0731`, `deepseek/deepseek-v4-pro`, `meta/muse-glimmer-30b`, `alibaba/qwen3.8-27b` |
+| `ai_gateway` | `thinkingmachines/inkling`, `zai/glm-5.2-fast`, `openai/gpt-oss-20b`, `zai/glm-4.7`, `google/gemma-4-31b-it`, `openai/gpt-oss-120b`, `minimax/minimax-m2.7`, `zai/glm-4.7-flash`, `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-flash-0731`, `deepseek/deepseek-v4-pro`, `meta/muse-glimmer-30b`, `alibaba/qwen3.8-27b`                    |
 
 `tooling_info().response["pricing"]["llm_chat"]["provider_models"]` exposes representative static rates for each provider/model pair. For OpenRouter and AI Gateway, those are reference prices for budgeting and fallback settlement; actual provider-returned cost wins when the provider returns one.
 
@@ -353,10 +354,10 @@ These controls pass through to the selected provider and model. Provider support
 
 Current allowed `embed_text` provider/model ids in this repo:
 
-| Provider | Model ids |
-|----------|-----------|
-| `chutes` | `Qwen/Qwen3-Embedding-8B-TEE` |
-| `openrouter` | `qwen/qwen3-embedding-8b` |
+| Provider     | Model ids                     |
+| ------------ | ----------------------------- |
+| `chutes`     | `Qwen/Qwen3-Embedding-8B-TEE` |
+| `openrouter` | `qwen/qwen3-embedding-8b`     |
 
 Use `input_type="query"` for query or instruction-style embeddings and `input_type="document"` for document embeddings:
 
@@ -424,17 +425,17 @@ Omit it when you want the validator/provider default behavior.
 
 Thinking controls are provider/model specific:
 
-| Provider | Model | `enabled=True` / `enabled=False` | `effort` | `budget` |
-|----------|-------|----------------------------------|----------|----------|
-| `openrouter` | `openai/gpt-oss-20b` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"` | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens` |
-| `openrouter` | `openai/gpt-oss-120b` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"` | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens` |
-| `openrouter` | `deepseek/deepseek-v3.2`, `z-ai/glm-5`, `qwen/qwen3.6-27b`, `qwen/qwen3.8-27b`, `google/gemma-4-31b-it` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"` | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens` |
-| `openrouter` | `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-flash-0731`, `deepseek/deepseek-v4-pro`, `z-ai/glm-5.2`, `thinkingmachines/inkling`, `qwen/qwen3.5-397b-a17b`, `meta/muse-glimmer-30b` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"` | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens` |
-| `ai_gateway` | Allowed AI Gateway models except `google/gemma-4-31b-it` pinned to Cerebras | Supported via AI Gateway `reasoning.enabled` / `reasoning.effort="none"` | Supported via AI Gateway `reasoning.effort` | Supported via AI Gateway `reasoning.max_tokens` |
-| `ai_gateway` | `google/gemma-4-31b-it` pinned to Cerebras | Enable by supplying an explicit `effort`; disabling uses Gemma's disabled provider default | Supported via Cerebras `reasoningEffort` | Unsupported for this route; not serialized into a Cerebras provider option |
-| `chutes` | `deepseek-ai/DeepSeek-V3.2-TEE` | Supported via `chat_template_kwargs.thinking` | Unsupported for Chutes; not serialized | Unsupported for Chutes; not serialized |
-| `chutes` | `Qwen/Qwen3.6-27B-TEE`, `Qwen/Qwen3.8-27B-TEE`, `google/gemma-4-31B-turbo-TEE` | Supported via `chat_template_kwargs.enable_thinking` | Unsupported for Chutes; not serialized | Unsupported for Chutes; not serialized |
-| `chutes` | `moonshotai/Kimi-K2.6-TEE`, `zai-org/GLM-5.2-TEE`, `Qwen/Qwen3.5-397B-A17B-TEE` | No verified Chutes toggle; typed hints are not serialized and provider defaults apply | Unsupported for Chutes; not serialized | Unsupported for Chutes; not serialized |
+| Provider     | Model                                                                                                                                                                                      | `enabled=True` / `enabled=False`                                                           | `effort`                                    | `budget`                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------- |
+| `openrouter` | `openai/gpt-oss-20b`                                                                                                                                                                       | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens`                            |
+| `openrouter` | `openai/gpt-oss-120b`                                                                                                                                                                      | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens`                            |
+| `openrouter` | `deepseek/deepseek-v3.2`, `z-ai/glm-5`, `qwen/qwen3.6-27b`, `qwen/qwen3.8-27b`, `google/gemma-4-31b-it`                                                                                    | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens`                            |
+| `openrouter` | `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-flash-0731`, `deepseek/deepseek-v4-pro`, `z-ai/glm-5.2`, `thinkingmachines/inkling`, `qwen/qwen3.5-397b-a17b`, `meta/muse-glimmer-30b` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens`                            |
+| `ai_gateway` | Allowed AI Gateway models except `google/gemma-4-31b-it` pinned to Cerebras                                                                                                                | Supported via AI Gateway `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via AI Gateway `reasoning.effort` | Supported via AI Gateway `reasoning.max_tokens`                            |
+| `ai_gateway` | `google/gemma-4-31b-it` pinned to Cerebras                                                                                                                                                 | Enable by supplying an explicit `effort`; disabling uses Gemma's disabled provider default | Supported via Cerebras `reasoningEffort`    | Unsupported for this route; not serialized into a Cerebras provider option |
+| `chutes`     | `deepseek-ai/DeepSeek-V3.2-TEE`                                                                                                                                                            | Supported via `chat_template_kwargs.thinking`                                              | Unsupported for Chutes; not serialized      | Unsupported for Chutes; not serialized                                     |
+| `chutes`     | `Qwen/Qwen3.6-27B-TEE`, `Qwen/Qwen3.8-27B-TEE`, `google/gemma-4-31B-turbo-TEE`                                                                                                             | Supported via `chat_template_kwargs.enable_thinking`                                       | Unsupported for Chutes; not serialized      | Unsupported for Chutes; not serialized                                     |
+| `chutes`     | `moonshotai/Kimi-K2.6-TEE`, `zai-org/GLM-5.2-TEE`, `Qwen/Qwen3.5-397B-A17B-TEE`                                                                                                            | No verified Chutes toggle; typed hints are not serialized and provider defaults apply      | Unsupported for Chutes; not serialized      | Unsupported for Chutes; not serialized                                     |
 
 ```python
 from harnyx_miner_sdk.api import llm_chat
@@ -451,6 +452,7 @@ response = await llm_chat(
 `effort` (`"low"`, `"medium"`, `"high"`) and `budget` are supported when the selected provider/model uses OpenRouter or AI Gateway reasoning controls. Gemma 4 pinned to Cerebras requires an explicit `effort` and does not support `budget`. The two fields cannot be sent together, and invalid scalar values are rejected; for example, `"false"` is not accepted as a boolean. Thinking controls are best effort across providers: if the selected model/provider has no verified control, the request still runs and unsupported hints are not serialized into guessed provider fields.
 
 Core subnet-facing tools today:
+
 - `search_web`: web search results; pass `timeout=<seconds>` to bound the full search call
 - `fetch_page`: fetched page content; pass `timeout=<seconds>` to bound slow page fetches
 - `llm_chat`: hosted LLM chat; pass `timeout=<seconds>` to bound the full hosted chat call
@@ -564,12 +566,12 @@ that two arbitrary Python programs are semantically equivalent.
 
 The duplicate hash uses an allow-listed normalization policy:
 
-| Transform class | Decision-hash behavior |
-|-----------------|------------------------|
-| Comments, whitespace, parser-erased literal spelling, and source locations | canonicalized |
-| Common lexical renames, import alias order, inert helper padding/order, and stable local keyword names | canonicalized when the transform's mechanical assumptions are true |
-| Recursive `pass` and standalone constant-expression padding, unobservable docstrings, and unread plain-name assignments to provably non-raising static module literals | canonicalized |
-| Keyword argument order, arbitrary statement/import reordering, general dead-code removal, constant folding, and semantic equivalence | not normalized in the duplicate-rejection hash |
+| Transform class                                                                                                                                                        | Decision-hash behavior                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Comments, whitespace, parser-erased literal spelling, and source locations                                                                                             | canonicalized                                                      |
+| Common lexical renames, import alias order, inert helper padding/order, and stable local keyword names                                                                 | canonicalized when the transform's mechanical assumptions are true |
+| Recursive `pass` and standalone constant-expression padding, unobservable docstrings, and unread plain-name assignments to provably non-raising static module literals | canonicalized                                                      |
+| Keyword argument order, arbitrary statement/import reordering, general dead-code removal, constant folding, and semantic equivalence                                   | not normalized in the duplicate-rejection hash                     |
 
 `canonical_ast_hash_v1` is not semantic equivalence. It intentionally ignores
 some syntactic and identifier-level differences for duplicate rejection. Scripts
@@ -636,26 +638,26 @@ annotations, and method definitions.
 
 ### Authentication (401)
 
-| Error | Cause |
-|-------|-------|
-| `missing_authorization` | No `Authorization` header |
-| `invalid_signature` | Signature does not verify |
-| `invalid_signature_hex` | Signature is not valid hex |
+| Error                      | Cause                      |
+| -------------------------- | -------------------------- |
+| `missing_authorization`    | No `Authorization` header  |
+| `invalid_signature`        | Signature does not verify  |
+| `invalid_signature_hex`    | Signature is not valid hex |
 | `invalid_signature_length` | Signature has wrong length |
 
 ### Authorization (403)
 
-| Error | Cause |
-|-------|-------|
+| Error            | Cause                                            |
+| ---------------- | ------------------------------------------------ |
 | `unknown_hotkey` | Hotkey is not registered on the subnet metagraph |
 
 ### Validation (4xx)
 
-| Error | Cause |
-|-------|-------|
-| `sha_mismatch` (422) | Your `sha256` does not match the decoded `script_b64` |
+| Error                          | Cause                                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| `sha_mismatch` (422)           | Your `sha256` does not match the decoded `script_b64`                              |
 | `invalid_script_payload` (422) | The script is not valid UTF-8/Python or uses unsupported dynamic/reflection syntax |
-| `duplicate_script` (409) | The same script already exists globally |
+| `duplicate_script` (409)       | The same script already exists globally                                            |
 
 ### Runtime (during evaluation)
 

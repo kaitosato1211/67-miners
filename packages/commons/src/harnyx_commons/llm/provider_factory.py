@@ -28,7 +28,10 @@ from harnyx_commons.llm.providers.openai_compatible import OpenAiCompatibleLlmPr
 from harnyx_commons.llm.providers.openrouter import OpenRouterLlmProvider
 from harnyx_commons.llm.providers.vertex.provider import VertexLlmProvider
 from harnyx_commons.llm.routing import LlmRouteSurface, RoutedLlmProvider
-from harnyx_commons.llm.tool_models import MinerSelectedLlmProviderName, parse_miner_selected_llm_provider
+from harnyx_commons.llm.tool_models import (
+    MinerSelectedLlmProviderName,
+    parse_miner_selected_llm_provider,
+)
 
 
 class CachedLlmProviderRegistry:
@@ -162,7 +165,9 @@ def _build_provider(
     vertex_settings: VertexSettings,
 ) -> LlmProviderPort:
     if route_target == OPENROUTER_PROVIDER:
-        _require_configured_credential(route_target, llm_settings.openrouter_api_key_value)
+        _require_configured_credential(
+            route_target, llm_settings.openrouter_api_key_value
+        )
         return LlmProviderAdapter(
             provider_name=route_target,
             delegate=OpenRouterLlmProvider(
@@ -171,7 +176,9 @@ def _build_provider(
         )
 
     if route_target == AI_GATEWAY_PROVIDER:
-        _require_configured_credential(route_target, llm_settings.ai_gateway_api_key_value)
+        _require_configured_credential(
+            route_target, llm_settings.ai_gateway_api_key_value
+        )
         return LlmProviderAdapter(
             provider_name=route_target,
             delegate=AiGatewayLlmProvider(
@@ -184,7 +191,9 @@ def _build_provider(
         endpoints = llm_settings.openai_compatible_endpoints
         endpoint = endpoints.get(custom_endpoint_id)
         if endpoint is None:
-            raise ValueError(f"custom OpenAI-compatible endpoint '{custom_endpoint_id}' is not configured")
+            raise ValueError(
+                f"custom OpenAI-compatible endpoint '{custom_endpoint_id}' is not configured"
+            )
         return LlmProviderAdapter(
             provider_name=route_target,
             delegate=OpenAiCompatibleLlmProvider(endpoint=endpoint),

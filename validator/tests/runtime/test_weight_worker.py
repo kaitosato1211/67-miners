@@ -21,7 +21,9 @@ class _FailingSubmissionService:
 
 
 class _SequenceSubmissionService:
-    def __init__(self, outcomes: list[Exception | WeightSubmissionResult | None]) -> None:
+    def __init__(
+        self, outcomes: list[Exception | WeightSubmissionResult | None]
+    ) -> None:
         self._outcomes = outcomes
 
     def try_submit(self) -> WeightSubmissionResult | None:
@@ -56,7 +58,9 @@ def test_weight_worker_success_log_includes_submitted_weights(
     with caplog.at_level(logging.INFO, logger="harnyx_validator.weight_worker"):
         worker._tick()
 
-    record = next(record for record in caplog.records if record.message == "weights submitted")
+    record = next(
+        record for record in caplog.records if record.message == "weights submitted"
+    )
     assert record.data == {
         "event": "validator_weight_worker_submitted",
         "tx_hash": "0xabc",
@@ -66,7 +70,9 @@ def test_weight_worker_success_log_includes_submitted_weights(
     }
 
 
-def test_weight_worker_suppresses_transient_network_sentry_before_threshold(monkeypatch) -> None:
+def test_weight_worker_suppresses_transient_network_sentry_before_threshold(
+    monkeypatch,
+) -> None:
     captured: list[BaseException] = []
     monkeypatch.setattr(worker_mod, "capture_exception", captured.append)
     status = StatusProvider()
@@ -82,10 +88,15 @@ def test_weight_worker_suppresses_transient_network_sentry_before_threshold(monk
             worker._tick()
 
     assert captured == []
-    assert status.state.last_weight_error == "weight submission retrying after transient network failure"
+    assert (
+        status.state.last_weight_error
+        == "weight submission retrying after transient network failure"
+    )
 
 
-def test_weight_worker_captures_sanitized_transient_network_outage_once_at_threshold(monkeypatch) -> None:
+def test_weight_worker_captures_sanitized_transient_network_outage_once_at_threshold(
+    monkeypatch,
+) -> None:
     captured: list[tuple[BaseException, dict[str, object]]] = []
 
     def capture(exc: BaseException, **kwargs: object) -> None:
@@ -121,7 +132,9 @@ def test_weight_worker_captures_sanitized_transient_network_outage_once_at_thres
     }
 
 
-def test_weight_worker_groups_websocket_handshake_timeout_at_threshold(monkeypatch) -> None:
+def test_weight_worker_groups_websocket_handshake_timeout_at_threshold(
+    monkeypatch,
+) -> None:
     captured: list[tuple[BaseException, dict[str, object]]] = []
 
     def capture(exc: BaseException, **kwargs: object) -> None:
@@ -157,9 +170,13 @@ def test_weight_worker_groups_websocket_handshake_timeout_at_threshold(monkeypat
     }
 
 
-def test_weight_worker_counts_consecutive_transient_failures_across_causes(monkeypatch) -> None:
+def test_weight_worker_counts_consecutive_transient_failures_across_causes(
+    monkeypatch,
+) -> None:
     captured: list[BaseException] = []
-    monkeypatch.setattr(worker_mod, "capture_exception", lambda exc, **_: captured.append(exc))
+    monkeypatch.setattr(
+        worker_mod, "capture_exception", lambda exc, **_: captured.append(exc)
+    )
     service = _SequenceSubmissionService(
         [
             socket.gaierror(socket.EAI_AGAIN, "temporary dns"),
@@ -176,7 +193,9 @@ def test_weight_worker_counts_consecutive_transient_failures_across_causes(monke
     assert [str(exc) for exc in captured] == ["weight worker transient network outage"]
 
 
-def test_weight_worker_resets_transient_network_failure_after_success(monkeypatch) -> None:
+def test_weight_worker_resets_transient_network_failure_after_success(
+    monkeypatch,
+) -> None:
     captured: list[BaseException] = []
     monkeypatch.setattr(worker_mod, "capture_exception", captured.append)
     status = StatusProvider()
@@ -192,7 +211,10 @@ def test_weight_worker_resets_transient_network_failure_after_success(monkeypatc
 
     with pytest.raises(socket.gaierror):
         worker._tick()
-    assert status.state.last_weight_error == "weight submission retrying after transient network failure"
+    assert (
+        status.state.last_weight_error
+        == "weight submission retrying after transient network failure"
+    )
 
     worker._tick()
     assert status.state.last_weight_error is None
@@ -204,7 +226,9 @@ def test_weight_worker_resets_transient_network_failure_after_success(monkeypatc
     assert captured == []
 
 
-def test_weight_worker_resets_transient_network_failure_before_non_transient_failure(monkeypatch) -> None:
+def test_weight_worker_resets_transient_network_failure_before_non_transient_failure(
+    monkeypatch,
+) -> None:
     captured: list[BaseException] = []
     monkeypatch.setattr(worker_mod, "capture_exception", captured.append)
     status = StatusProvider()

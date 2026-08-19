@@ -3,6 +3,7 @@
 Generated from FastAPI OpenAPI.
 
 ## Domains
+
 - [miner-task-batches](#miner-task-batches)
   - [POST /validator/miner-task-batches/{batch_id}/similarity](#endpoint-post-validator-miner-task-batches-batch_id-similarity)
 - [status](#status)
@@ -20,6 +21,7 @@ Generated from FastAPI OpenAPI.
 #### similarity
 
 <a id="endpoint-post-validator-miner-task-batches-batch_id-similarity"></a>
+
 ##### POST /validator/miner-task-batches/{batch_id}/similarity
 
 Run a validator-owned similarity judge for a dethroning miner script candidate.
@@ -27,114 +29,114 @@ Run a validator-owned similarity judge for a dethroning miner script candidate.
 **Auth**: Bittensor-signed (`Authorization: Bittensor ss58="...",sig="..."`)
 
 **Parameters**
-| Param | In | Req | Notes |
-| --- | --- | --- | --- |
+
+| Param      | In   | Req | Notes                   |
+| ---------- | ---- | --- | ----------------------- |
 | `batch_id` | path | req | `string` (format: uuid) |
 
 **Request**
 Content-Type: `application/json`
 Body: [SimilarityJudgeRequestModel](#model-similarityjudgerequestmodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `candidate_artifact_id` |  |  | req | `string` |
-| `candidate_diff` |  |  | req | `string` |
-| `candidate_miner_uid` |  |  | req | `integer` |
-| `incumbent_artifact_id` |  |  | req | `string` |
-| `incumbent_miner_uid` |  |  | req | `integer` |
-| `incumbent_script` |  |  | req | `string` |
+| 1st level               | 2nd level | 3rd level | Req | Notes     |
+| ----------------------- | --------- | --------- | --- | --------- |
+| `candidate_artifact_id` |           |           | req | `string`  |
+| `candidate_diff`        |           |           | req | `string`  |
+| `candidate_miner_uid`   |           |           | req | `integer` |
+| `incumbent_artifact_id` |           |           | req | `string`  |
+| `incumbent_miner_uid`   |           |           | req | `integer` |
+| `incumbent_script`      |           |           | req | `string`  |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [SimilarityJudgeResponseModel](#model-similarityjudgeresponsemodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `classification` |  |  | req | `string` (enum: [duplicate, near_duplicate, notable_change, novel]) |
-| `judge_usage` |  |  | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
-|  | `actual_cost_usd` |  | req | `number` (nullable) |
-|  | `call_count` |  | req | `integer` |
-|  | `completion_tokens` |  | req | `integer` |
-|  | `models` |  | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  |  | `actual_cost_evidence` | opt | `string` (nullable) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_source` | req | `string` (enum: [provider_actual, unavailable]) |
-|  |  | `actual_cost_usd` | req | `number` (nullable) |
-|  |  | `call_count` | req | `integer` |
-|  |  | `completion_tokens` | req | `integer` |
-|  |  | `model` | req | `string` |
-|  |  | `prompt_tokens` | req | `integer` |
-|  |  | `provider` | req | `string` |
-|  |  | `reasoning_tokens` | req | `integer` (nullable) |
-|  |  | `total_tokens` | req | `integer` |
-|  | `prompt_tokens` |  | req | `integer` |
-|  | `reasoning_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
-| `model` |  |  | req | `string` |
-| `provider` |  |  | req | `string` |
-| `reasoning` |  |  | opt | `string` (nullable) |
-| `reasoning_tokens` |  |  | opt | `integer` (nullable) |
+| 1st level          | 2nd level           | 3rd level              | Req | Notes                                                               |
+| ------------------ | ------------------- | ---------------------- | --- | ------------------------------------------------------------------- |
+| `classification`   |                     |                        | req | `string` (enum: [duplicate, near_duplicate, notable_change, novel]) |
+| `judge_usage`      |                     |                        | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable)            |
+|                    | `actual_cost_usd`   |                        | req | `number` (nullable)                                                 |
+|                    | `call_count`        |                        | req | `integer`                                                           |
+|                    | `completion_tokens` |                        | req | `integer`                                                           |
+|                    | `models`            |                        | req | array[[JudgeModelUsage](#model-judgemodelusage)]                    |
+|                    |                     | `actual_cost_evidence` | opt | `string` (nullable)                                                 |
+|                    |                     | `actual_cost_provider` | opt | `string` (nullable)                                                 |
+|                    |                     | `actual_cost_source`   | req | `string` (enum: [provider_actual, unavailable])                     |
+|                    |                     | `actual_cost_usd`      | req | `number` (nullable)                                                 |
+|                    |                     | `call_count`           | req | `integer`                                                           |
+|                    |                     | `completion_tokens`    | req | `integer`                                                           |
+|                    |                     | `model`                | req | `string`                                                            |
+|                    |                     | `prompt_tokens`        | req | `integer`                                                           |
+|                    |                     | `provider`             | req | `string`                                                            |
+|                    |                     | `reasoning_tokens`     | req | `integer` (nullable)                                                |
+|                    |                     | `total_tokens`         | req | `integer`                                                           |
+|                    | `prompt_tokens`     |                        | req | `integer`                                                           |
+|                    | `reasoning_tokens`  |                        | req | `integer`                                                           |
+|                    | `total_tokens`      |                        | req | `integer`                                                           |
+| `model`            |                     |                        | req | `string`                                                            |
+| `provider`         |                     |                        | req | `string`                                                            |
+| `reasoning`        |                     |                        | opt | `string` (nullable)                                                 |
+| `reasoning_tokens` |                     |                        | opt | `integer` (nullable)                                                |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 `500` Internal Server Error
 Content-Type: `application/json`
 Body: [ValidatorInternalErrorResponse](#model-validatorinternalerrorresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `error_code` |  |  | req | `string` |
-| `error_message` |  |  | req | `string` |
-| `exception_type` |  |  | req | `string` |
-| `request_id` |  |  | req | `string` |
-| `traceback` |  |  | req | `string` |
+| 1st level        | 2nd level | 3rd level | Req | Notes    |
+| ---------------- | --------- | --------- | --- | -------- |
+| `error_code`     |           |           | req | `string` |
+| `error_message`  |           |           | req | `string` |
+| `exception_type` |           |           | req | `string` |
+| `request_id`     |           |           | req | `string` |
+| `traceback`      |           |           | req | `string` |
 
 `502` Bad Gateway
 Content-Type: `application/json`
 Body: [SimilarityJudgeFailureResponseModel](#model-similarityjudgefailureresponsemodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | req | `string` |
-| `error_code` |  |  | req | `string` |
-| `judge_usage` |  |  | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
-|  | `actual_cost_usd` |  | req | `number` (nullable) |
-|  | `call_count` |  | req | `integer` |
-|  | `completion_tokens` |  | req | `integer` |
-|  | `models` |  | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  |  | `actual_cost_evidence` | opt | `string` (nullable) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_source` | req | `string` (enum: [provider_actual, unavailable]) |
-|  |  | `actual_cost_usd` | req | `number` (nullable) |
-|  |  | `call_count` | req | `integer` |
-|  |  | `completion_tokens` | req | `integer` |
-|  |  | `model` | req | `string` |
-|  |  | `prompt_tokens` | req | `integer` |
-|  |  | `provider` | req | `string` |
-|  |  | `reasoning_tokens` | req | `integer` (nullable) |
-|  |  | `total_tokens` | req | `integer` |
-|  | `prompt_tokens` |  | req | `integer` |
-|  | `reasoning_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
-| `retryable` |  |  | req | `boolean` |
-
-
+| 1st level     | 2nd level           | 3rd level              | Req | Notes                                                    |
+| ------------- | ------------------- | ---------------------- | --- | -------------------------------------------------------- |
+| `detail`      |                     |                        | req | `string`                                                 |
+| `error_code`  |                     |                        | req | `string`                                                 |
+| `judge_usage` |                     |                        | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
+|               | `actual_cost_usd`   |                        | req | `number` (nullable)                                      |
+|               | `call_count`        |                        | req | `integer`                                                |
+|               | `completion_tokens` |                        | req | `integer`                                                |
+|               | `models`            |                        | req | array[[JudgeModelUsage](#model-judgemodelusage)]         |
+|               |                     | `actual_cost_evidence` | opt | `string` (nullable)                                      |
+|               |                     | `actual_cost_provider` | opt | `string` (nullable)                                      |
+|               |                     | `actual_cost_source`   | req | `string` (enum: [provider_actual, unavailable])          |
+|               |                     | `actual_cost_usd`      | req | `number` (nullable)                                      |
+|               |                     | `call_count`           | req | `integer`                                                |
+|               |                     | `completion_tokens`    | req | `integer`                                                |
+|               |                     | `model`                | req | `string`                                                 |
+|               |                     | `prompt_tokens`        | req | `integer`                                                |
+|               |                     | `provider`             | req | `string`                                                 |
+|               |                     | `reasoning_tokens`     | req | `integer` (nullable)                                     |
+|               |                     | `total_tokens`         | req | `integer`                                                |
+|               | `prompt_tokens`     |                        | req | `integer`                                                |
+|               | `reasoning_tokens`  |                        | req | `integer`                                                |
+|               | `total_tokens`      |                        | req | `integer`                                                |
+| `retryable`   |                     |                        | req | `boolean`                                                |
 
 ## status
 
 <a id="endpoint-get-validator-status"></a>
+
 ### GET /validator/status
 
 Return a validator status snapshot for platform health checks.
@@ -146,51 +148,50 @@ Return a validator status snapshot for platform health checks.
 Content-Type: `application/json`
 Body: [ValidatorStatusResponse](#model-validatorstatusresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `hotkey` |  |  | req | `string` |
-| `is_chutes_configured` |  |  | opt | `boolean` (default: False) |
-| `is_openrouter_configured` |  |  | opt | `boolean` (default: False) |
-| `last_batch_id` |  |  | opt | `string` (nullable) |
-| `last_completed_at` |  |  | opt | `string` (nullable) |
-| `last_error` |  |  | opt | `string` (nullable) |
-| `last_started_at` |  |  | opt | `string` (nullable) |
-| `last_weight_error` |  |  | opt | `string` (nullable) |
-| `last_weight_submission_at` |  |  | opt | `string` (nullable) |
-| `queued_batches` |  |  | opt | `integer` (default: 0) |
-| `resource_usage` |  |  | opt | [ValidatorResourceUsageResponse](#model-validatorresourceusageresponse) (nullable) |
-|  | `captured_at` |  | req | `string` |
-|  | `cpu_capacity_cores` |  | req | `number` |
-|  | `cpu_percent` |  | req | `number` |
-|  | `disk_percent` |  | req | `number` |
-|  | `disk_total_bytes` |  | req | `integer` |
-|  | `disk_used_bytes` |  | req | `integer` |
-|  | `memory_percent` |  | req | `number` |
-|  | `memory_total_bytes` |  | req | `integer` |
-|  | `memory_used_bytes` |  | req | `integer` |
-| `running` |  |  | opt | `boolean` (default: False) |
-| `signature_hex` |  |  | opt | `string` (nullable) |
-| `status` |  |  | req | `string` |
+| 1st level                   | 2nd level            | 3rd level | Req | Notes                                                                              |
+| --------------------------- | -------------------- | --------- | --- | ---------------------------------------------------------------------------------- |
+| `hotkey`                    |                      |           | req | `string`                                                                           |
+| `is_chutes_configured`      |                      |           | opt | `boolean` (default: False)                                                         |
+| `is_openrouter_configured`  |                      |           | opt | `boolean` (default: False)                                                         |
+| `last_batch_id`             |                      |           | opt | `string` (nullable)                                                                |
+| `last_completed_at`         |                      |           | opt | `string` (nullable)                                                                |
+| `last_error`                |                      |           | opt | `string` (nullable)                                                                |
+| `last_started_at`           |                      |           | opt | `string` (nullable)                                                                |
+| `last_weight_error`         |                      |           | opt | `string` (nullable)                                                                |
+| `last_weight_submission_at` |                      |           | opt | `string` (nullable)                                                                |
+| `queued_batches`            |                      |           | opt | `integer` (default: 0)                                                             |
+| `resource_usage`            |                      |           | opt | [ValidatorResourceUsageResponse](#model-validatorresourceusageresponse) (nullable) |
+|                             | `captured_at`        |           | req | `string`                                                                           |
+|                             | `cpu_capacity_cores` |           | req | `number`                                                                           |
+|                             | `cpu_percent`        |           | req | `number`                                                                           |
+|                             | `disk_percent`       |           | req | `number`                                                                           |
+|                             | `disk_total_bytes`   |           | req | `integer`                                                                          |
+|                             | `disk_used_bytes`    |           | req | `integer`                                                                          |
+|                             | `memory_percent`     |           | req | `number`                                                                           |
+|                             | `memory_total_bytes` |           | req | `integer`                                                                          |
+|                             | `memory_used_bytes`  |           | req | `integer`                                                                          |
+| `running`                   |                      |           | opt | `boolean` (default: False)                                                         |
+| `signature_hex`             |                      |           | opt | `string` (nullable)                                                                |
+| `status`                    |                      |           | req | `string`                                                                           |
 
 `500` Internal Server Error
 Content-Type: `application/json`
 Body: [ValidatorInternalErrorResponse](#model-validatorinternalerrorresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `error_code` |  |  | req | `string` |
-| `error_message` |  |  | req | `string` |
-| `exception_type` |  |  | req | `string` |
-| `request_id` |  |  | req | `string` |
-| `traceback` |  |  | req | `string` |
-
-
+| 1st level        | 2nd level | 3rd level | Req | Notes    |
+| ---------------- | --------- | --------- | --- | -------- |
+| `error_code`     |           |           | req | `string` |
+| `error_message`  |           |           | req | `string` |
+| `exception_type` |           |           | req | `string` |
+| `request_id`     |           |           | req | `string` |
+| `traceback`      |           |           | req | `string` |
 
 ## tools
 
 ### execute
 
 <a id="endpoint-post-v1-tools-execute"></a>
+
 #### POST /v1/tools/execute
 
 Execute a tool invocation and return the tool result and usage.
@@ -198,68 +199,68 @@ Execute a tool invocation and return the tool result and usage.
 **Auth**: Tool token (`x-platform-token` header)
 
 **Headers**
-| Header | Req | Notes |
-| --- | --- | --- |
+
+| Header         | Req | Notes                   |
+| -------------- | --- | ----------------------- |
 | `x-session-id` | req | `string` (format: uuid) |
 
 **Request**
 Content-Type: `application/json`
 Body: [ToolExecuteRequestDTO](#model-toolexecuterequestdto)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `args` |  |  | opt | array[[JsonValue](#model-jsonvalue)] (default: []) |
-| `kwargs` |  |  | opt | `object` (default: {}) |
-| `tool` |  |  | req | `string` (enum: [search_web, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+| 1st level | 2nd level | 3rd level | Req | Notes                                                                                    |
+| --------- | --------- | --------- | --- | ---------------------------------------------------------------------------------------- |
+| `args`    |           |           | opt | array[[JsonValue](#model-jsonvalue)] (default: [])                                       |
+| `kwargs`  |           |           | opt | `object` (default: {})                                                                   |
+| `tool`    |           |           | req | `string` (enum: [search_web, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [ToolExecuteResponseDTO](#model-toolexecuteresponsedto)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `budget` |  |  | req | [ToolBudgetDTO](#model-toolbudgetdto) |
-|  | `session_budget_usd` |  | req | `number` |
-|  | `session_hard_limit_usd` |  | req | `number` |
-|  | `session_remaining_budget_usd` |  | req | `number` |
-|  | `session_used_budget_usd` |  | req | `number` |
-| `cost_usd` |  |  | opt | `number` (nullable) |
-| `receipt_id` |  |  | req | `string` |
-| `response` |  |  | req | [JsonValue](#model-jsonvalue) |
-| `result_policy` |  |  | req | `string` |
-| `results` |  |  | req | array[[ToolResultDTO](#model-toolresultdto)] |
-|  | `index` |  | req | `integer` |
-|  | `note` |  | opt | `string` (nullable) |
-|  | `raw` |  | opt | [JsonValue](#model-jsonvalue) (nullable) |
-|  | `result_id` |  | req | `string` |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | opt | `string` (nullable) |
-| `usage` |  |  | opt | [ToolUsageDTO](#model-toolusagedto) (nullable) |
-|  | `completion_tokens` |  | opt | `integer` (nullable) |
-|  | `prompt_tokens` |  | opt | `integer` (nullable) |
-|  | `total_tokens` |  | opt | `integer` (nullable) |
+| 1st level       | 2nd level                      | 3rd level | Req | Notes                                          |
+| --------------- | ------------------------------ | --------- | --- | ---------------------------------------------- |
+| `budget`        |                                |           | req | [ToolBudgetDTO](#model-toolbudgetdto)          |
+|                 | `session_budget_usd`           |           | req | `number`                                       |
+|                 | `session_hard_limit_usd`       |           | req | `number`                                       |
+|                 | `session_remaining_budget_usd` |           | req | `number`                                       |
+|                 | `session_used_budget_usd`      |           | req | `number`                                       |
+| `cost_usd`      |                                |           | opt | `number` (nullable)                            |
+| `receipt_id`    |                                |           | req | `string`                                       |
+| `response`      |                                |           | req | [JsonValue](#model-jsonvalue)                  |
+| `result_policy` |                                |           | req | `string`                                       |
+| `results`       |                                |           | req | array[[ToolResultDTO](#model-toolresultdto)]   |
+|                 | `index`                        |           | req | `integer`                                      |
+|                 | `note`                         |           | opt | `string` (nullable)                            |
+|                 | `raw`                          |           | opt | [JsonValue](#model-jsonvalue) (nullable)       |
+|                 | `result_id`                    |           | req | `string`                                       |
+|                 | `title`                        |           | opt | `string` (nullable)                            |
+|                 | `url`                          |           | opt | `string` (nullable)                            |
+| `usage`         |                                |           | opt | [ToolUsageDTO](#model-toolusagedto) (nullable) |
+|                 | `completion_tokens`            |           | opt | `integer` (nullable)                           |
+|                 | `prompt_tokens`                |           | opt | `integer` (nullable)                           |
+|                 | `total_tokens`                 |           | opt | `integer` (nullable)                           |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## Misc
 
 ### healthz
 
 <a id="endpoint-get-healthz"></a>
+
 #### GET /healthz
 
 Validator health check.
@@ -271,14 +272,14 @@ Validator health check.
 Content-Type: `application/json`
 Body: [ValidatorHealthResponse](#model-validatorhealthresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 ### readyz
 
 <a id="endpoint-get-readyz"></a>
+
 #### GET /readyz
 
 Validator readiness check.
@@ -290,34 +291,33 @@ Validator readiness check.
 Content-Type: `application/json`
 Body: [ValidatorReadinessSuccessResponse](#model-validatorreadinesssuccessresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 `503` Validator is not ready.
 Content-Type: `application/json`
 Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailureresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | `string` (nullable) |
-| `status` |  |  | req | `string` (enum: [waiting_for_platform_registration, waiting_for_auth_warmup, registration_failed, auth_unavailable]) |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                                                                                                |
+| --------- | --------- | --------- | --- | -------------------------------------------------------------------------------------------------------------------- |
+| `detail`  |           |           | opt | `string` (nullable)                                                                                                  |
+| `status`  |           |           | req | `string` (enum: [waiting_for_platform_registration, waiting_for_auth_warmup, registration_failed, auth_unavailable]) |
 
 ## Models
 
 <a id="model-httpvalidationerror"></a>
+
 ### Model: HTTPValidationError
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 <details>
 <summary>JSON schema</summary>
@@ -341,6 +341,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-jsonvalue"></a>
+
 ### Model: JsonValue
 
 (no documented fields)
@@ -355,21 +356,22 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-judgemodelusage"></a>
+
 ### Model: JudgeModelUsage
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost_evidence` |  |  | opt | `string` (nullable) |
-| `actual_cost_provider` |  |  | opt | `string` (nullable) |
-| `actual_cost_source` |  |  | req | `string` (enum: [provider_actual, unavailable]) |
-| `actual_cost_usd` |  |  | req | `number` (nullable) |
-| `call_count` |  |  | req | `integer` |
-| `completion_tokens` |  |  | req | `integer` |
-| `model` |  |  | req | `string` |
-| `prompt_tokens` |  |  | req | `integer` |
-| `provider` |  |  | req | `string` |
-| `reasoning_tokens` |  |  | req | `integer` (nullable) |
-| `total_tokens` |  |  | req | `integer` |
+| 1st level              | 2nd level | 3rd level | Req | Notes                                           |
+| ---------------------- | --------- | --------- | --- | ----------------------------------------------- |
+| `actual_cost_evidence` |           |           | opt | `string` (nullable)                             |
+| `actual_cost_provider` |           |           | opt | `string` (nullable)                             |
+| `actual_cost_source`   |           |           | req | `string` (enum: [provider_actual, unavailable]) |
+| `actual_cost_usd`      |           |           | req | `number` (nullable)                             |
+| `call_count`           |           |           | req | `integer`                                       |
+| `completion_tokens`    |           |           | req | `integer`                                       |
+| `model`                |           |           | req | `string`                                        |
+| `prompt_tokens`        |           |           | req | `integer`                                       |
+| `provider`             |           |           | req | `string`                                        |
+| `reasoning_tokens`     |           |           | req | `integer` (nullable)                            |
+| `total_tokens`         |           |           | req | `integer`                                       |
 
 <details>
 <summary>JSON schema</summary>
@@ -400,10 +402,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "title": "Actual Cost Provider"
     },
     "actual_cost_source": {
-      "enum": [
-        "provider_actual",
-        "unavailable"
-      ],
+      "enum": ["provider_actual", "unavailable"],
       "title": "Actual Cost Source",
       "type": "string"
     },
@@ -473,28 +472,29 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-judgeusagesummary"></a>
+
 ### Model: JudgeUsageSummary
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost_usd` |  |  | req | `number` (nullable) |
-| `call_count` |  |  | req | `integer` |
-| `completion_tokens` |  |  | req | `integer` |
-| `models` |  |  | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  | `actual_cost_evidence` |  | opt | `string` (nullable) |
-|  | `actual_cost_provider` |  | opt | `string` (nullable) |
-|  | `actual_cost_source` |  | req | `string` (enum: [provider_actual, unavailable]) |
-|  | `actual_cost_usd` |  | req | `number` (nullable) |
-|  | `call_count` |  | req | `integer` |
-|  | `completion_tokens` |  | req | `integer` |
-|  | `model` |  | req | `string` |
-|  | `prompt_tokens` |  | req | `integer` |
-|  | `provider` |  | req | `string` |
-|  | `reasoning_tokens` |  | req | `integer` (nullable) |
-|  | `total_tokens` |  | req | `integer` |
-| `prompt_tokens` |  |  | req | `integer` |
-| `reasoning_tokens` |  |  | req | `integer` |
-| `total_tokens` |  |  | req | `integer` |
+| 1st level           | 2nd level              | 3rd level | Req | Notes                                            |
+| ------------------- | ---------------------- | --------- | --- | ------------------------------------------------ |
+| `actual_cost_usd`   |                        |           | req | `number` (nullable)                              |
+| `call_count`        |                        |           | req | `integer`                                        |
+| `completion_tokens` |                        |           | req | `integer`                                        |
+| `models`            |                        |           | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
+|                     | `actual_cost_evidence` |           | opt | `string` (nullable)                              |
+|                     | `actual_cost_provider` |           | opt | `string` (nullable)                              |
+|                     | `actual_cost_source`   |           | req | `string` (enum: [provider_actual, unavailable])  |
+|                     | `actual_cost_usd`      |           | req | `number` (nullable)                              |
+|                     | `call_count`           |           | req | `integer`                                        |
+|                     | `completion_tokens`    |           | req | `integer`                                        |
+|                     | `model`                |           | req | `string`                                         |
+|                     | `prompt_tokens`        |           | req | `integer`                                        |
+|                     | `provider`             |           | req | `string`                                         |
+|                     | `reasoning_tokens`     |           | req | `integer` (nullable)                             |
+|                     | `total_tokens`         |           | req | `integer`                                        |
+| `prompt_tokens`     |                        |           | req | `integer`                                        |
+| `reasoning_tokens`  |                        |           | req | `integer`                                        |
+| `total_tokens`      |                        |           | req | `integer`                                        |
 
 <details>
 <summary>JSON schema</summary>
@@ -558,32 +558,33 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-similarityjudgefailureresponsemodel"></a>
+
 ### Model: SimilarityJudgeFailureResponseModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | req | `string` |
-| `error_code` |  |  | req | `string` |
-| `judge_usage` |  |  | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
-|  | `actual_cost_usd` |  | req | `number` (nullable) |
-|  | `call_count` |  | req | `integer` |
-|  | `completion_tokens` |  | req | `integer` |
-|  | `models` |  | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  |  | `actual_cost_evidence` | opt | `string` (nullable) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_source` | req | `string` (enum: [provider_actual, unavailable]) |
-|  |  | `actual_cost_usd` | req | `number` (nullable) |
-|  |  | `call_count` | req | `integer` |
-|  |  | `completion_tokens` | req | `integer` |
-|  |  | `model` | req | `string` |
-|  |  | `prompt_tokens` | req | `integer` |
-|  |  | `provider` | req | `string` |
-|  |  | `reasoning_tokens` | req | `integer` (nullable) |
-|  |  | `total_tokens` | req | `integer` |
-|  | `prompt_tokens` |  | req | `integer` |
-|  | `reasoning_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
-| `retryable` |  |  | req | `boolean` |
+| 1st level     | 2nd level           | 3rd level              | Req | Notes                                                    |
+| ------------- | ------------------- | ---------------------- | --- | -------------------------------------------------------- |
+| `detail`      |                     |                        | req | `string`                                                 |
+| `error_code`  |                     |                        | req | `string`                                                 |
+| `judge_usage` |                     |                        | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
+|               | `actual_cost_usd`   |                        | req | `number` (nullable)                                      |
+|               | `call_count`        |                        | req | `integer`                                                |
+|               | `completion_tokens` |                        | req | `integer`                                                |
+|               | `models`            |                        | req | array[[JudgeModelUsage](#model-judgemodelusage)]         |
+|               |                     | `actual_cost_evidence` | opt | `string` (nullable)                                      |
+|               |                     | `actual_cost_provider` | opt | `string` (nullable)                                      |
+|               |                     | `actual_cost_source`   | req | `string` (enum: [provider_actual, unavailable])          |
+|               |                     | `actual_cost_usd`      | req | `number` (nullable)                                      |
+|               |                     | `call_count`           | req | `integer`                                                |
+|               |                     | `completion_tokens`    | req | `integer`                                                |
+|               |                     | `model`                | req | `string`                                                 |
+|               |                     | `prompt_tokens`        | req | `integer`                                                |
+|               |                     | `provider`             | req | `string`                                                 |
+|               |                     | `reasoning_tokens`     | req | `integer` (nullable)                                     |
+|               |                     | `total_tokens`         | req | `integer`                                                |
+|               | `prompt_tokens`     |                        | req | `integer`                                                |
+|               | `reasoning_tokens`  |                        | req | `integer`                                                |
+|               | `total_tokens`      |                        | req | `integer`                                                |
+| `retryable`   |                     |                        | req | `boolean`                                                |
 
 <details>
 <summary>JSON schema</summary>
@@ -617,11 +618,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "type": "boolean"
     }
   },
-  "required": [
-    "error_code",
-    "retryable",
-    "detail"
-  ],
+  "required": ["error_code", "retryable", "detail"],
   "title": "SimilarityJudgeFailureResponseModel",
   "type": "object"
 }
@@ -630,16 +627,17 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-similarityjudgerequestmodel"></a>
+
 ### Model: SimilarityJudgeRequestModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `candidate_artifact_id` |  |  | req | `string` |
-| `candidate_diff` |  |  | req | `string` |
-| `candidate_miner_uid` |  |  | req | `integer` |
-| `incumbent_artifact_id` |  |  | req | `string` |
-| `incumbent_miner_uid` |  |  | req | `integer` |
-| `incumbent_script` |  |  | req | `string` |
+| 1st level               | 2nd level | 3rd level | Req | Notes     |
+| ----------------------- | --------- | --------- | --- | --------- |
+| `candidate_artifact_id` |           |           | req | `string`  |
+| `candidate_diff`        |           |           | req | `string`  |
+| `candidate_miner_uid`   |           |           | req | `integer` |
+| `incumbent_artifact_id` |           |           | req | `string`  |
+| `incumbent_miner_uid`   |           |           | req | `integer` |
+| `incumbent_script`      |           |           | req | `string`  |
 
 <details>
 <summary>JSON schema</summary>
@@ -695,34 +693,35 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-similarityjudgeresponsemodel"></a>
+
 ### Model: SimilarityJudgeResponseModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `classification` |  |  | req | `string` (enum: [duplicate, near_duplicate, notable_change, novel]) |
-| `judge_usage` |  |  | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
-|  | `actual_cost_usd` |  | req | `number` (nullable) |
-|  | `call_count` |  | req | `integer` |
-|  | `completion_tokens` |  | req | `integer` |
-|  | `models` |  | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  |  | `actual_cost_evidence` | opt | `string` (nullable) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_source` | req | `string` (enum: [provider_actual, unavailable]) |
-|  |  | `actual_cost_usd` | req | `number` (nullable) |
-|  |  | `call_count` | req | `integer` |
-|  |  | `completion_tokens` | req | `integer` |
-|  |  | `model` | req | `string` |
-|  |  | `prompt_tokens` | req | `integer` |
-|  |  | `provider` | req | `string` |
-|  |  | `reasoning_tokens` | req | `integer` (nullable) |
-|  |  | `total_tokens` | req | `integer` |
-|  | `prompt_tokens` |  | req | `integer` |
-|  | `reasoning_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
-| `model` |  |  | req | `string` |
-| `provider` |  |  | req | `string` |
-| `reasoning` |  |  | opt | `string` (nullable) |
-| `reasoning_tokens` |  |  | opt | `integer` (nullable) |
+| 1st level          | 2nd level           | 3rd level              | Req | Notes                                                               |
+| ------------------ | ------------------- | ---------------------- | --- | ------------------------------------------------------------------- |
+| `classification`   |                     |                        | req | `string` (enum: [duplicate, near_duplicate, notable_change, novel]) |
+| `judge_usage`      |                     |                        | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable)            |
+|                    | `actual_cost_usd`   |                        | req | `number` (nullable)                                                 |
+|                    | `call_count`        |                        | req | `integer`                                                           |
+|                    | `completion_tokens` |                        | req | `integer`                                                           |
+|                    | `models`            |                        | req | array[[JudgeModelUsage](#model-judgemodelusage)]                    |
+|                    |                     | `actual_cost_evidence` | opt | `string` (nullable)                                                 |
+|                    |                     | `actual_cost_provider` | opt | `string` (nullable)                                                 |
+|                    |                     | `actual_cost_source`   | req | `string` (enum: [provider_actual, unavailable])                     |
+|                    |                     | `actual_cost_usd`      | req | `number` (nullable)                                                 |
+|                    |                     | `call_count`           | req | `integer`                                                           |
+|                    |                     | `completion_tokens`    | req | `integer`                                                           |
+|                    |                     | `model`                | req | `string`                                                            |
+|                    |                     | `prompt_tokens`        | req | `integer`                                                           |
+|                    |                     | `provider`             | req | `string`                                                            |
+|                    |                     | `reasoning_tokens`     | req | `integer` (nullable)                                                |
+|                    |                     | `total_tokens`         | req | `integer`                                                           |
+|                    | `prompt_tokens`     |                        | req | `integer`                                                           |
+|                    | `reasoning_tokens`  |                        | req | `integer`                                                           |
+|                    | `total_tokens`      |                        | req | `integer`                                                           |
+| `model`            |                     |                        | req | `string`                                                            |
+| `provider`         |                     |                        | req | `string`                                                            |
+| `reasoning`        |                     |                        | opt | `string` (nullable)                                                 |
+| `reasoning_tokens` |                     |                        | opt | `integer` (nullable)                                                |
 
 <details>
 <summary>JSON schema</summary>
@@ -732,12 +731,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
   "additionalProperties": false,
   "properties": {
     "classification": {
-      "enum": [
-        "duplicate",
-        "near_duplicate",
-        "notable_change",
-        "novel"
-      ],
+      "enum": ["duplicate", "near_duplicate", "notable_change", "novel"],
       "title": "Classification",
       "type": "string"
     },
@@ -785,11 +779,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "title": "Reasoning Tokens"
     }
   },
-  "required": [
-    "classification",
-    "model",
-    "provider"
-  ],
+  "required": ["classification", "model", "provider"],
   "title": "SimilarityJudgeResponseModel",
   "type": "object"
 }
@@ -798,14 +788,15 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-toolbudgetdto"></a>
+
 ### Model: ToolBudgetDTO
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `session_budget_usd` |  |  | req | `number` |
-| `session_hard_limit_usd` |  |  | req | `number` |
-| `session_remaining_budget_usd` |  |  | req | `number` |
-| `session_used_budget_usd` |  |  | req | `number` |
+| 1st level                      | 2nd level | 3rd level | Req | Notes    |
+| ------------------------------ | --------- | --------- | --- | -------- |
+| `session_budget_usd`           |           |           | req | `number` |
+| `session_hard_limit_usd`       |           |           | req | `number` |
+| `session_remaining_budget_usd` |           |           | req | `number` |
+| `session_used_budget_usd`      |           |           | req | `number` |
 
 <details>
 <summary>JSON schema</summary>
@@ -848,13 +839,14 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-toolexecuterequestdto"></a>
+
 ### Model: ToolExecuteRequestDTO
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `args` |  |  | opt | array[[JsonValue](#model-jsonvalue)] (default: []) |
-| `kwargs` |  |  | opt | `object` (default: {}) |
-| `tool` |  |  | req | `string` (enum: [search_web, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+| 1st level | 2nd level | 3rd level | Req | Notes                                                                                    |
+| --------- | --------- | --------- | --- | ---------------------------------------------------------------------------------------- |
+| `args`    |           |           | opt | array[[JsonValue](#model-jsonvalue)] (default: [])                                       |
+| `kwargs`  |           |           | opt | `object` (default: {})                                                                   |
+| `tool`    |           |           | req | `string` (enum: [search_web, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
 
 <details>
 <summary>JSON schema</summary>
@@ -892,9 +884,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "type": "string"
     }
   },
-  "required": [
-    "tool"
-  ],
+  "required": ["tool"],
   "title": "ToolExecuteRequestDTO",
   "type": "object"
 }
@@ -903,30 +893,31 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-toolexecuteresponsedto"></a>
+
 ### Model: ToolExecuteResponseDTO
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `budget` |  |  | req | [ToolBudgetDTO](#model-toolbudgetdto) |
-|  | `session_budget_usd` |  | req | `number` |
-|  | `session_hard_limit_usd` |  | req | `number` |
-|  | `session_remaining_budget_usd` |  | req | `number` |
-|  | `session_used_budget_usd` |  | req | `number` |
-| `cost_usd` |  |  | opt | `number` (nullable) |
-| `receipt_id` |  |  | req | `string` |
-| `response` |  |  | req | [JsonValue](#model-jsonvalue) |
-| `result_policy` |  |  | req | `string` |
-| `results` |  |  | req | array[[ToolResultDTO](#model-toolresultdto)] |
-|  | `index` |  | req | `integer` |
-|  | `note` |  | opt | `string` (nullable) |
-|  | `raw` |  | opt | [JsonValue](#model-jsonvalue) (nullable) |
-|  | `result_id` |  | req | `string` |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | opt | `string` (nullable) |
-| `usage` |  |  | opt | [ToolUsageDTO](#model-toolusagedto) (nullable) |
-|  | `completion_tokens` |  | opt | `integer` (nullable) |
-|  | `prompt_tokens` |  | opt | `integer` (nullable) |
-|  | `total_tokens` |  | opt | `integer` (nullable) |
+| 1st level       | 2nd level                      | 3rd level | Req | Notes                                          |
+| --------------- | ------------------------------ | --------- | --- | ---------------------------------------------- |
+| `budget`        |                                |           | req | [ToolBudgetDTO](#model-toolbudgetdto)          |
+|                 | `session_budget_usd`           |           | req | `number`                                       |
+|                 | `session_hard_limit_usd`       |           | req | `number`                                       |
+|                 | `session_remaining_budget_usd` |           | req | `number`                                       |
+|                 | `session_used_budget_usd`      |           | req | `number`                                       |
+| `cost_usd`      |                                |           | opt | `number` (nullable)                            |
+| `receipt_id`    |                                |           | req | `string`                                       |
+| `response`      |                                |           | req | [JsonValue](#model-jsonvalue)                  |
+| `result_policy` |                                |           | req | `string`                                       |
+| `results`       |                                |           | req | array[[ToolResultDTO](#model-toolresultdto)]   |
+|                 | `index`                        |           | req | `integer`                                      |
+|                 | `note`                         |           | opt | `string` (nullable)                            |
+|                 | `raw`                          |           | opt | [JsonValue](#model-jsonvalue) (nullable)       |
+|                 | `result_id`                    |           | req | `string`                                       |
+|                 | `title`                        |           | opt | `string` (nullable)                            |
+|                 | `url`                          |           | opt | `string` (nullable)                            |
+| `usage`         |                                |           | opt | [ToolUsageDTO](#model-toolusagedto) (nullable) |
+|                 | `completion_tokens`            |           | opt | `integer` (nullable)                           |
+|                 | `prompt_tokens`                |           | opt | `integer` (nullable)                           |
+|                 | `total_tokens`                 |           | opt | `integer` (nullable)                           |
 
 <details>
 <summary>JSON schema</summary>
@@ -977,13 +968,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       ]
     }
   },
-  "required": [
-    "receipt_id",
-    "response",
-    "results",
-    "result_policy",
-    "budget"
-  ],
+  "required": ["receipt_id", "response", "results", "result_policy", "budget"],
   "title": "ToolExecuteResponseDTO",
   "type": "object"
 }
@@ -992,16 +977,17 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-toolresultdto"></a>
+
 ### Model: ToolResultDTO
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `index` |  |  | req | `integer` |
-| `note` |  |  | opt | `string` (nullable) |
-| `raw` |  |  | opt | [JsonValue](#model-jsonvalue) (nullable) |
-| `result_id` |  |  | req | `string` |
-| `title` |  |  | opt | `string` (nullable) |
-| `url` |  |  | opt | `string` (nullable) |
+| 1st level   | 2nd level | 3rd level | Req | Notes                                    |
+| ----------- | --------- | --------- | --- | ---------------------------------------- |
+| `index`     |           |           | req | `integer`                                |
+| `note`      |           |           | opt | `string` (nullable)                      |
+| `raw`       |           |           | opt | [JsonValue](#model-jsonvalue) (nullable) |
+| `result_id` |           |           | req | `string`                                 |
+| `title`     |           |           | opt | `string` (nullable)                      |
+| `url`       |           |           | opt | `string` (nullable)                      |
 
 <details>
 <summary>JSON schema</summary>
@@ -1061,10 +1047,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "title": "Url"
     }
   },
-  "required": [
-    "index",
-    "result_id"
-  ],
+  "required": ["index", "result_id"],
   "title": "ToolResultDTO",
   "type": "object"
 }
@@ -1073,13 +1056,14 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-toolusagedto"></a>
+
 ### Model: ToolUsageDTO
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `completion_tokens` |  |  | opt | `integer` (nullable) |
-| `prompt_tokens` |  |  | opt | `integer` (nullable) |
-| `total_tokens` |  |  | opt | `integer` (nullable) |
+| 1st level           | 2nd level | 3rd level | Req | Notes                |
+| ------------------- | --------- | --------- | --- | -------------------- |
+| `completion_tokens` |           |           | opt | `integer` (nullable) |
+| `prompt_tokens`     |           |           | opt | `integer` (nullable) |
+| `total_tokens`      |           |           | opt | `integer` (nullable) |
 
 <details>
 <summary>JSON schema</summary>
@@ -1132,15 +1116,16 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-validationerror"></a>
+
 ### Model: ValidationError
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `ctx` |  |  | opt | `object` |
-| `input` |  |  | opt | `object` |
-| `loc` |  |  | req | array[anyOf: `string` OR `integer`] |
-| `msg` |  |  | req | `string` |
-| `type` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                               |
+| --------- | --------- | --------- | --- | ----------------------------------- |
+| `ctx`     |           |           | opt | `object`                            |
+| `input`   |           |           | opt | `object`                            |
+| `loc`     |           |           | req | array[anyOf: `string` OR `integer`] |
+| `msg`     |           |           | req | `string`                            |
+| `type`    |           |           | req | `string`                            |
 
 <details>
 <summary>JSON schema</summary>
@@ -1178,11 +1163,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "type": "string"
     }
   },
-  "required": [
-    "loc",
-    "msg",
-    "type"
-  ],
+  "required": ["loc", "msg", "type"],
   "title": "ValidationError",
   "type": "object"
 }
@@ -1191,11 +1172,12 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-validatorhealthresponse"></a>
+
 ### Model: ValidatorHealthResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -1210,9 +1192,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "type": "string"
     }
   },
-  "required": [
-    "status"
-  ],
+  "required": ["status"],
   "title": "ValidatorHealthResponse",
   "type": "object"
 }
@@ -1221,15 +1201,16 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-validatorinternalerrorresponse"></a>
+
 ### Model: ValidatorInternalErrorResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `error_code` |  |  | req | `string` |
-| `error_message` |  |  | req | `string` |
-| `exception_type` |  |  | req | `string` |
-| `request_id` |  |  | req | `string` |
-| `traceback` |  |  | req | `string` |
+| 1st level        | 2nd level | 3rd level | Req | Notes    |
+| ---------------- | --------- | --------- | --- | -------- |
+| `error_code`     |           |           | req | `string` |
+| `error_message`  |           |           | req | `string` |
+| `exception_type` |           |           | req | `string` |
+| `request_id`     |           |           | req | `string` |
+| `traceback`      |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -1279,12 +1260,13 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-validatorreadinessfailureresponse"></a>
+
 ### Model: ValidatorReadinessFailureResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | `string` (nullable) |
-| `status` |  |  | req | `string` (enum: [waiting_for_platform_registration, waiting_for_auth_warmup, registration_failed, auth_unavailable]) |
+| 1st level | 2nd level | 3rd level | Req | Notes                                                                                                                |
+| --------- | --------- | --------- | --- | -------------------------------------------------------------------------------------------------------------------- |
+| `detail`  |           |           | opt | `string` (nullable)                                                                                                  |
+| `status`  |           |           | req | `string` (enum: [waiting_for_platform_registration, waiting_for_auth_warmup, registration_failed, auth_unavailable]) |
 
 <details>
 <summary>JSON schema</summary>
@@ -1315,9 +1297,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "type": "string"
     }
   },
-  "required": [
-    "status"
-  ],
+  "required": ["status"],
   "title": "ValidatorReadinessFailureResponse",
   "type": "object"
 }
@@ -1326,11 +1306,12 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-validatorreadinesssuccessresponse"></a>
+
 ### Model: ValidatorReadinessSuccessResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -1345,9 +1326,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "type": "string"
     }
   },
-  "required": [
-    "status"
-  ],
+  "required": ["status"],
   "title": "ValidatorReadinessSuccessResponse",
   "type": "object"
 }
@@ -1356,19 +1335,20 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-validatorresourceusageresponse"></a>
+
 ### Model: ValidatorResourceUsageResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `captured_at` |  |  | req | `string` |
-| `cpu_capacity_cores` |  |  | req | `number` |
-| `cpu_percent` |  |  | req | `number` |
-| `disk_percent` |  |  | req | `number` |
-| `disk_total_bytes` |  |  | req | `integer` |
-| `disk_used_bytes` |  |  | req | `integer` |
-| `memory_percent` |  |  | req | `number` |
-| `memory_total_bytes` |  |  | req | `integer` |
-| `memory_used_bytes` |  |  | req | `integer` |
+| 1st level            | 2nd level | 3rd level | Req | Notes     |
+| -------------------- | --------- | --------- | --- | --------- |
+| `captured_at`        |           |           | req | `string`  |
+| `cpu_capacity_cores` |           |           | req | `number`  |
+| `cpu_percent`        |           |           | req | `number`  |
+| `disk_percent`       |           |           | req | `number`  |
+| `disk_total_bytes`   |           |           | req | `integer` |
+| `disk_used_bytes`    |           |           | req | `integer` |
+| `memory_percent`     |           |           | req | `number`  |
+| `memory_total_bytes` |           |           | req | `integer` |
+| `memory_used_bytes`  |           |           | req | `integer` |
 
 <details>
 <summary>JSON schema</summary>
@@ -1442,33 +1422,34 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
 </details>
 
 <a id="model-validatorstatusresponse"></a>
+
 ### Model: ValidatorStatusResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `hotkey` |  |  | req | `string` |
-| `is_chutes_configured` |  |  | opt | `boolean` (default: False) |
-| `is_openrouter_configured` |  |  | opt | `boolean` (default: False) |
-| `last_batch_id` |  |  | opt | `string` (nullable) |
-| `last_completed_at` |  |  | opt | `string` (nullable) |
-| `last_error` |  |  | opt | `string` (nullable) |
-| `last_started_at` |  |  | opt | `string` (nullable) |
-| `last_weight_error` |  |  | opt | `string` (nullable) |
-| `last_weight_submission_at` |  |  | opt | `string` (nullable) |
-| `queued_batches` |  |  | opt | `integer` (default: 0) |
-| `resource_usage` |  |  | opt | [ValidatorResourceUsageResponse](#model-validatorresourceusageresponse) (nullable) |
-|  | `captured_at` |  | req | `string` |
-|  | `cpu_capacity_cores` |  | req | `number` |
-|  | `cpu_percent` |  | req | `number` |
-|  | `disk_percent` |  | req | `number` |
-|  | `disk_total_bytes` |  | req | `integer` |
-|  | `disk_used_bytes` |  | req | `integer` |
-|  | `memory_percent` |  | req | `number` |
-|  | `memory_total_bytes` |  | req | `integer` |
-|  | `memory_used_bytes` |  | req | `integer` |
-| `running` |  |  | opt | `boolean` (default: False) |
-| `signature_hex` |  |  | opt | `string` (nullable) |
-| `status` |  |  | req | `string` |
+| 1st level                   | 2nd level            | 3rd level | Req | Notes                                                                              |
+| --------------------------- | -------------------- | --------- | --- | ---------------------------------------------------------------------------------- |
+| `hotkey`                    |                      |           | req | `string`                                                                           |
+| `is_chutes_configured`      |                      |           | opt | `boolean` (default: False)                                                         |
+| `is_openrouter_configured`  |                      |           | opt | `boolean` (default: False)                                                         |
+| `last_batch_id`             |                      |           | opt | `string` (nullable)                                                                |
+| `last_completed_at`         |                      |           | opt | `string` (nullable)                                                                |
+| `last_error`                |                      |           | opt | `string` (nullable)                                                                |
+| `last_started_at`           |                      |           | opt | `string` (nullable)                                                                |
+| `last_weight_error`         |                      |           | opt | `string` (nullable)                                                                |
+| `last_weight_submission_at` |                      |           | opt | `string` (nullable)                                                                |
+| `queued_batches`            |                      |           | opt | `integer` (default: 0)                                                             |
+| `resource_usage`            |                      |           | opt | [ValidatorResourceUsageResponse](#model-validatorresourceusageresponse) (nullable) |
+|                             | `captured_at`        |           | req | `string`                                                                           |
+|                             | `cpu_capacity_cores` |           | req | `number`                                                                           |
+|                             | `cpu_percent`        |           | req | `number`                                                                           |
+|                             | `disk_percent`       |           | req | `number`                                                                           |
+|                             | `disk_total_bytes`   |           | req | `integer`                                                                          |
+|                             | `disk_used_bytes`    |           | req | `integer`                                                                          |
+|                             | `memory_percent`     |           | req | `number`                                                                           |
+|                             | `memory_total_bytes` |           | req | `integer`                                                                          |
+|                             | `memory_used_bytes`  |           | req | `integer`                                                                          |
+| `running`                   |                      |           | opt | `boolean` (default: False)                                                         |
+| `signature_hex`             |                      |           | opt | `string` (nullable)                                                                |
+| `status`                    |                      |           | req | `string`                                                                           |
 
 <details>
 <summary>JSON schema</summary>
@@ -1596,10 +1577,7 @@ Body: [ValidatorReadinessFailureResponse](#model-validatorreadinessfailurerespon
       "type": "string"
     }
   },
-  "required": [
-    "status",
-    "hotkey"
-  ],
+  "required": ["status", "hotkey"],
   "title": "ValidatorStatusResponse",
   "type": "object"
 }

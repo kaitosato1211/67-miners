@@ -21,7 +21,10 @@ from harnyx_commons.llm.provider_types import (
     OPENROUTER_PROVIDER,
     VERTEX_PROVIDER,
 )
-from harnyx_commons.llm.providers.vertex.anthropic import is_claude_model, normalize_claude_model
+from harnyx_commons.llm.providers.vertex.anthropic import (
+    is_claude_model,
+    normalize_claude_model,
+)
 from harnyx_commons.llm.schema import LlmUsage, extract_vertex_gemini_model_id
 from harnyx_commons.llm.tool_models import (
     MinerSelectedLlmProviderName,
@@ -91,7 +94,9 @@ STATIC_LLM_PRICING: Mapping[str, ModelPricing] = {
     "zai-org/GLM-5.1-TEE": ModelPricing(0.98, 3.08, 0.0),
 }
 
-MINER_TOOL_LLM_PRICING: Mapping[MinerSelectedLlmProviderName, Mapping[str, ModelPricing]] = {
+MINER_TOOL_LLM_PRICING: Mapping[
+    MinerSelectedLlmProviderName, Mapping[str, ModelPricing]
+] = {
     CHUTES_PROVIDER: {
         "deepseek-ai/DeepSeek-V3.2-TEE": ModelPricing(1.00, 1.00, 0.0),
         "moonshotai/Kimi-K2.6-TEE": ModelPricing(0.66, 3.50, 0.0),
@@ -134,7 +139,9 @@ MINER_TOOL_LLM_PRICING: Mapping[MinerSelectedLlmProviderName, Mapping[str, Model
     },
 }
 
-MINER_TOOL_EMBEDDING_PRICING: Mapping[EmbeddingProviderName, Mapping[str, EmbeddingPricing]] = {
+MINER_TOOL_EMBEDDING_PRICING: Mapping[
+    EmbeddingProviderName, Mapping[str, EmbeddingPricing]
+] = {
     "chutes": {
         QWEN3_CHUTES_EMBEDDING_MODEL: EmbeddingPricing(usd_per_second=0.0005),
     },
@@ -186,7 +193,9 @@ def price_miner_llm(provider: str, model: str, usage: LlmUsage) -> float:
     """Return USD cost for a miner-selected provider/model LLM call."""
     if provider not in MINER_TOOL_LLM_PRICING:
         raise KeyError(provider)
-    pricing_by_model = MINER_TOOL_LLM_PRICING[cast(MinerSelectedLlmProviderName, provider)]
+    pricing_by_model = MINER_TOOL_LLM_PRICING[
+        cast(MinerSelectedLlmProviderName, provider)
+    ]
     pricing = pricing_by_model[model]
     return _price_tokens(pricing, usage)
 
@@ -213,7 +222,9 @@ def lookup_pricing(provider: str, model: str) -> ModelPricing | None:
     pricing = GENERATION_MODEL_PRICING.get(key)
     if pricing is not None:
         return pricing
-    return GENERATION_MODEL_PRICING.get(_normalized_generation_model(provider=provider, model=model))
+    return GENERATION_MODEL_PRICING.get(
+        _normalized_generation_model(provider=provider, model=model)
+    )
 
 
 def grounded_cost_usd(*, provider: str, model: str, web_search_calls: int) -> float:
@@ -232,7 +243,9 @@ def grounded_cost_usd(*, provider: str, model: str, web_search_calls: int) -> fl
     return (float(web_search_calls) * VERTEX_GROUNDED_PER_1K) / 1000.0
 
 
-def generation_usage_cost_breakdown(usage: LlmUsage, *, provider: str, model: str) -> JsonObject:
+def generation_usage_cost_breakdown(
+    usage: LlmUsage, *, provider: str, model: str
+) -> JsonObject:
     """Return reference-cost details for a generation LLM call."""
     pricing = lookup_pricing(provider, model)
 
@@ -243,7 +256,9 @@ def generation_usage_cost_breakdown(usage: LlmUsage, *, provider: str, model: st
     total_tokens = float(usage.total_tokens or 0)
     web_search_calls = int(usage.web_search_calls or 0)
 
-    grounded_cost = grounded_cost_usd(provider=provider, model=model, web_search_calls=web_search_calls)
+    grounded_cost = grounded_cost_usd(
+        provider=provider, model=model, web_search_calls=web_search_calls
+    )
     base_result: JsonObject = {
         "provider": provider,
         "model": model,
@@ -268,7 +283,9 @@ def generation_usage_cost_breakdown(usage: LlmUsage, *, provider: str, model: st
 
     cost_input = (prompt_tokens / 1_000_000) * pricing.input_per_million
     cost_output = (completion_tokens / 1_000_000) * pricing.output_per_million
-    cost_reasoning = (reasoning_tokens / 1_000_000) * pricing.billable_reasoning_per_million
+    cost_reasoning = (
+        reasoning_tokens / 1_000_000
+    ) * pricing.billable_reasoning_per_million
     return {
         **base_result,
         "pricing_missing": False,
@@ -288,7 +305,9 @@ def _price_tokens(pricing: ModelPricing, usage: LlmUsage) -> float:
 
     cost_input = (prompt_tokens / 1_000_000) * pricing.input_per_million
     cost_output = (completion_tokens / 1_000_000) * pricing.output_per_million
-    cost_reasoning = (reasoning_tokens / 1_000_000) * pricing.billable_reasoning_per_million
+    cost_reasoning = (
+        reasoning_tokens / 1_000_000
+    ) * pricing.billable_reasoning_per_million
     return cost_input + cost_output + cost_reasoning
 
 
@@ -308,7 +327,10 @@ def price_search(tool_name: SearchToolName, *, referenceable_results: int) -> fl
     """Return USD cost for a search call based on referenceable result count."""
     if referenceable_results < 0:
         raise ValueError("referenceable_results must be non-negative")
-    return float(referenceable_results) * SEARCH_PRICING_PER_REFERENCEABLE_RESULT[tool_name]
+    return (
+        float(referenceable_results)
+        * SEARCH_PRICING_PER_REFERENCEABLE_RESULT[tool_name]
+    )
 
 
 def price_embedding(
@@ -322,17 +344,23 @@ def price_embedding(
     pricing = MINER_TOOL_EMBEDDING_PRICING[provider][model]
     if pricing.input_per_million is not None:
         if input_tokens is None:
-            raise ValueError("input_tokens must be provided for input-token embedding pricing")
+            raise ValueError(
+                "input_tokens must be provided for input-token embedding pricing"
+            )
         if input_tokens < 0:
             raise ValueError("input_tokens must be non-negative")
         return (float(input_tokens) / 1_000_000) * pricing.input_per_million
     if pricing.usd_per_second is not None:
         if elapsed_seconds is None:
-            raise ValueError("elapsed_seconds must be provided for elapsed-time embedding pricing")
+            raise ValueError(
+                "elapsed_seconds must be provided for elapsed-time embedding pricing"
+            )
         if elapsed_seconds < 0:
             raise ValueError("elapsed_seconds must be non-negative")
         return elapsed_seconds * pricing.usd_per_second
-    raise ValueError(f"embedding pricing is not configured for provider={provider!r} model={model!r}")
+    raise ValueError(
+        f"embedding pricing is not configured for provider={provider!r} model={model!r}"
+    )
 
 
 def price_parallel_search(

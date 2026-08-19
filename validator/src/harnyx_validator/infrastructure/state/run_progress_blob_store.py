@@ -125,20 +125,28 @@ class RunSubmissionBlobStore:
         if not refs:
             return ()
         ordered: list[MinerTaskRunSubmission | None] = [None] * len(refs)
-        refs_by_segment: dict[tuple[UUID, str], list[tuple[int, RunSubmissionBlobRef]]] = {}
+        refs_by_segment: dict[
+            tuple[UUID, str], list[tuple[int, RunSubmissionBlobRef]]
+        ] = {}
         for index, ref in enumerate(refs):
-            refs_by_segment.setdefault((ref.batch_id, ref.segment_name), []).append((index, ref))
+            refs_by_segment.setdefault((ref.batch_id, ref.segment_name), []).append(
+                (index, ref)
+            )
 
         for (batch_id, segment_name), segment_refs in refs_by_segment.items():
             segment_path = self._batch_dir(batch_id) / segment_name
             with segment_path.open("rb") as handle:
-                with mmap.mmap(handle.fileno(), length=0, access=mmap.ACCESS_READ) as mapped:
+                with mmap.mmap(
+                    handle.fileno(), length=0, access=mmap.ACCESS_READ
+                ) as mapped:
                     for index, ref in segment_refs:
                         payload = _payload_slice(mapped, ref)
                         ordered[index] = _SUBMISSION_ADAPTER.validate_json(payload)
 
         if any(item is None for item in ordered):
-            raise RuntimeError("blob store read did not hydrate every requested submission")
+            raise RuntimeError(
+                "blob store read did not hydrate every requested submission"
+            )
         return tuple(item for item in ordered if item is not None)
 
     def delete_batch(self, batch_id: UUID) -> bool:
@@ -162,7 +170,11 @@ class RunSubmissionBlobStore:
         normalized_cutoff = _as_utc(cutoff)
         for child in self.root_dir.iterdir():
             batch_id = _uuid_from_name(child.name)
-            if batch_id is None or batch_id in protected_batch_ids or not child.is_dir():
+            if (
+                batch_id is None
+                or batch_id in protected_batch_ids
+                or not child.is_dir()
+            ):
                 continue
             if _latest_mtime(child) > normalized_cutoff:
                 continue
@@ -173,9 +185,14 @@ class RunSubmissionBlobStore:
 
     def _writer_for(self, *, batch_id: UUID, frame_length: int) -> _SegmentWriter:
         writer = self._writers_by_batch.get(batch_id)
-        if writer is not None and writer.next_offset + frame_length <= self.segment_size_bytes:
+        if (
+            writer is not None
+            and writer.next_offset + frame_length <= self.segment_size_bytes
+        ):
             return writer
-        segment_index = 1 if writer is None else _segment_index(writer.name, prefix="runs-") + 1
+        segment_index = (
+            1 if writer is None else _segment_index(writer.name, prefix="runs-") + 1
+        )
         name = f"runs-{segment_index:06d}.blob"
         path = self._batch_dir(batch_id) / name
         next_offset = path.stat().st_size if path.exists() else 0
@@ -241,20 +258,28 @@ class AttemptAuditBlobStore:
         if not refs:
             return ()
         ordered: list[MinerTaskAttemptAuditRecord | None] = [None] * len(refs)
-        refs_by_segment: dict[tuple[UUID, str], list[tuple[int, AttemptAuditBlobRef]]] = {}
+        refs_by_segment: dict[
+            tuple[UUID, str], list[tuple[int, AttemptAuditBlobRef]]
+        ] = {}
         for index, ref in enumerate(refs):
-            refs_by_segment.setdefault((ref.batch_id, ref.segment_name), []).append((index, ref))
+            refs_by_segment.setdefault((ref.batch_id, ref.segment_name), []).append(
+                (index, ref)
+            )
 
         for (batch_id, segment_name), segment_refs in refs_by_segment.items():
             segment_path = self._batch_dir(batch_id) / segment_name
             with segment_path.open("rb") as handle:
-                with mmap.mmap(handle.fileno(), length=0, access=mmap.ACCESS_READ) as mapped:
+                with mmap.mmap(
+                    handle.fileno(), length=0, access=mmap.ACCESS_READ
+                ) as mapped:
                     for index, ref in segment_refs:
                         payload = _payload_slice(mapped, ref)
                         ordered[index] = _ATTEMPT_ADAPTER.validate_json(payload)
 
         if any(item is None for item in ordered):
-            raise RuntimeError("blob store read did not hydrate every requested attempt")
+            raise RuntimeError(
+                "blob store read did not hydrate every requested attempt"
+            )
         return tuple(item for item in ordered if item is not None)
 
     def delete_batch(self, batch_id: UUID) -> bool:
@@ -271,9 +296,14 @@ class AttemptAuditBlobStore:
 
     def _writer_for(self, *, batch_id: UUID, frame_length: int) -> _SegmentWriter:
         writer = self._writers_by_batch.get(batch_id)
-        if writer is not None and writer.next_offset + frame_length <= self.segment_size_bytes:
+        if (
+            writer is not None
+            and writer.next_offset + frame_length <= self.segment_size_bytes
+        ):
             return writer
-        segment_index = 1 if writer is None else _segment_index(writer.name, prefix="attempts-") + 1
+        segment_index = (
+            1 if writer is None else _segment_index(writer.name, prefix="attempts-") + 1
+        )
         name = f"attempts-{segment_index:06d}.blob"
         path = self._batch_dir(batch_id) / name
         next_offset = path.stat().st_size if path.exists() else 0
@@ -313,7 +343,9 @@ def _write_frame(
     )
 
 
-def _payload_slice(mapped: mmap.mmap, ref: RunSubmissionBlobRef | AttemptAuditBlobRef) -> bytes:
+def _payload_slice(
+    mapped: mmap.mmap, ref: RunSubmissionBlobRef | AttemptAuditBlobRef
+) -> bytes:
     frame_end = ref.frame_offset + ref.frame_length
     payload_end = ref.payload_offset + ref.payload_length
     if frame_end > len(mapped) or payload_end > len(mapped):
@@ -322,7 +354,7 @@ def _payload_slice(mapped: mmap.mmap, ref: RunSubmissionBlobRef | AttemptAuditBl
     payload_length = int.from_bytes(encoded_length, byteorder="big")
     if payload_length != ref.payload_length:
         raise RuntimeError("blob frame length mismatch")
-    payload = bytes(mapped[ref.payload_offset:payload_end])
+    payload = bytes(mapped[ref.payload_offset : payload_end])
     if sha256(payload).hexdigest() != ref.sha256:
         raise RuntimeError("blob payload checksum mismatch")
     return payload

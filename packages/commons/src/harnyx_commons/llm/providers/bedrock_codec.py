@@ -95,7 +95,9 @@ class BedrockStructuredOutputConfig(BaseModel):
             text_format={
                 "type": "json_schema",
                 "structure": {
-                    "jsonSchema": json_schema.model_dump(mode="python", by_alias=True, exclude_none=True),
+                    "jsonSchema": json_schema.model_dump(
+                        mode="python", by_alias=True, exclude_none=True
+                    ),
                 },
             }
         )
@@ -119,12 +121,16 @@ class BedrockConverseStreamRequest(BaseModel):
             messages=messages,
             system=system or None,
             inference_config=_build_inference_config(request),
-            additional_model_request_fields=_build_additional_model_request_fields(request),
+            additional_model_request_fields=_build_additional_model_request_fields(
+                request
+            ),
             output_config=BedrockStructuredOutputConfig.from_request(request),
         )
 
     @model_serializer(mode="wrap")
-    def _serialize_request(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+    def _serialize_request(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
         payload = handler(self)
         if payload.get("inferenceConfig") == {}:
             payload.pop("inferenceConfig", None)
@@ -210,7 +216,9 @@ class TextDelta(BaseModel):
 
     text: str
 
-    def apply_to(self, accumulator: BedrockStreamAccumulator, *, content_block_index: int) -> bool:
+    def apply_to(
+        self, accumulator: BedrockStreamAccumulator, *, content_block_index: int
+    ) -> bool:
         accumulator.append_text(content_block_index, self.text)
         return True
 
@@ -220,7 +228,9 @@ class ReasoningDelta(BaseModel):
 
     reasoning_content: _BedrockReasoningContentPayload
 
-    def apply_to(self, accumulator: BedrockStreamAccumulator, *, content_block_index: int) -> bool:
+    def apply_to(
+        self, accumulator: BedrockStreamAccumulator, *, content_block_index: int
+    ) -> bool:
         return accumulator.append_reasoning(self.reasoning_content.text)
 
 
@@ -229,7 +239,9 @@ class CitationDelta(BaseModel):
 
     citation: dict[str, object]
 
-    def apply_to(self, accumulator: BedrockStreamAccumulator, *, content_block_index: int) -> bool:
+    def apply_to(
+        self, accumulator: BedrockStreamAccumulator, *, content_block_index: int
+    ) -> bool:
         accumulator.append_citation(self.citation)
         return False
 
@@ -239,7 +251,9 @@ class ToolUseDelta(BaseModel):
 
     tool_use: object
 
-    def apply_to(self, accumulator: BedrockStreamAccumulator, *, content_block_index: int) -> bool:
+    def apply_to(
+        self, accumulator: BedrockStreamAccumulator, *, content_block_index: int
+    ) -> bool:
         raise ValueError("Bedrock first cut does not support tool use deltas")
 
 
@@ -248,7 +262,9 @@ class ToolResultDelta(BaseModel):
 
     tool_result: object
 
-    def apply_to(self, accumulator: BedrockStreamAccumulator, *, content_block_index: int) -> bool:
+    def apply_to(
+        self, accumulator: BedrockStreamAccumulator, *, content_block_index: int
+    ) -> bool:
         raise ValueError("Bedrock first cut does not support tool result deltas")
 
 
@@ -257,11 +273,20 @@ class ImageDelta(BaseModel):
 
     image: object
 
-    def apply_to(self, accumulator: BedrockStreamAccumulator, *, content_block_index: int) -> bool:
+    def apply_to(
+        self, accumulator: BedrockStreamAccumulator, *, content_block_index: int
+    ) -> bool:
         raise ValueError("Bedrock first cut does not support image deltas")
 
 
-BedrockDelta = TextDelta | ReasoningDelta | CitationDelta | ToolUseDelta | ToolResultDelta | ImageDelta
+BedrockDelta = (
+    TextDelta
+    | ReasoningDelta
+    | CitationDelta
+    | ToolUseDelta
+    | ToolResultDelta
+    | ImageDelta
+)
 
 
 class BedrockContentBlockDeltaEventPayload(BaseModel):
@@ -271,7 +296,9 @@ class BedrockContentBlockDeltaEventPayload(BaseModel):
     delta: BedrockDelta
 
     def apply_to(self, accumulator: BedrockStreamAccumulator) -> bool:
-        return self.delta.apply_to(accumulator, content_block_index=self.content_block_index)
+        return self.delta.apply_to(
+            accumulator, content_block_index=self.content_block_index
+        )
 
 
 class MessageStartEvent(BaseModel):
@@ -334,7 +361,9 @@ class ValidationExceptionEvent(BaseModel):
     validation_exception: _BedrockErrorPayload
 
     def apply_to(self, accumulator: BedrockStreamAccumulator) -> bool:
-        accumulator.raise_stream_error(code="ValidationException", http_status=400, error=self.validation_exception)
+        accumulator.raise_stream_error(
+            code="ValidationException", http_status=400, error=self.validation_exception
+        )
 
 
 class ThrottlingExceptionEvent(BaseModel):
@@ -343,7 +372,9 @@ class ThrottlingExceptionEvent(BaseModel):
     throttling_exception: _BedrockErrorPayload
 
     def apply_to(self, accumulator: BedrockStreamAccumulator) -> bool:
-        accumulator.raise_stream_error(code="ThrottlingException", http_status=429, error=self.throttling_exception)
+        accumulator.raise_stream_error(
+            code="ThrottlingException", http_status=429, error=self.throttling_exception
+        )
 
 
 class ServiceUnavailableExceptionEvent(BaseModel):
@@ -415,10 +446,14 @@ class BedrockStreamAccumulator:
     additional_model_response_fields: dict[str, object] | None = None
     response_role: str | None = None
 
-    def set_response_metadata(self, response_metadata: Mapping[str, Any] | None) -> None:
+    def set_response_metadata(
+        self, response_metadata: Mapping[str, Any] | None
+    ) -> None:
         self.response_metadata = response_metadata
 
-    def apply(self, event: BedrockStreamEvent, *, raw_event: Mapping[str, object]) -> bool:
+    def apply(
+        self, event: BedrockStreamEvent, *, raw_event: Mapping[str, object]
+    ) -> bool:
         self.response_events.append(dict(raw_event))
         return event.apply_to(self)
 
@@ -446,7 +481,9 @@ class BedrockStreamAccumulator:
             }
         }
         if self.additional_model_response_fields is not None:
-            metadata["additional_model_response_fields"] = self.additional_model_response_fields
+            metadata["additional_model_response_fields"] = (
+                self.additional_model_response_fields
+            )
         if self.citations:
             metadata["citations"] = tuple(self.citations)
         if self.metadata_event is not None:
@@ -470,7 +507,9 @@ class BedrockStreamAccumulator:
         self.response_role = role
         return False
 
-    def apply_content_block_start(self, payload: _BedrockContentBlockStartEventPayload) -> bool:
+    def apply_content_block_start(
+        self, payload: _BedrockContentBlockStartEventPayload
+    ) -> bool:
         start = payload.start
         if start is None:
             return False
@@ -515,7 +554,9 @@ class BedrockStreamAccumulator:
         combined = "".join(self.reasoning_parts).strip()
         return combined or None
 
-    def raise_stream_error(self, *, code: str, http_status: int, error: _BedrockErrorPayload) -> NoReturn:
+    def raise_stream_error(
+        self, *, code: str, http_status: int, error: _BedrockErrorPayload
+    ) -> NoReturn:
         message = str(error.message or error.original_message or code)
         raise ClientError(
             error_response={
@@ -537,15 +578,23 @@ def _serialize_messages(
     serialized_messages: list[BedrockRequestMessage] = []
     system_blocks: list[BedrockTextBlock] = []
     for message in messages:
-        serialized_parts = [_serialize_text_part(message=message, part=part) for part in message.content]
+        serialized_parts = [
+            _serialize_text_part(message=message, part=part) for part in message.content
+        ]
         if message.role == "system":
             system_blocks.extend(serialized_parts)
             continue
         if message.role not in {"user", "assistant"}:
-            raise ValueError(f"Bedrock first cut does not support message role '{message.role}'")
-        serialized_messages.append(BedrockRequestMessage(role=message.role, content=serialized_parts))
+            raise ValueError(
+                f"Bedrock first cut does not support message role '{message.role}'"
+            )
+        serialized_messages.append(
+            BedrockRequestMessage(role=message.role, content=serialized_parts)
+        )
     if not serialized_messages:
-        raise ValueError("Bedrock requests must include at least one non-system message")
+        raise ValueError(
+            "Bedrock requests must include at least one non-system message"
+        )
     return serialized_messages, system_blocks
 
 
@@ -564,7 +613,9 @@ def _build_inference_config(request: LlmRequest) -> BedrockInferenceConfig | Non
     )
 
 
-def _build_additional_model_request_fields(request: LlmRequest) -> dict[str, object] | None:
+def _build_additional_model_request_fields(
+    request: LlmRequest,
+) -> dict[str, object] | None:
     reasoning_effort = normalize_reasoning_effort(request.reasoning_effort)
     if reasoning_effort is None:
         return None
@@ -572,7 +623,9 @@ def _build_additional_model_request_fields(request: LlmRequest) -> dict[str, obj
 
 
 def _schema_name(schema_type: type[BaseModel]) -> str:
-    title = (schema_type.model_json_schema().get("title") or schema_type.__name__).strip()
+    title = (
+        schema_type.model_json_schema().get("title") or schema_type.__name__
+    ).strip()
     return title[:64] or schema_type.__name__
 
 

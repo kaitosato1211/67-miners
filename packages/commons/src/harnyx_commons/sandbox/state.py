@@ -21,13 +21,12 @@ def resolve_state_mount_source() -> str:
     dockerd container. In Docker Compose (docker socket) this can be a named volume.
     """
 
-    return (
-        os.getenv(_STATE_MOUNT_SOURCE_ENV)
-        or DEFAULT_STATE_DIR
-    )
+    return os.getenv(_STATE_MOUNT_SOURCE_ENV) or DEFAULT_STATE_DIR
 
 
-def default_state_volumes(*, mode: str | None = "ro") -> tuple[tuple[str, str, str | None], ...]:
+def default_state_volumes(
+    *, mode: str | None = "ro"
+) -> tuple[tuple[str, str, str | None], ...]:
     """Return a default sandbox volume mount for the shared state directory."""
 
     return ((resolve_state_mount_source(), DEFAULT_STATE_DIR, mode),)

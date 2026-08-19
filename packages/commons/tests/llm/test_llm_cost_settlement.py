@@ -17,14 +17,17 @@ def _response(
     return LlmResponse(
         id="resp-1",
         choices=(),
-        usage=usage or LlmUsage(prompt_tokens=1_000, completion_tokens=2_000, total_tokens=3_000),
+        usage=usage
+        or LlmUsage(prompt_tokens=1_000, completion_tokens=2_000, total_tokens=3_000),
         metadata=metadata,
     )
 
 
 def test_openrouter_provider_returned_cost_wins() -> None:
     cost = settled_response_cost(
-        _response(metadata={"raw_response": {"usage": {"is_byok": False, "cost": 0.0123}}}),
+        _response(
+            metadata={"raw_response": {"usage": {"is_byok": False, "cost": 0.0123}}}
+        ),
         provider="openrouter",
         model="deepseek/deepseek-v3.2",
     )
@@ -56,7 +59,10 @@ def test_openrouter_byok_adds_usage_cost_and_upstream_inference_cost() -> None:
 
     assert cost is not None
     assert cost.cost_usd == pytest.approx(0.10)
-    assert cost.evidence["pricing_origin"] == "openrouter_usage_cost_and_upstream_inference_cost"
+    assert (
+        cost.evidence["pricing_origin"]
+        == "openrouter_usage_cost_and_upstream_inference_cost"
+    )
     assert cost.evidence["usage"] == {
         "is_byok": True,
         "cost": 0.01,
@@ -145,7 +151,9 @@ def test_ai_gateway_provider_metadata_cost_wins() -> None:
 
 
 @pytest.mark.parametrize("raw_cost", [True, "not-a-decimal", float("nan"), -0.01])
-def test_ai_gateway_malformed_provider_metadata_cost_falls_back_to_static_pricing(raw_cost: object) -> None:
+def test_ai_gateway_malformed_provider_metadata_cost_falls_back_to_static_pricing(
+    raw_cost: object,
+) -> None:
     cost = settled_response_cost(
         _response(
             metadata={
@@ -169,7 +177,14 @@ def test_ai_gateway_malformed_provider_metadata_cost_falls_back_to_static_pricin
 
 def test_static_pricing_evidence_preserves_reported_reasoning_tokens() -> None:
     cost = settled_response_cost(
-        _response(usage=LlmUsage(prompt_tokens=1_000, completion_tokens=2_000, reasoning_tokens=7, total_tokens=3_007)),
+        _response(
+            usage=LlmUsage(
+                prompt_tokens=1_000,
+                completion_tokens=2_000,
+                reasoning_tokens=7,
+                total_tokens=3_007,
+            )
+        ),
         provider="custom-openai-compatible:gemma4-cloud-run-turbo",
         model="nvidia/Gemma-4-31B-IT-NVFP4",
     )
@@ -181,7 +196,12 @@ def test_static_pricing_evidence_preserves_reported_reasoning_tokens() -> None:
 def test_static_pricing_evidence_keeps_unavailable_reasoning_tokens() -> None:
     cost = settled_response_cost(
         _response(
-            usage=LlmUsage(prompt_tokens=1_000, completion_tokens=2_000, reasoning_tokens=None, total_tokens=3_000)
+            usage=LlmUsage(
+                prompt_tokens=1_000,
+                completion_tokens=2_000,
+                reasoning_tokens=None,
+                total_tokens=3_000,
+            )
         ),
         provider="custom-openai-compatible:gemma4-cloud-run-turbo",
         model="nvidia/Gemma-4-31B-IT-NVFP4",
@@ -194,7 +214,9 @@ def test_static_pricing_evidence_keeps_unavailable_reasoning_tokens() -> None:
 
 def test_openrouter_malformed_usage_cost_falls_back_to_static_pricing() -> None:
     cost = settled_response_cost(
-        _response(metadata={"raw_response": {"usage": {"is_byok": False, "cost": True}}}),
+        _response(
+            metadata={"raw_response": {"usage": {"is_byok": False, "cost": True}}}
+        ),
         provider="openrouter",
         model="deepseek/deepseek-v3.2",
     )
@@ -209,7 +231,11 @@ def test_openrouter_malformed_usage_cost_falls_back_to_static_pricing() -> None:
     ("usage", "expected_statuses"),
     [
         (
-            {"is_byok": "true", "cost": 0.01, "cost_details": {"upstream_inference_cost": 0.09}},
+            {
+                "is_byok": "true",
+                "cost": 0.01,
+                "cost_details": {"upstream_inference_cost": 0.09},
+            },
             ("malformed", "valid", "valid"),
         ),
         (
@@ -217,7 +243,11 @@ def test_openrouter_malformed_usage_cost_falls_back_to_static_pricing() -> None:
             ("valid", "valid", "missing"),
         ),
         (
-            {"is_byok": True, "cost": 0.01, "cost_details": {"upstream_inference_cost": "0.09"}},
+            {
+                "is_byok": True,
+                "cost": 0.01,
+                "cost_details": {"upstream_inference_cost": "0.09"},
+            },
             ("valid", "valid", "malformed"),
         ),
     ],
@@ -269,7 +299,9 @@ def test_openrouter_missing_is_byok_assumes_non_byok_and_uses_returned_cost() ->
 
 def test_openrouter_malformed_is_byok_without_static_pricing_returns_none() -> None:
     cost = settled_response_cost(
-        _response(metadata={"raw_response": {"usage": {"is_byok": "true", "cost": 0.0}}}),
+        _response(
+            metadata={"raw_response": {"usage": {"is_byok": "true", "cost": 0.0}}}
+        ),
         provider="openrouter",
         model="unknown/model",
     )
@@ -335,8 +367,12 @@ def test_settled_cost_from_metadata_prefers_retry_aggregate_cost() -> None:
     }
 
 
-@pytest.mark.parametrize("bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01, "0.01"])
-def test_settled_cost_from_metadata_rejects_invalid_normalized_cost(bad_cost: object) -> None:
+@pytest.mark.parametrize(
+    "bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01, "0.01"]
+)
+def test_settled_cost_from_metadata_rejects_invalid_normalized_cost(
+    bad_cost: object,
+) -> None:
     with pytest.raises(ValueError, match="actual_cost_usd"):
         settled_cost_from_metadata(
             {
@@ -347,8 +383,12 @@ def test_settled_cost_from_metadata_rejects_invalid_normalized_cost(bad_cost: ob
         )
 
 
-@pytest.mark.parametrize("bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01, "0.01"])
-def test_settled_cost_from_metadata_rejects_invalid_aggregate_cost(bad_cost: object) -> None:
+@pytest.mark.parametrize(
+    "bad_cost", [True, float("nan"), float("inf"), float("-inf"), -0.01, "0.01"]
+)
+def test_settled_cost_from_metadata_rejects_invalid_aggregate_cost(
+    bad_cost: object,
+) -> None:
     with pytest.raises(ValueError, match="actual_cost_usd_total"):
         settled_cost_from_metadata(
             {

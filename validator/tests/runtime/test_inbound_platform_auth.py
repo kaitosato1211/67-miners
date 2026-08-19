@@ -119,7 +119,9 @@ def test_inbound_verifier_rejects_non_owner_hotkey(monkeypatch) -> None:
     try:
         assert warmup_done.wait(timeout=1.0) is True
         with pytest.raises(VerificationError, match="subnet owner coldkey"):
-            verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+            verifier.verify(
+                method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+            )
     finally:
         verifier.stop(timeout_seconds=1.0)
 
@@ -135,10 +137,14 @@ def test_inbound_verifier_rejects_requests_before_initial_warmup() -> None:
     )
 
     with pytest.raises(VerificationError, match="initial hotkey warmup"):
-        verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+        verifier.verify(
+            method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+        )
 
 
-def test_inbound_verifier_start_does_not_raise_when_initial_refresh_fails(monkeypatch) -> None:
+def test_inbound_verifier_start_does_not_raise_when_initial_refresh_fails(
+    monkeypatch,
+) -> None:
     keypair = bt.Keypair.create_from_mnemonic(bt.Keypair.generate_mnemonic())
     header = _build_signed_header(keypair=keypair)
     refresh_failed = Event()
@@ -167,12 +173,16 @@ def test_inbound_verifier_start_does_not_raise_when_initial_refresh_fails(monkey
     try:
         assert refresh_failed.wait(timeout=1.0) is True
         with pytest.raises(VerificationError, match="initial hotkey warmup"):
-            verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+            verifier.verify(
+                method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+            )
     finally:
         assert verifier.stop(timeout_seconds=1.0) is True
 
 
-def test_inbound_verifier_start_warms_authorized_hotkeys_and_verify_uses_memory(monkeypatch) -> None:
+def test_inbound_verifier_start_warms_authorized_hotkeys_and_verify_uses_memory(
+    monkeypatch,
+) -> None:
     keypair = bt.Keypair.create_from_mnemonic(bt.Keypair.generate_mnemonic())
     header = _build_signed_header(keypair=keypair)
     calls: dict[str, int] = {"count": 0}
@@ -203,11 +213,15 @@ def test_inbound_verifier_start_warms_authorized_hotkeys_and_verify_uses_memory(
     try:
         assert warmup_done.wait(timeout=1.0) is True
         assert (
-            verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+            verifier.verify(
+                method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+            )
             == keypair.ss58_address
         )
         assert (
-            verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+            verifier.verify(
+                method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+            )
             == keypair.ss58_address
         )
         assert calls["count"] == 1
@@ -215,7 +229,9 @@ def test_inbound_verifier_start_warms_authorized_hotkeys_and_verify_uses_memory(
         assert verifier.stop(timeout_seconds=1.0) is True
 
 
-def test_inbound_verifier_falls_back_to_hotkey_owner_lookup_on_cache_miss(monkeypatch) -> None:
+def test_inbound_verifier_falls_back_to_hotkey_owner_lookup_on_cache_miss(
+    monkeypatch,
+) -> None:
     old_keypair = bt.Keypair.create_from_mnemonic(bt.Keypair.generate_mnemonic())
     rotated_keypair = bt.Keypair.create_from_mnemonic(bt.Keypair.generate_mnemonic())
     rotated_header = _build_signed_header(keypair=rotated_keypair)
@@ -306,8 +322,12 @@ def test_inbound_verifier_cache_miss_rejects_unknown_hotkey(monkeypatch) -> None
     verifier.start()
     try:
         assert warmup_done.wait(timeout=1.0) is True
-        with pytest.raises(VerificationError, match="hotkey owner not found on chain") as exc_info:
-            verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+        with pytest.raises(
+            VerificationError, match="hotkey owner not found on chain"
+        ) as exc_info:
+            verifier.verify(
+                method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+            )
         assert exc_info.value.code == "unknown_hotkey"
     finally:
         assert verifier.stop(timeout_seconds=1.0) is True
@@ -350,7 +370,9 @@ def test_inbound_verifier_retries_failed_initial_refresh_quickly(monkeypatch) ->
         assert refresh_attempted.wait(timeout=1.0) is True
         assert refresh_recovered.wait(timeout=1.0) is True
         assert (
-            verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+            verifier.verify(
+                method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+            )
             == keypair.ss58_address
         )
         assert calls["count"] >= 2
@@ -391,7 +413,9 @@ def test_inbound_verifier_refresh_failure_keeps_last_known_hotkeys(monkeypatch) 
     try:
         assert refresh_failed.wait(timeout=1.0) is True
         assert (
-            verifier.verify(method="GET", path_qs="/v1/test", body=b"", authorization_header=header)
+            verifier.verify(
+                method="GET", path_qs="/v1/test", body=b"", authorization_header=header
+            )
             == keypair.ss58_address
         )
         assert calls["count"] >= 2
@@ -469,7 +493,9 @@ def test_inbound_verifier_stop_timeout_returns_false() -> None:
 
 
 @pytest.mark.anyio
-async def test_make_control_provider_verifies_request_inline(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_make_control_provider_verifies_request_inline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     verify_calls: list[tuple[object, dict[str, object]]] = []
 
     def _record_verify_request(verifier: object, **kwargs: object) -> str:
@@ -521,7 +547,9 @@ def test_make_control_provider_reuses_fallback_resource_usage_provider(
         def __init__(self) -> None:
             created.append(self)
 
-    monkeypatch.setattr(bootstrap, "ValidatorResourceUsageProvider", _StubResourceUsageProvider)
+    monkeypatch.setattr(
+        bootstrap, "ValidatorResourceUsageProvider", _StubResourceUsageProvider
+    )
 
     provider = bootstrap._make_control_provider(
         Settings(),

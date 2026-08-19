@@ -19,7 +19,9 @@ class BaseWorker(ABC):
 
     worker_name: ClassVar[str] = "base-worker"
     logger_name: ClassVar[str] = "harnyx.worker"
-    default_poll_interval: ClassVar[float | None] = None  # None = no sleep (blocking workers)
+    default_poll_interval: ClassVar[float | None] = (
+        None  # None = no sleep (blocking workers)
+    )
 
     def __init__(self, *, poll_interval: float | None = None) -> None:
         self._poll_interval = poll_interval
@@ -34,7 +36,9 @@ class BaseWorker(ABC):
             return
 
         self._stop.clear()
-        self._thread = threading.Thread(target=self._run_loop, name=self.worker_name, daemon=True)
+        self._thread = threading.Thread(
+            target=self._run_loop, name=self.worker_name, daemon=True
+        )
         self._thread.start()
 
     def stop(self, timeout: float = 5.0) -> None:
@@ -57,7 +61,11 @@ class BaseWorker(ABC):
     def poll_interval(self) -> float | None:
         """Return the poll interval (instance override or class default)."""
 
-        return self._poll_interval if self._poll_interval is not None else self.default_poll_interval
+        return (
+            self._poll_interval
+            if self._poll_interval is not None
+            else self.default_poll_interval
+        )
 
     def _run_loop(self) -> None:
         """Main loop that calls tick() until stopped."""

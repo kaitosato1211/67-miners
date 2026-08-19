@@ -154,7 +154,9 @@ class BenchmarkCorrectnessScoringService:
             messages=(
                 LlmMessage(
                     role="system",
-                    content=(LlmMessageContentPart.input_text(_CORRECTNESS_SYSTEM_PROMPT),),
+                    content=(
+                        LlmMessageContentPart.input_text(_CORRECTNESS_SYSTEM_PROMPT),
+                    ),
                 ),
                 LlmMessage(
                     role="user",
@@ -181,7 +183,9 @@ class BenchmarkCorrectnessScoringService:
         response = await self._llm.invoke(request)
         parsed = response.postprocessed
         if parsed is None:
-            raise RuntimeError("benchmark correctness judge did not return structured output")
+            raise RuntimeError(
+                "benchmark correctness judge did not return structured output"
+            )
         decision = _CorrectnessDecision.model_validate(parsed)
         return BenchmarkCorrectnessScore(
             is_correct=decision.is_correct,
@@ -202,10 +206,18 @@ def _render_user_prompt(
     )
 
 
-def aggregate_benchmark_metrics(items: tuple[BenchmarkItemOutcome, ...]) -> BenchmarkRunMetrics:
-    queued_item_count = sum(1 for item in items if item.state is BenchmarkItemState.QUEUED)
-    running_item_count = sum(1 for item in items if item.state is BenchmarkItemState.RUNNING)
-    completed = tuple(item for item in items if item.state is BenchmarkItemState.COMPLETED)
+def aggregate_benchmark_metrics(
+    items: tuple[BenchmarkItemOutcome, ...],
+) -> BenchmarkRunMetrics:
+    queued_item_count = sum(
+        1 for item in items if item.state is BenchmarkItemState.QUEUED
+    )
+    running_item_count = sum(
+        1 for item in items if item.state is BenchmarkItemState.RUNNING
+    )
+    completed = tuple(
+        item for item in items if item.state is BenchmarkItemState.COMPLETED
+    )
     failed = tuple(item for item in items if item.state is BenchmarkItemState.FAILED)
     failed_item_count = len(failed)
     completed_item_count = len(completed)
@@ -232,14 +244,18 @@ def aggregate_benchmark_metrics(items: tuple[BenchmarkItemOutcome, ...]) -> Benc
     )
 
 
-def _validate_completed_scoring_mode(completed: tuple[BenchmarkItemOutcome, ...]) -> None:
+def _validate_completed_scoring_mode(
+    completed: tuple[BenchmarkItemOutcome, ...],
+) -> None:
     has_numeric_score = any(item.score is not None for item in completed)
     has_binary_score = any(item.is_correct is not None for item in completed)
     if has_numeric_score and has_binary_score:
         raise ValueError("mixed benchmark item scoring modes are not supported")
 
 
-def _aggregate_correct_item_count(completed: tuple[BenchmarkItemOutcome, ...]) -> int | None:
+def _aggregate_correct_item_count(
+    completed: tuple[BenchmarkItemOutcome, ...],
+) -> int | None:
     if any(item.score is not None for item in completed):
         return None
     return sum(1 for item in completed if item.is_correct is True)
@@ -289,7 +305,9 @@ def project_benchmark_run_state(
     return BenchmarkRunState.RUNNING
 
 
-def benchmark_backing_batch_terminalizes_unfinished_items(*, backing_batch_is_terminal: bool) -> bool:
+def benchmark_backing_batch_terminalizes_unfinished_items(
+    *, backing_batch_is_terminal: bool
+) -> bool:
     return backing_batch_is_terminal
 
 
@@ -302,7 +320,9 @@ def is_defined_benchmark_scoring_version(scoring_version: str) -> bool:
 
 
 def unsupported_benchmark_scoring_version_error(scoring_version: str) -> RuntimeError:
-    expected = ", ".join(repr(version) for version in sorted(SUPPORTED_BENCHMARK_SCORING_VERSIONS))
+    expected = ", ".join(
+        repr(version) for version in sorted(SUPPORTED_BENCHMARK_SCORING_VERSIONS)
+    )
     return RuntimeError(
         f"unsupported benchmark scoring_version {scoring_version!r}; "
         f"expected one of {expected}"
@@ -326,9 +346,7 @@ def sample_benchmark_items(
         key=lambda item: (
             sha256(
                 (
-                    f"{dataset_version}:"
-                    f"{scoring_version}:"
-                    f"{item.item_index}"
+                    f"{dataset_version}:" f"{scoring_version}:" f"{item.item_index}"
                 ).encode()
             ).digest(),
             item.item_index,

@@ -13,7 +13,11 @@ import bittensor as bt
 import httpx
 from dotenv import load_dotenv
 
-from harnyx_miner.agent_source import agent_sha256, load_submittable_agent_bytes, require_existing_agent_path
+from harnyx_miner.agent_source import (
+    agent_sha256,
+    load_submittable_agent_bytes,
+    require_existing_agent_path,
+)
 
 _UPLOAD_PATH = "/v1/miners/scripts"
 
@@ -36,7 +40,9 @@ def _platform_base_url() -> str:
     return base_url.rstrip("/")
 
 
-def _authorization_header(wallet: bt.Wallet, method: str, path_qs: str, body: bytes) -> str:
+def _authorization_header(
+    wallet: bt.Wallet, method: str, path_qs: str, body: bytes
+) -> str:
     canonical = _build_canonical_request(method, path_qs, body)
     signature = wallet.hotkey.sign(canonical)
     return f'Bittensor ss58="{wallet.hotkey.ss58_address}",sig="{signature.hex()}"'
@@ -49,7 +55,9 @@ def _summarize_response_text(response: httpx.Response, *, limit: int = 500) -> s
     return text[:limit] + "…"
 
 
-def _upload_agent(*, agent_path: Path, wallet_name: str, hotkey_name: str) -> dict[str, object]:
+def _upload_agent(
+    *, agent_path: Path, wallet_name: str, hotkey_name: str
+) -> dict[str, object]:
     content = load_submittable_agent_bytes(agent_path)
     digest = agent_sha256(content)
     payload = {
@@ -77,10 +85,22 @@ def _upload_agent(*, agent_path: Path, wallet_name: str, hotkey_name: str) -> di
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Upload a miner agent script to the platform (Bittensor-signed).")
-    parser.add_argument("--agent-path", required=True, help="Path to the miner agent Python file.")
-    parser.add_argument("--wallet-name", required=True, help="Bittensor wallet name (directory under ~/.bittensor).")
-    parser.add_argument("--hotkey-name", required=True, help="Bittensor hotkey name (file under wallet hotkeys).")
+    parser = argparse.ArgumentParser(
+        description="Upload a miner agent script to the platform (Bittensor-signed)."
+    )
+    parser.add_argument(
+        "--agent-path", required=True, help="Path to the miner agent Python file."
+    )
+    parser.add_argument(
+        "--wallet-name",
+        required=True,
+        help="Bittensor wallet name (directory under ~/.bittensor).",
+    )
+    parser.add_argument(
+        "--hotkey-name",
+        required=True,
+        help="Bittensor hotkey name (file under wallet hotkeys).",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     try:

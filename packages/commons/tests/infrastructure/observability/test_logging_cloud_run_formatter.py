@@ -53,7 +53,12 @@ def test_formatter_emits_json_payload_for_data_in_cloud_run(monkeypatch) -> None
         args=(),
         exc_info=None,
     )
-    record.data = {"feed_id": "feed-123", "run_id": "run-123", "limit": 1000, "enqueued": 201}
+    record.data = {
+        "feed_id": "feed-123",
+        "run_id": "run-123",
+        "limit": 1000,
+        "enqueued": 201,
+    }
 
     rendered = formatter.format(record)
     payload = json.loads(rendered)
@@ -66,7 +71,9 @@ def test_formatter_emits_json_payload_for_data_in_cloud_run(monkeypatch) -> None
     assert payload["data"]["limit"] == 1000
 
 
-def test_formatter_emits_json_payload_for_json_fields_in_kubernetes(monkeypatch) -> None:
+def test_formatter_emits_json_payload_for_json_fields_in_kubernetes(
+    monkeypatch,
+) -> None:
     monkeypatch.delenv("K_SERVICE", raising=False)
     monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.0.0.1")
     formatter = ExtrasFormatter("%(levelname)s %(name)s: %(message)s")
@@ -145,7 +152,9 @@ def test_formatter_ignores_json_fields_outside_managed_runtimes(monkeypatch) -> 
 
     rendered = formatter.format(record)
 
-    assert rendered.startswith("INFO harnyx_commons.llm.calls: llm.invoke.retry.complete")
+    assert rendered.startswith(
+        "INFO harnyx_commons.llm.calls: llm.invoke.retry.complete"
+    )
     assert "data=" in rendered
     assert "request" not in rendered
 
@@ -198,9 +207,14 @@ def test_otel_context_log_filter_injects_trace_and_baggage(monkeypatch) -> None:
             )
             record.json_fields = {"existing": {"ok": True}}
 
-            assert OtelContextLogFilter(gcp_project_id="demo-project").filter(record) is True
+            assert (
+                OtelContextLogFilter(gcp_project_id="demo-project").filter(record)
+                is True
+            )
 
-            rendered = ExtrasFormatter("%(levelname)s %(name)s: %(message)s").format(record)
+            rendered = ExtrasFormatter("%(levelname)s %(name)s: %(message)s").format(
+                record
+            )
             payload = json.loads(rendered)
 
             assert payload["existing"]["ok"] is True

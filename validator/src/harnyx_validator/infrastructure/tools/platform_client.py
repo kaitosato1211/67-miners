@@ -19,7 +19,11 @@ from harnyx_commons.domain.miner_task import EvaluationTrace, MinerTask, Respons
 from harnyx_commons.domain.session import LlmUsageTotals, Session, SessionStatus
 from harnyx_commons.domain.tool_call import ToolExecutionFacts
 from harnyx_commons.domain.tool_usage import ToolUsageSummary
-from harnyx_commons.errors import BudgetExceededError, ToolInvocationTimeoutError, ToolProviderError
+from harnyx_commons.errors import (
+    BudgetExceededError,
+    ToolInvocationTimeoutError,
+    ToolProviderError,
+)
 from harnyx_commons.json_types import JsonObject, JsonValue
 from harnyx_commons.protocol_headers import PLATFORM_TOOL_PROXY_TOKEN_HEADER
 from harnyx_commons.tools.types import ToolName
@@ -40,7 +44,9 @@ from harnyx_validator.application.ports.platform import (
     PlatformToolProxyToolResult,
     PlatformWeightsUnavailableError,
 )
-from harnyx_validator.infrastructure.transient_network import classify_transient_network_failure
+from harnyx_validator.infrastructure.transient_network import (
+    classify_transient_network_failure,
+)
 
 _GET_ATTEMPTS = 2
 _PLATFORM_WORK_TASKS_READ_TIMEOUT_SECONDS = 300.0
@@ -61,7 +67,9 @@ class PlatformClientError(RuntimeError):
 class PlatformToolProxyInvocationError(RuntimeError):
     """Raised when platform-tool-proxy rejects a tool invocation for non-provider reasons."""
 
-    def __init__(self, *, status_code: int, error_code: str | None, message: str) -> None:
+    def __init__(
+        self, *, status_code: int, error_code: str | None, message: str
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.error_code = error_code
@@ -136,7 +144,9 @@ class HttpPlatformClient(PlatformPort):
         signature = self.hotkey.sign(canonical)
         return f'Bittensor ss58="{self.hotkey.ss58_address}",sig="{signature.hex()}"'
 
-    def _request_headers(self, method: str, path_qs: str, body: bytes) -> dict[str, str]:
+    def _request_headers(
+        self, method: str, path_qs: str, body: bytes
+    ) -> dict[str, str]:
         headers = {
             "Authorization": self._signed_header(method, path_qs, body),
             "Accept": "application/json",
@@ -145,7 +155,9 @@ class HttpPlatformClient(PlatformPort):
             headers["Content-Type"] = "application/json"
         return headers
 
-    def _get(self, path: str, *, timeout_seconds: float | None = None) -> httpx.Response:
+    def _get(
+        self, path: str, *, timeout_seconds: float | None = None
+    ) -> httpx.Response:
         for attempt in range(_GET_ATTEMPTS):
             try:
                 with self._client() as client:
@@ -158,7 +170,10 @@ class HttpPlatformClient(PlatformPort):
                         **kwargs,
                     )
             except httpx.TransportError as exc:
-                if classify_transient_network_failure(exc) is None or attempt == _GET_ATTEMPTS - 1:
+                if (
+                    classify_transient_network_failure(exc) is None
+                    or attempt == _GET_ATTEMPTS - 1
+                ):
                     raise
         raise RuntimeError("platform GET retry loop exhausted without response")
 
@@ -226,7 +241,10 @@ class HttpPlatformClient(PlatformPort):
                 message=f"platform returned {response.status_code} for GET /v1/weights",
             )
         payload = response.json()
-        weights = {int(uid): float(weight) for uid, weight in payload.get("weights", {}).items()}
+        weights = {
+            int(uid): float(weight)
+            for uid, weight in payload.get("weights", {}).items()
+        }
         champion_uid_raw = payload.get("champion_uid")
         champion_uid = int(champion_uid_raw) if champion_uid_raw is not None else None
         return ChampionWeights(champion_uid=champion_uid, weights=weights)
@@ -274,10 +292,16 @@ class HttpPlatformClient(PlatformPort):
             )
         payload = response.json()
         if not isinstance(payload, dict):
-            raise PlatformClientError(status_code=response.status_code, message="platform work response is invalid")
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform work response is invalid",
+            )
         tasks = payload.get("tasks", ())
         if not isinstance(tasks, list):
-            raise PlatformClientError(status_code=response.status_code, message="platform work tasks are invalid")
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform work tasks are invalid",
+            )
         return tuple(_miner_task_work_assignment(task) for task in tasks)
 
     def submit_miner_task_work_results(
@@ -288,7 +312,9 @@ class HttpPlatformClient(PlatformPort):
         response = self._post_json(
             path,
             {
-                "results": [_platform_task_result_payload(result) for result in results],
+                "results": [
+                    _platform_task_result_payload(result) for result in results
+                ],
             },
             timeout=_PLATFORM_WORK_RESULT_TIMEOUT_SECONDS,
         )
@@ -299,10 +325,16 @@ class HttpPlatformClient(PlatformPort):
             )
         payload = response.json()
         if not isinstance(payload, dict):
-            raise PlatformClientError(status_code=response.status_code, message="platform result response is invalid")
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform result response is invalid",
+            )
         items = payload.get("results", ())
         if not isinstance(items, list):
-            raise PlatformClientError(status_code=response.status_code, message="platform result items are invalid")
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform result items are invalid",
+            )
         return tuple(_platform_result_acknowledgement(item) for item in items)
 
     def submit_miner_task_work_executions(
@@ -313,7 +345,10 @@ class HttpPlatformClient(PlatformPort):
         response = self._post_json(
             path,
             {
-                "executions": [_platform_task_execution_payload(execution) for execution in executions],
+                "executions": [
+                    _platform_task_execution_payload(execution)
+                    for execution in executions
+                ],
             },
             timeout=_PLATFORM_WORK_RESULT_TIMEOUT_SECONDS,
         )
@@ -321,7 +356,7 @@ class HttpPlatformClient(PlatformPort):
             raise PlatformClientError(
                 status_code=response.status_code,
                 message=f"platform returned {response.status_code} for POST {path}",
-        )
+            )
         payload = response.json()
         if not isinstance(payload, dict):
             raise PlatformClientError(
@@ -330,7 +365,10 @@ class HttpPlatformClient(PlatformPort):
             )
         items = payload.get("executions", ())
         if not isinstance(items, list):
-            raise PlatformClientError(status_code=response.status_code, message="platform execution items are invalid")
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform execution items are invalid",
+            )
         return tuple(_platform_result_acknowledgement(item) for item in items)
 
     def request_scoreable_miner_task_work_executions(
@@ -365,7 +403,7 @@ class HttpPlatformClient(PlatformPort):
             raise PlatformClientError(
                 status_code=response.status_code,
                 message=f"platform returned {response.status_code} for POST {path}",
-        )
+            )
         payload = response.json()
         if not isinstance(payload, dict):
             raise PlatformClientError(
@@ -374,7 +412,10 @@ class HttpPlatformClient(PlatformPort):
             )
         items = payload.get("executions", ())
         if not isinstance(items, list):
-            raise PlatformClientError(status_code=response.status_code, message="platform scoreable items are invalid")
+            raise PlatformClientError(
+                status_code=response.status_code,
+                message="platform scoreable items are invalid",
+            )
         return tuple(_platform_scoreable_execution(item) for item in items)
 
 
@@ -386,7 +427,9 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
     hotkey: bt.Keypair
     timeout_seconds: float = 10.0
     transport: httpx.AsyncBaseTransport | None = None
-    grant_retry_delays_seconds: tuple[float, ...] = _PLATFORM_TOOL_PROXY_GRANT_RETRY_DELAYS_SECONDS
+    grant_retry_delays_seconds: tuple[float, ...] = (
+        _PLATFORM_TOOL_PROXY_GRANT_RETRY_DELAYS_SECONDS
+    )
     _client: httpx.AsyncClient = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -439,12 +482,14 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
                 raise PlatformToolProxyInvocationError(
                     status_code=response.status_code,
                     error_code=error_code,
-                    message=_platform_error_message(response) or "platform tool proxy grant denied",
+                    message=_platform_error_message(response)
+                    or "platform tool proxy grant denied",
                 )
             raise PlatformToolProxyInvocationError(
                 status_code=response.status_code,
                 error_code="platform_tool_proxy_grant_failed",
-                message=_platform_error_message(response) or "platform tool proxy grant failed",
+                message=_platform_error_message(response)
+                or "platform tool proxy grant failed",
             )
         try:
             payload = response.json()
@@ -502,11 +547,16 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
                     ) from exc
                 await asyncio.sleep(self.grant_retry_delays_seconds[attempt_index])
                 continue
-            if _is_transient_platform_tool_proxy_grant_response(response) and retry_remaining:
+            if (
+                _is_transient_platform_tool_proxy_grant_response(response)
+                and retry_remaining
+            ):
                 await asyncio.sleep(self.grant_retry_delays_seconds[attempt_index])
                 continue
             return response
-        raise RuntimeError("platform tool proxy grant retry loop exhausted without response")
+        raise RuntimeError(
+            "platform tool proxy grant retry loop exhausted without response"
+        )
 
     async def execute_platform_tool_proxy_tool(
         self,
@@ -578,7 +628,8 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
             error_code = _platform_error_code(response)
             if error_code == "platform_interrupted":
                 raise PlatformToolProxyInterruptedError(
-                    _platform_error_message(response) or "platform tool proxy execution interrupted"
+                    _platform_error_message(response)
+                    or "platform tool proxy execution interrupted"
                 )
             if error_code == "tool_timeout":
                 raise PlatformToolProxyToolTimeoutError(
@@ -593,9 +644,13 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
             if error_code == "budget_exhausted":
                 raise PlatformToolProxyBudgetExceededError(
                     status_code=response.status_code,
-                    message=_platform_error_message(response) or "platform tool proxy budget exhausted",
+                    message=_platform_error_message(response)
+                    or "platform tool proxy budget exhausted",
                 )
-            if error_code in _SELECTED_PROVIDER_OR_TOOL_REQUEST_MINER_OWNED_PROXY_ERROR_CODES:
+            if (
+                error_code
+                in _SELECTED_PROVIDER_OR_TOOL_REQUEST_MINER_OWNED_PROXY_ERROR_CODES
+            ):
                 raise PlatformToolProxyInvocationError(
                     status_code=response.status_code,
                     error_code=error_code,
@@ -608,7 +663,8 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
                 raise PlatformToolProxyInvocationError(
                     status_code=response.status_code,
                     error_code=error_code,
-                    message=_platform_error_message(response) or "platform tool proxy control failure",
+                    message=_platform_error_message(response)
+                    or "platform tool proxy control failure",
                 )
             raise PlatformToolProxyInvocationError(
                 status_code=response.status_code,
@@ -662,7 +718,9 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
                 message=str(exc),
             ) from exc
         actual_cost_evidence = payload.get("actual_cost_evidence")
-        if actual_cost_evidence is not None and not isinstance(actual_cost_evidence, dict):
+        if actual_cost_evidence is not None and not isinstance(
+            actual_cost_evidence, dict
+        ):
             raise PlatformToolProxyInvocationError(
                 status_code=response.status_code,
                 error_code="platform_error",
@@ -673,7 +731,9 @@ class AsyncPlatformToolProxyPlatformClient(PlatformToolProxyPlatformPort):
             execution=execution,
             actual_cost_usd=actual_cost_usd,
             actual_cost_provider=(
-                str(payload["actual_cost_provider"]) if payload.get("actual_cost_provider") is not None else None
+                str(payload["actual_cost_provider"])
+                if payload.get("actual_cost_provider") is not None
+                else None
             ),
             actual_cost_evidence=cast(JsonObject, actual_cost_evidence),
         )
@@ -689,12 +749,16 @@ def _platform_task_result_payload(result: PlatformOwnedTaskResult) -> JsonObject
         "artifact_id": str(result.artifact_id),
         "task_id": str(result.task_id),
         "attempt_number": result.attempt_number,
-        "result": None if result.result is None else _run_submission_payload(result.result),
+        "result": (
+            None if result.result is None else _run_submission_payload(result.result)
+        ),
         "terminal_attempt": _attempt_payload(result.terminal_attempt),
     }
 
 
-def _platform_task_execution_payload(execution: PlatformOwnedTaskExecution) -> JsonObject:
+def _platform_task_execution_payload(
+    execution: PlatformOwnedTaskExecution,
+) -> JsonObject:
     return {
         "batch_id": str(execution.batch_id),
         "artifact_id": str(execution.artifact_id),
@@ -721,17 +785,25 @@ def _platform_task_execution_payload(execution: PlatformOwnedTaskExecution) -> J
 
 def _platform_scoreable_execution(value: object) -> PlatformOwnedTaskExecution:
     if not isinstance(value, dict):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution item is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform scoreable execution item is invalid"
+        )
     item = cast(dict[str, object], value)
     artifact = item.get("artifact")
     if not isinstance(artifact, dict):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution artifact is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform scoreable execution artifact is invalid"
+        )
     task = item.get("task")
     if not isinstance(task, dict):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution task is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform scoreable execution task is invalid"
+        )
     session_payload = item.get("session")
     if not isinstance(session_payload, dict):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution session is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform scoreable execution session is invalid"
+        )
     artifact_item = dict(cast(dict[str, object], artifact))
     task_item = dict(cast(dict[str, object], task))
     session_item = cast(dict[str, object], session_payload)
@@ -743,13 +815,20 @@ def _platform_scoreable_execution(value: object) -> PlatformOwnedTaskExecution:
 
     miner_hotkey_ss58 = item.get("miner_hotkey_ss58")
     if not isinstance(miner_hotkey_ss58, str):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution miner hotkey is invalid")
+        raise PlatformClientError(
+            status_code=None,
+            message="platform scoreable execution miner hotkey is invalid",
+        )
     response_payload = item.get("response")
     if not isinstance(response_payload, dict):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution response is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform scoreable execution response is invalid"
+        )
     trace_payload = item.get("trace")
     if trace_payload is not None and not isinstance(trace_payload, dict):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution trace is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform scoreable execution trace is invalid"
+        )
 
     task_model = MinerTask.model_validate(task_item)
     issued_at = _parse_datetime(session_item["issued_at"])
@@ -780,16 +859,24 @@ def _platform_scoreable_execution(value: object) -> PlatformOwnedTaskExecution:
         usage=_scoreable_token_usage_summary(item["usage"]),
         total_tool_usage=_TOOL_USAGE_ADAPTER.validate_python(item["total_tool_usage"]),
         execution_log=(),
-        trace=None if trace_payload is None else EvaluationTrace.model_validate(trace_payload),
+        trace=(
+            None
+            if trace_payload is None
+            else EvaluationTrace.model_validate(trace_payload)
+        ),
     )
 
 
 def _scoreable_token_usage_summary(value: object) -> TokenUsageSummary:
     if not isinstance(value, dict):
-        raise PlatformClientError(status_code=None, message="platform scoreable execution usage is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform scoreable execution usage is invalid"
+        )
     usage_item = cast(dict[str, object], value)
     return TokenUsageSummary(
-        by_provider=_LLM_USAGE_TOTALS_ADAPTER.validate_python(usage_item.get("by_provider", {})),
+        by_provider=_LLM_USAGE_TOTALS_ADAPTER.validate_python(
+            usage_item.get("by_provider", {})
+        ),
         total_prompt_tokens=_required_int(usage_item, "total_prompt_tokens"),
         total_completion_tokens=_required_int(usage_item, "total_completion_tokens"),
         total_tokens=_required_int(usage_item, "total_tokens"),
@@ -838,7 +925,9 @@ def _attempt_payload(attempt: Any) -> JsonObject:
         "error_code": attempt.error_code,
         "error_summary_code": attempt.error_summary_code,
         "retry_decision": attempt.retry_decision.value,
-        "terminal_effect": None if attempt.terminal_effect is None else attempt.terminal_effect.value,
+        "terminal_effect": (
+            None if attempt.terminal_effect is None else attempt.terminal_effect.value
+        ),
         "max_attempts": attempt.max_attempts,
     }
     if attempt.diagnostics is not None:
@@ -852,13 +941,19 @@ def _parse_datetime(value: object) -> datetime:
     if isinstance(value, datetime):
         return value
     if not isinstance(value, str):
-        raise PlatformClientError(status_code=None, message="platform datetime field is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform datetime field is invalid"
+        )
     return datetime.fromisoformat(value)
 
 
-def _platform_result_acknowledgement(value: object) -> PlatformTaskResultAcknowledgement:
+def _platform_result_acknowledgement(
+    value: object,
+) -> PlatformTaskResultAcknowledgement:
     if not isinstance(value, dict):
-        raise PlatformClientError(status_code=None, message="platform result item is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform result item is invalid"
+        )
     item = cast(dict[str, object], value)
     outcome = str(item["outcome"])
     if outcome not in {"accepted", "rejected"}:
@@ -873,7 +968,9 @@ def _platform_result_acknowledgement(value: object) -> PlatformTaskResultAcknowl
         attempt_number=_required_int(item, "attempt_number"),
         outcome=cast(Literal["accepted", "rejected"], outcome),
         canonical=bool(item["canonical"]),
-        reason_code=None if item.get("reason_code") is None else str(item["reason_code"]),
+        reason_code=(
+            None if item.get("reason_code") is None else str(item["reason_code"])
+        ),
         reason=None if item.get("reason") is None else str(item["reason"]),
     )
 
@@ -898,25 +995,33 @@ def _optional_float(value: object) -> float | None:
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise PlatformClientError(status_code=None, message="platform tool proxy numeric field is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform tool proxy numeric field is invalid"
+        )
     return float(value)
 
 
 def _required_int(payload: dict[str, object], key: str) -> int:
     value = payload.get(key)
     if isinstance(value, bool) or not isinstance(value, int):
-        raise PlatformClientError(status_code=None, message=f"platform {key} field is invalid")
+        raise PlatformClientError(
+            status_code=None, message=f"platform {key} field is invalid"
+        )
     return value
 
 
 def _miner_task_work_assignment(value: object) -> MinerTaskWorkAssignment:
     if not isinstance(value, dict):
-        raise PlatformClientError(status_code=None, message="platform work assignment is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform work assignment is invalid"
+        )
     entry = cast(dict[str, object], value)
     artifact = entry.get("artifact")
     task = entry.get("task")
     if not isinstance(artifact, dict) or not isinstance(task, dict):
-        raise PlatformClientError(status_code=None, message="platform work assignment is invalid")
+        raise PlatformClientError(
+            status_code=None, message="platform work assignment is invalid"
+        )
     artifact_payload = dict(artifact)
     task_payload = dict(task)
     artifact_payload["artifact_id"] = UUID(str(artifact_payload["artifact_id"]))

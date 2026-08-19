@@ -21,9 +21,13 @@ logger = logging.getLogger("harnyx_validator.runtime.registration")
 
 def _run_docker_command(args: list[str], *, error_context: str) -> str:
     try:
-        result = subprocess.run(args, capture_output=True, text=True, check=True)  # noqa: S603
+        result = subprocess.run(
+            args, capture_output=True, text=True, check=True
+        )  # noqa: S603
     except OSError as exc:
-        raise RuntimeError(f"{error_context}: failed to execute docker CLI: {exc}") from exc
+        raise RuntimeError(
+            f"{error_context}: failed to execute docker CLI: {exc}"
+        ) from exc
     except subprocess.CalledProcessError as exc:
         stderr = (exc.stderr or "").strip()
         raise RuntimeError(f"{error_context}: stderr={stderr}") from exc
@@ -50,7 +54,9 @@ def _resolve_current_container_id() -> str:
     container = (os.getenv("HOSTNAME") or "").strip()
     if container:
         return container
-    raise RuntimeError("failed to resolve current validator container id via /proc/self/mountinfo or HOSTNAME")
+    raise RuntimeError(
+        "failed to resolve current validator container id via /proc/self/mountinfo or HOSTNAME"
+    )
 
 
 def _inspect_current_image_id() -> str:
@@ -63,17 +69,28 @@ def _inspect_container_image_id(container: str) -> str:
         error_context=f"docker inspect failed for container={container}",
     )
     if not image_id:
-        raise RuntimeError(f"docker inspect returned empty image id for container={container}")
+        raise RuntimeError(
+            f"docker inspect returned empty image id for container={container}"
+        )
     return image_id
 
 
 def _inspect_registry_digest(local_image_id: str) -> str | None:
     output = _run_docker_command(
-        [_DOCKER_BINARY, "image", "inspect", "--format", "{{json .RepoDigests}}", local_image_id],
+        [
+            _DOCKER_BINARY,
+            "image",
+            "inspect",
+            "--format",
+            "{{json .RepoDigests}}",
+            local_image_id,
+        ],
         error_context=f"docker image inspect failed for image_id={local_image_id}",
     )
     if not output:
-        raise RuntimeError(f"docker image inspect returned empty repo digests for image_id={local_image_id}")
+        raise RuntimeError(
+            f"docker image inspect returned empty repo digests for image_id={local_image_id}"
+        )
 
     repo_digests = json.loads(output)
     if repo_digests is None:
@@ -85,10 +102,14 @@ def _inspect_registry_digest(local_image_id: str) -> str | None:
 
     repo_digest = repo_digests[0]
     if not isinstance(repo_digest, str) or not repo_digest:
-        raise RuntimeError(f"docker image inspect returned invalid repo digest for image_id={local_image_id}")
+        raise RuntimeError(
+            f"docker image inspect returned invalid repo digest for image_id={local_image_id}"
+        )
     _, separator, digest = repo_digest.partition("@")
     if separator != "@" or not digest:
-        raise RuntimeError(f"docker image inspect returned invalid repo digest entry: {repo_digest}")
+        raise RuntimeError(
+            f"docker image inspect returned invalid repo digest entry: {repo_digest}"
+        )
     return digest
 
 

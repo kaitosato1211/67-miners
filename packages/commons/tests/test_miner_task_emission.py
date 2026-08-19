@@ -70,25 +70,43 @@ def test_apply_miner_emission_cap_ignores_owner_weight_in_base_vector() -> None:
 
 
 @pytest.mark.parametrize("weights", [{}, {0: 1.0}])
-def test_apply_miner_emission_cap_rejects_empty_miner_weights(weights: dict[int, float]) -> None:
+def test_apply_miner_emission_cap_rejects_empty_miner_weights(
+    weights: dict[int, float],
+) -> None:
     with pytest.raises(ValueError, match="miner weights are empty"):
-        apply_miner_emission_cap(weights, batch_score=1.0, max_miner_emission_fraction=0.0)
+        apply_miner_emission_cap(
+            weights, batch_score=1.0, max_miner_emission_fraction=0.0
+        )
 
 
 def test_apply_miner_emission_cap_rejects_non_positive_miner_total() -> None:
-    with pytest.raises(ValueError, match="miner weights must have positive miner total"):
-        apply_miner_emission_cap({7: 0.0, 8: 0.0}, batch_score=1.0, max_miner_emission_fraction=0.0)
+    with pytest.raises(
+        ValueError, match="miner weights must have positive miner total"
+    ):
+        apply_miner_emission_cap(
+            {7: 0.0, 8: 0.0}, batch_score=1.0, max_miner_emission_fraction=0.0
+        )
 
 
 @pytest.mark.parametrize("batch_score", [-0.1, 1.1, float("nan")])
-def test_apply_miner_emission_cap_rejects_invalid_batch_score(batch_score: float) -> None:
-    with pytest.raises(ValueError, match="miner task batch score must be between 0.0 and 1.0"):
-        apply_miner_emission_cap({7: 1.0}, batch_score=batch_score, max_miner_emission_fraction=0.0)
+def test_apply_miner_emission_cap_rejects_invalid_batch_score(
+    batch_score: float,
+) -> None:
+    with pytest.raises(
+        ValueError, match="miner task batch score must be between 0.0 and 1.0"
+    ):
+        apply_miner_emission_cap(
+            {7: 1.0}, batch_score=batch_score, max_miner_emission_fraction=0.0
+        )
 
 
 @pytest.mark.parametrize("max_fraction", [-0.1, 1.1, float("nan")])
-def test_apply_miner_emission_cap_rejects_invalid_max_fraction(max_fraction: float) -> None:
-    with pytest.raises(ValueError, match="max miner emission fraction must be between 0.0 and 1.0"):
+def test_apply_miner_emission_cap_rejects_invalid_max_fraction(
+    max_fraction: float,
+) -> None:
+    with pytest.raises(
+        ValueError, match="max miner emission fraction must be between 0.0 and 1.0"
+    ):
         apply_miner_emission_cap(
             {7: 1.0},
             batch_score=1.0,
@@ -141,20 +159,32 @@ def test_participant_emission_stops_before_total_weight_overflow() -> None:
 
 
 @pytest.mark.parametrize("raw_value", [-0.1, 1.1, float("nan")])
-def test_participant_emission_rejects_invalid_configured_weight(raw_value: float) -> None:
-    with pytest.raises(ValueError, match="miner participation emission must be between 0.0 and 1.0"):
-        compose_participant_emission_weights((10,), miner_participation_emission=raw_value)
+def test_participant_emission_rejects_invalid_configured_weight(
+    raw_value: float,
+) -> None:
+    with pytest.raises(
+        ValueError, match="miner participation emission must be between 0.0 and 1.0"
+    ):
+        compose_participant_emission_weights(
+            (10,), miner_participation_emission=raw_value
+        )
 
 
 def test_participant_emission_fraction_uses_configured_weight() -> None:
-    assert participant_emission_fraction(3, miner_participation_emission=0.01) == pytest.approx(0.03)
+    assert participant_emission_fraction(
+        3, miner_participation_emission=0.01
+    ) == pytest.approx(0.03)
 
 
 def test_participant_emission_fraction_stops_before_partial_overflow() -> None:
-    assert participant_emission_fraction(4, miner_participation_emission=0.3) == pytest.approx(0.9)
+    assert participant_emission_fraction(
+        4, miner_participation_emission=0.3
+    ) == pytest.approx(0.9)
 
 
-def test_flat_participant_emission_allocations_stop_in_input_order_before_overflow() -> None:
+def test_flat_participant_emission_allocations_stop_in_input_order_before_overflow() -> (
+    None
+):
     weights = compose_flat_participant_emission_allocations(
         ("hotkey-a", "hotkey-b", "hotkey-c", "hotkey-d"),
         miner_participation_emission=0.3,
@@ -285,7 +315,9 @@ def test_tiered_participant_emission_all_zero_scores_return_empty_allocations() 
     assert weights == {}
 
 
-def test_tiered_participant_emission_deduplicates_participant_key_by_higher_score() -> None:
+def test_tiered_participant_emission_deduplicates_participant_key_by_higher_score() -> (
+    None
+):
     weights = compose_tiered_participant_emission_allocations(
         (
             ParticipantEmissionScore("hotkey-a", 0.2),
@@ -299,7 +331,9 @@ def test_tiered_participant_emission_deduplicates_participant_key_by_higher_scor
     assert weights["hotkey-a"] == pytest.approx(0.02)
 
 
-def test_tiered_participant_emission_assigns_same_fixed_reward_to_near_duplicate_and_novel() -> None:
+def test_tiered_participant_emission_assigns_same_fixed_reward_to_near_duplicate_and_novel() -> (
+    None
+):
     weights = compose_tiered_participant_emission_allocations(
         (
             ParticipantEmissionScore(
@@ -342,7 +376,9 @@ def test_tiered_participant_emission_assigns_same_fixed_reward_to_near_duplicate
     assert weights["middle-novel"] == pytest.approx(0.002)
 
 
-def test_novelty_distribution_weights_use_exclusive_main_top_10_and_top_50_tiers() -> None:
+def test_novelty_distribution_weights_use_exclusive_main_top_10_and_top_50_tiers() -> (
+    None
+):
     participant_scores = (
         ParticipantEmissionScore(
             "top-novel",
@@ -387,7 +423,9 @@ def test_novelty_distribution_weights_use_exclusive_main_top_10_and_top_50_tiers
     }
 
 
-def test_novelty_main_weight_requires_the_selected_artifact_to_have_participated_in_main() -> None:
+def test_novelty_main_weight_requires_the_selected_artifact_to_have_participated_in_main() -> (
+    None
+):
     shared_artifact_id = UUID(int=10)
     participant_scores = (
         *(
@@ -415,7 +453,9 @@ def test_novelty_main_weight_requires_the_selected_artifact_to_have_participated
     assert "shared-hotkey" not in weights
 
 
-def test_selected_main_artifact_receives_main_novelty_weight_outside_score_tiers() -> None:
+def test_selected_main_artifact_receives_main_novelty_weight_outside_score_tiers() -> (
+    None
+):
     shared_artifact_id = UUID(int=10)
     participant_scores = (
         *(
@@ -443,7 +483,9 @@ def test_selected_main_artifact_receives_main_novelty_weight_outside_score_tiers
     assert weights == {"shared-hotkey": pytest.approx(5.0)}
 
 
-def test_novelty_emission_divides_entire_remaining_fraction_by_distribution_weight() -> None:
+def test_novelty_emission_divides_entire_remaining_fraction_by_distribution_weight() -> (
+    None
+):
     allocations = compose_novelty_emission_allocations(
         {
             "main": 5.0,
@@ -501,7 +543,9 @@ def test_artifact_participant_weights_multiply_stage_and_novelty_per_artifact() 
     assert weights[UUID(int=10)].participant_distribution_weight == 25
 
 
-def test_artifact_participant_weights_preserve_multiple_artifacts_for_one_hotkey() -> None:
+def test_artifact_participant_weights_preserve_multiple_artifacts_for_one_hotkey() -> (
+    None
+):
     artifact_a = UUID(int=1)
     artifact_b = UUID(int=2)
 
@@ -554,7 +598,9 @@ def test_equal_participant_emission_divides_entire_remaining_fraction() -> None:
     assert fsum(allocations.values()) == pytest.approx(0.7)
 
 
-def test_participant_selection_keeps_score_and_classification_on_same_artifact() -> None:
+def test_participant_selection_keeps_score_and_classification_on_same_artifact() -> (
+    None
+):
     higher_score_near_duplicate = ParticipantEmissionScore(
         "hotkey-a",
         0.9,
@@ -568,14 +614,18 @@ def test_participant_selection_keeps_score_and_classification_on_same_artifact()
         classification="novel",
     )
 
-    selected = select_participant_emission_scores((lower_score_novel, higher_score_near_duplicate))
+    selected = select_participant_emission_scores(
+        (lower_score_novel, higher_score_near_duplicate)
+    )
 
     assert selected == (higher_score_near_duplicate,)
 
 
 @pytest.mark.parametrize("raw_score", [-0.1, 1.1, float("nan")])
 def test_tiered_participant_emission_rejects_invalid_scores(raw_score: float) -> None:
-    with pytest.raises(ValueError, match="participant score must be between 0.0 and 1.0"):
+    with pytest.raises(
+        ValueError, match="participant score must be between 0.0 and 1.0"
+    ):
         compose_tiered_participant_emission_allocations(
             (ParticipantEmissionScore("hotkey-a", raw_score),)
         )
@@ -583,10 +633,14 @@ def test_tiered_participant_emission_rejects_invalid_scores(raw_score: float) ->
 
 def test_tiered_participant_emission_rejects_empty_participant_key() -> None:
     with pytest.raises(ValueError, match="participant key must be non-empty"):
-        compose_tiered_participant_emission_allocations((ParticipantEmissionScore("", 1.0),))
+        compose_tiered_participant_emission_allocations(
+            (ParticipantEmissionScore("", 1.0),)
+        )
 
 
-def test_tiered_participant_emission_stops_by_score_before_total_weight_overflow() -> None:
+def test_tiered_participant_emission_stops_by_score_before_total_weight_overflow() -> (
+    None
+):
     weights = compose_tiered_participant_emission_allocations(
         (
             ParticipantEmissionScore("hotkey-a", 1.0),
@@ -625,7 +679,9 @@ def test_compose_emission_weights_adds_same_uid_components() -> None:
 
 
 def test_compose_emission_weights_ignores_component_owner_remainders() -> None:
-    weights = compose_emission_weights({OWNER_UID: 0.9, 10: 0.1}, {OWNER_UID: 0.996, 11: 0.004})
+    weights = compose_emission_weights(
+        {OWNER_UID: 0.9, 10: 0.1}, {OWNER_UID: 0.996, 11: 0.004}
+    )
 
     assert weights == {
         OWNER_UID: pytest.approx(0.896),
@@ -639,7 +695,9 @@ def test_compose_emission_weights_rejects_combined_overflow() -> None:
         compose_emission_weights({10: 0.998}, {11: 0.004})
 
 
-def test_prioritized_emission_fills_champion_then_main_then_general_with_full_allocations() -> None:
+def test_prioritized_emission_fills_champion_then_main_then_general_with_full_allocations() -> (
+    None
+):
     composition = compose_prioritized_emission(
         {10: 0.992},
         {11: 0.004, 12: 0.004, 13: 0.004},
@@ -652,7 +710,10 @@ def test_prioritized_emission_fills_champion_then_main_then_general_with_full_al
         11: pytest.approx(0.004),
         12: pytest.approx(0.004),
     }
-    assert composition.accepted_main_additions == {11: pytest.approx(0.004), 12: pytest.approx(0.004)}
+    assert composition.accepted_main_additions == {
+        11: pytest.approx(0.004),
+        12: pytest.approx(0.004),
+    }
     assert composition.dropped_main_additions == {13: pytest.approx(0.004)}
     assert composition.accepted_general_participation == {}
     assert composition.dropped_general_participation == {14: pytest.approx(0.004)}

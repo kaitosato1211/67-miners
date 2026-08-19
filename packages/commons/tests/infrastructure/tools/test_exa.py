@@ -25,8 +25,12 @@ async def test_exa_search_maps_retrieval_controls_and_cost() -> None:
             },
         )
 
-    http_client = httpx.AsyncClient(base_url="https://api.exa.ai", transport=httpx.MockTransport(handler))
-    client = ExaClient(base_url="https://api.exa.ai", api_key="exa-key", client=http_client)
+    http_client = httpx.AsyncClient(
+        base_url="https://api.exa.ai", transport=httpx.MockTransport(handler)
+    )
+    client = ExaClient(
+        base_url="https://api.exa.ai", api_key="exa-key", client=http_client
+    )
     result = await client.search_web(
         SearchWebSearchRequest.model_validate(
             {
@@ -59,19 +63,31 @@ async def test_exa_fetch_uses_contents_without_generated_outputs() -> None:
         return httpx.Response(
             200,
             json={
-                "results": [{"url": "https://example.com", "title": "Example", "text": "body"}],
+                "results": [
+                    {"url": "https://example.com", "title": "Example", "text": "body"}
+                ],
                 "costDollars": {"total": 0.003},
             },
         )
 
-    http_client = httpx.AsyncClient(base_url="https://api.exa.ai", transport=httpx.MockTransport(handler))
-    client = ExaClient(base_url="https://api.exa.ai", api_key="exa-key", client=http_client)
+    http_client = httpx.AsyncClient(
+        base_url="https://api.exa.ai", transport=httpx.MockTransport(handler)
+    )
+    client = ExaClient(
+        base_url="https://api.exa.ai", api_key="exa-key", client=http_client
+    )
     result = await client.fetch_page(
         FetchPageRequest.model_validate(
-            {"provider": "exa", "url": "https://example.com", "provider_extra": {"max_age_hours": 2}}
+            {
+                "provider": "exa",
+                "url": "https://example.com",
+                "provider_extra": {"max_age_hours": 2},
+            }
         )
     )
 
-    assert payloads == [{"urls": ["https://example.com"], "text": True, "maxAgeHours": 2}]
+    assert payloads == [
+        {"urls": ["https://example.com"], "text": True, "maxAgeHours": 2}
+    ]
     assert result.response.data[0].content == "body"
     await http_client.aclose()

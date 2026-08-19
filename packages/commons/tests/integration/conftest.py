@@ -43,7 +43,9 @@ def _ensure_docker_available(docker_bin: str) -> None:
             text=True,
         )
     except Exception as exc:  # pragma: no cover - depends on host tooling
-        raise RuntimeError(f"Docker CLI is required for this test suite: {exc}") from exc
+        raise RuntimeError(
+            f"Docker CLI is required for this test suite: {exc}"
+        ) from exc
 
 
 def _ensure_image_present(docker_bin: str, image: str) -> None:
@@ -70,7 +72,9 @@ def _find_free_port() -> int:
 
 def _create_runner_visible_state_dir() -> Path:
     workspace_root = Path(os.getenv("HOST_WORKSPACE", str(_REPO_ROOT)))
-    return Path(tempfile.mkdtemp(prefix=".harnyx-commons-int-state-", dir=workspace_root))
+    return Path(
+        tempfile.mkdtemp(prefix=".harnyx-commons-int-state-", dir=workspace_root)
+    )
 
 
 @pytest.fixture
@@ -104,7 +108,9 @@ def sandbox_launcher() -> Callable[..., SandboxDeployment]:
         module_rel_path = Path(*agent_module.split(".")).with_suffix(".py")
         module_path = _PUBLIC_PACKAGES_ROOT / module_rel_path
         if not module_path.exists():
-            raise RuntimeError(f"agent module file not found: module={agent_module} path={module_path}")
+            raise RuntimeError(
+                f"agent module file not found: module={agent_module} path={module_path}"
+            )
         artifact = stage_agent_source(
             state_dir=state_dir,
             container_root=DEFAULT_STATE_DIR,
@@ -135,7 +141,9 @@ def sandbox_launcher() -> Callable[..., SandboxDeployment]:
             ulimits=CONTAINER_SECURITY.ulimits,
             extra_args=CONTAINER_SECURITY.extra_args,
             failure_diagnostics_dir=(
-                None if failure_diagnostics_dir is None else str(failure_diagnostics_dir)
+                None
+                if failure_diagnostics_dir is None
+                else str(failure_diagnostics_dir)
             ),
         )
         deployment = manager.start(options)

@@ -11,7 +11,12 @@ from uuid import UUID
 from harnyx_commons.application.ports.receipt_log import ReceiptLogPort
 from harnyx_commons.application.ports.session_registry import SessionRegistryPort
 from harnyx_commons.domain.judge_usage import JudgeUsageSummary
-from harnyx_commons.domain.miner_task import EvaluationDetails, EvaluationError, EvaluationTrace, MinerTaskErrorCode
+from harnyx_commons.domain.miner_task import (
+    EvaluationDetails,
+    EvaluationError,
+    EvaluationTrace,
+    MinerTaskErrorCode,
+)
 from harnyx_commons.domain.session import Session, SessionUsage
 from harnyx_commons.domain.tool_call import ToolCall
 from harnyx_commons.domain.tool_usage import (
@@ -22,7 +27,10 @@ from harnyx_commons.domain.tool_usage import (
 )
 from harnyx_commons.llm.pricing import price_search
 from harnyx_commons.llm.provider import LlmRetryExhaustedError
-from harnyx_commons.miner_task_scoring import EvaluationScoringResult, EvaluationScoringService
+from harnyx_commons.miner_task_scoring import (
+    EvaluationScoringResult,
+    EvaluationScoringService,
+)
 from harnyx_commons.tools.types import SearchToolName, is_search_tool
 from harnyx_validator.application.assigned_work import PhaseRecorder
 from harnyx_validator.application.dto.evaluation import (
@@ -117,7 +125,9 @@ def _evaluation_trace_with_timing(
     return trace.model_copy(update=timing)
 
 
-def _attach_evaluation_trace_to_exception(exc: Exception, trace: EvaluationTrace) -> None:
+def _attach_evaluation_trace_to_exception(
+    exc: Exception, trace: EvaluationTrace
+) -> None:
     exc.__dict__["evaluation_trace"] = trace
 
 
@@ -237,16 +247,24 @@ class UsageSummarizer:
         cost = (
             float(receipt.details.cost_usd)
             if receipt.details.cost_usd is not None
-            else float(price_search(tool, referenceable_results=len(receipt.details.results)))
+            else float(
+                price_search(tool, referenceable_results=len(receipt.details.results))
+            )
         )
         actual_cost = _actual_receipt_cost(receipt)
         if actual_cost is not None and actual_cost != cost:
-            raise ValueError(f"{receipt.tool} receipt cost_usd and actual_cost_usd must match")
+            raise ValueError(
+                f"{receipt.tool} receipt cost_usd and actual_cost_usd must match"
+            )
         return cost
 
 
 def _actual_receipt_cost(receipt: ToolCall) -> float | None:
-    return None if receipt.details.actual_cost_usd is None else float(receipt.details.actual_cost_usd)
+    return (
+        None
+        if receipt.details.actual_cost_usd is None
+        else float(receipt.details.actual_cost_usd)
+    )
 
 
 def _receipt_cost(receipt: ToolCall) -> float:
@@ -255,7 +273,9 @@ def _receipt_cost(receipt: ToolCall) -> float:
     cost = float(receipt.details.cost_usd)
     actual_cost = _actual_receipt_cost(receipt)
     if actual_cost is not None and actual_cost != cost:
-        raise ValueError(f"{receipt.tool} receipt cost_usd and actual_cost_usd must match")
+        raise ValueError(
+            f"{receipt.tool} receipt cost_usd and actual_cost_usd must match"
+        )
     return cost
 
 
@@ -283,7 +303,9 @@ def _actual_llm_total_cost(receipts: Sequence[ToolCall]) -> float | None:
     return total
 
 
-def _settled_llm_cost_by_provider_model(receipts: Sequence[ToolCall]) -> dict[tuple[str, str], float]:
+def _settled_llm_cost_by_provider_model(
+    receipts: Sequence[ToolCall],
+) -> dict[tuple[str, str], float]:
     totals: dict[tuple[str, str], float] = {}
     for receipt in receipts:
         if receipt.tool != "llm_chat":
@@ -383,7 +405,9 @@ class TaskRunOrchestrator:
             completed_at_factory=self._clock,
         )
         if result.result is None:
-            raise RuntimeError("successful task evaluation did not produce a run submission")
+            raise RuntimeError(
+                "successful task evaluation did not produce a run submission"
+            )
         self._receipts.clear_session(request.session_id)
         return TaskRunOutcome(
             run=result.result.run,
@@ -415,7 +439,9 @@ class TaskRunOrchestrator:
         )
         invocation_completed_at = self._clock()
         session = self._require_session(request.session_id)
-        usage, total_tool_usage = self._usage.summarize(session, invocation.tool_receipts)
+        usage, total_tool_usage = self._usage.summarize(
+            session, invocation.tool_receipts
+        )
         orchestration_ms = _monotonic_elapsed_ms(
             started_at=orchestration_started_at,
             completed_at=time.monotonic(),
@@ -457,7 +483,9 @@ class TaskRunOrchestrator:
     def _require_session(self, session_id: UUID) -> Session:
         session = self._sessions.get(session_id)
         if session is None:
-            raise LookupError(f"session {session_id} not found while summarizing miner task usage")
+            raise LookupError(
+                f"session {session_id} not found while summarizing miner task usage"
+            )
         return session
 
 
@@ -468,103 +496,39 @@ async def score_platform_execution(
     convert_scoring_error: bool = False,
     completed_at_factory: Callable[[], datetime] | None = None,
 ) -> PlatformOwnedTaskResult:
-        if execution.task is None:
-            raise ValueError("scoreable platform execution requires task payload")
+    if execution.task is None:
+        raise ValueError("scoreable platform execution requires task payload")
 
-        scoring_started_at = time.monotonic()
-        entrypoint_ms = execution.trace.entrypoint_invocation_ms if execution.trace is not None else 0.0
-        if entrypoint_ms is None:
-            entrypoint_ms = 0.0
-        try:
-            scoring_result = await scoring_service.score(
-                task=execution.task,
-                response=execution.response,
-            )
-        except Exception as exc:
-            scoring_ms = _monotonic_elapsed_ms(
-                started_at=scoring_started_at,
-                completed_at=time.monotonic(),
-            )
-            orchestration_ms = entrypoint_ms + scoring_ms
-            existing_trace = getattr(exc, "evaluation_trace", None)
-            trace = _evaluation_trace_with_timing(
-                existing_trace if isinstance(existing_trace, EvaluationTrace) else execution.trace,
-                entrypoint_invocation_ms=entrypoint_ms,
-                scoring_ms=scoring_ms,
-                orchestration_ms=orchestration_ms,
-            )
-            _attach_evaluation_trace_to_exception(exc, trace)
-            error_code = _scoring_error_code(exc)
-            _log_scoring_finished(
-                batch_id=execution.batch_id,
-                session_id=execution.validator_session_id,
-                artifact_id=execution.artifact_id,
-                task_id=execution.task_id,
-                uid=execution.uid,
-                invocation_ms=entrypoint_ms,
-                scoring_ms=scoring_ms,
-                orchestration_ms=orchestration_ms,
-                comparison_score=None,
-                total_score=None,
-                outcome="error",
-                error_code=error_code,
-            )
-            if not convert_scoring_error or not isinstance(exc, LlmRetryExhaustedError):
-                raise
-            return _platform_execution_result(
-                execution,
-                submission=_failed_platform_execution_submission(
-                    execution,
-                    error_code=MinerTaskErrorCode(error_code),
-                    error_message=str(exc) or type(exc).__name__,
-                    scoring_judge_usage=_scoring_judge_usage(exc),
-                    trace=trace,
-                ),
-                status=MinerTaskAttemptStatus.SUCCEEDED,
-                error_code=None,
-            )
-
-        if isinstance(scoring_result, EvaluationScoringResult):
-            score_breakdown = scoring_result.score_breakdown
-            scoring_judge_usage = scoring_result.judge_usage
-            evaluation_trace = scoring_result.evaluation_trace
-        else:
-            score_breakdown = scoring_result
-            scoring_judge_usage = None
-            evaluation_trace = None
+    scoring_started_at = time.monotonic()
+    entrypoint_ms = (
+        execution.trace.entrypoint_invocation_ms if execution.trace is not None else 0.0
+    )
+    if entrypoint_ms is None:
+        entrypoint_ms = 0.0
+    try:
+        scoring_result = await scoring_service.score(
+            task=execution.task,
+            response=execution.response,
+        )
+    except Exception as exc:
         scoring_ms = _monotonic_elapsed_ms(
             started_at=scoring_started_at,
             completed_at=time.monotonic(),
         )
         orchestration_ms = entrypoint_ms + scoring_ms
-        details = EvaluationDetails(
-            score_breakdown=score_breakdown,
-            scoring_judge_usage=scoring_judge_usage,
-            total_tool_usage=execution.total_tool_usage,
-            elapsed_ms=_elapsed_ms(
-                issued_at=execution.session.issued_at,
-                completed_at=execution.execution_completed_at,
+        existing_trace = getattr(exc, "evaluation_trace", None)
+        trace = _evaluation_trace_with_timing(
+            (
+                existing_trace
+                if isinstance(existing_trace, EvaluationTrace)
+                else execution.trace
             ),
-        )
-        completed_at = (
-            completed_at_factory() if completed_at_factory is not None else execution.execution_completed_at
-        )
-        run = MinerTaskRun(
-            session_id=execution.validator_session_id,
-            uid=execution.uid,
-            artifact_id=execution.artifact_id,
-            task_id=execution.task_id,
-            response=execution.response,
-            details=details,
-            completed_at=completed_at,
-        )
-        final_trace = _evaluation_trace_with_timing(
-            evaluation_trace or execution.trace,
             entrypoint_invocation_ms=entrypoint_ms,
             scoring_ms=scoring_ms,
             orchestration_ms=orchestration_ms,
         )
-        run = run.model_copy(update={"details": run.details.model_copy(update={"trace": final_trace})})
+        _attach_evaluation_trace_to_exception(exc, trace)
+        error_code = _scoring_error_code(exc)
         _log_scoring_finished(
             batch_id=execution.batch_id,
             session_id=execution.validator_session_id,
@@ -574,25 +538,99 @@ async def score_platform_execution(
             invocation_ms=entrypoint_ms,
             scoring_ms=scoring_ms,
             orchestration_ms=orchestration_ms,
-            comparison_score=score_breakdown.comparison_score,
-            total_score=score_breakdown.total_score,
-            outcome="ok",
-            error_code=None,
+            comparison_score=None,
+            total_score=None,
+            outcome="error",
+            error_code=error_code,
         )
-        submission = MinerTaskRunSubmission(
-            batch_id=execution.batch_id,
-            run=run,
-            score=score_breakdown.total_score,
-            execution_log=execution.execution_log,
-            usage=execution.usage,
-            session=execution.session,
-        )
+        if not convert_scoring_error or not isinstance(exc, LlmRetryExhaustedError):
+            raise
         return _platform_execution_result(
             execution,
-            submission=submission,
+            submission=_failed_platform_execution_submission(
+                execution,
+                error_code=MinerTaskErrorCode(error_code),
+                error_message=str(exc) or type(exc).__name__,
+                scoring_judge_usage=_scoring_judge_usage(exc),
+                trace=trace,
+            ),
             status=MinerTaskAttemptStatus.SUCCEEDED,
             error_code=None,
         )
+
+    if isinstance(scoring_result, EvaluationScoringResult):
+        score_breakdown = scoring_result.score_breakdown
+        scoring_judge_usage = scoring_result.judge_usage
+        evaluation_trace = scoring_result.evaluation_trace
+    else:
+        score_breakdown = scoring_result
+        scoring_judge_usage = None
+        evaluation_trace = None
+    scoring_ms = _monotonic_elapsed_ms(
+        started_at=scoring_started_at,
+        completed_at=time.monotonic(),
+    )
+    orchestration_ms = entrypoint_ms + scoring_ms
+    details = EvaluationDetails(
+        score_breakdown=score_breakdown,
+        scoring_judge_usage=scoring_judge_usage,
+        total_tool_usage=execution.total_tool_usage,
+        elapsed_ms=_elapsed_ms(
+            issued_at=execution.session.issued_at,
+            completed_at=execution.execution_completed_at,
+        ),
+    )
+    completed_at = (
+        completed_at_factory()
+        if completed_at_factory is not None
+        else execution.execution_completed_at
+    )
+    run = MinerTaskRun(
+        session_id=execution.validator_session_id,
+        uid=execution.uid,
+        artifact_id=execution.artifact_id,
+        task_id=execution.task_id,
+        response=execution.response,
+        details=details,
+        completed_at=completed_at,
+    )
+    final_trace = _evaluation_trace_with_timing(
+        evaluation_trace or execution.trace,
+        entrypoint_invocation_ms=entrypoint_ms,
+        scoring_ms=scoring_ms,
+        orchestration_ms=orchestration_ms,
+    )
+    run = run.model_copy(
+        update={"details": run.details.model_copy(update={"trace": final_trace})}
+    )
+    _log_scoring_finished(
+        batch_id=execution.batch_id,
+        session_id=execution.validator_session_id,
+        artifact_id=execution.artifact_id,
+        task_id=execution.task_id,
+        uid=execution.uid,
+        invocation_ms=entrypoint_ms,
+        scoring_ms=scoring_ms,
+        orchestration_ms=orchestration_ms,
+        comparison_score=score_breakdown.comparison_score,
+        total_score=score_breakdown.total_score,
+        outcome="ok",
+        error_code=None,
+    )
+    submission = MinerTaskRunSubmission(
+        batch_id=execution.batch_id,
+        run=run,
+        score=score_breakdown.total_score,
+        execution_log=execution.execution_log,
+        usage=execution.usage,
+        session=execution.session,
+    )
+    return _platform_execution_result(
+        execution,
+        submission=submission,
+        status=MinerTaskAttemptStatus.SUCCEEDED,
+        error_code=None,
+    )
 
 
 def _platform_execution_result(

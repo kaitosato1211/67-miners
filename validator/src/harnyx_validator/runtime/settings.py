@@ -33,7 +33,9 @@ class _ValidatorSandboxEnv(BaseSettings):
         default=_DEFAULT_VALIDATOR_SANDBOX_IMAGE,
         alias="SANDBOX_IMAGE",
     )
-    sandbox_network: str | None = Field(default="harnyx-sandbox-net", alias="SANDBOX_NETWORK")
+    sandbox_network: str | None = Field(
+        default="harnyx-sandbox-net", alias="SANDBOX_NETWORK"
+    )
     sandbox_pull_policy: SandboxPullPolicy = Field(
         default="always",
         alias="SANDBOX_PULL_POLICY",

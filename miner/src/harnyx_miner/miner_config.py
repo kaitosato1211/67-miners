@@ -12,7 +12,16 @@ from harnyx_miner.submit import _authorization_header, _platform_base_url
 
 _CONFIG_PATH = "/v1/miner-config"
 _SUPPORTED_PROVIDERS = frozenset(
-    {"chutes", "openrouter", "ai_gateway", "desearch", "parallel", "firecrawl", "exa", "tavily"}
+    {
+        "chutes",
+        "openrouter",
+        "ai_gateway",
+        "desearch",
+        "parallel",
+        "firecrawl",
+        "exa",
+        "tavily",
+    }
 )
 _MIN_TASK_RETRY_COUNT = 0
 _MAX_TASK_RETRY_COUNT = 3
@@ -70,7 +79,10 @@ def put_task_retry_count(
     wallet_name: str,
     hotkey_name: str,
 ) -> dict[str, object]:
-    if task_retry_count < _MIN_TASK_RETRY_COUNT or task_retry_count > _MAX_TASK_RETRY_COUNT:
+    if (
+        task_retry_count < _MIN_TASK_RETRY_COUNT
+        or task_retry_count > _MAX_TASK_RETRY_COUNT
+    ):
         raise ValueError("task retry count must be between 0 and 3")
     return _request_json(
         method="PUT",
@@ -87,7 +99,11 @@ def _request_json(
     wallet_name: str,
     hotkey_name: str,
 ) -> dict[str, object]:
-    body = b"" if payload is None else json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    body = (
+        b""
+        if payload is None
+        else json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    )
     wallet = bt.Wallet(name=wallet_name, hotkey=hotkey_name)
     headers = {
         "Authorization": _authorization_header(wallet, method, _CONFIG_PATH, body),
@@ -108,7 +124,9 @@ def _normalize_provider(provider: str) -> str:
     normalized = provider.strip().lower()
     if normalized not in _SUPPORTED_PROVIDERS:
         supported = ", ".join(sorted(_SUPPORTED_PROVIDERS))
-        raise ValueError(f"unsupported provider '{provider}'; expected one of: {supported}")
+        raise ValueError(
+            f"unsupported provider '{provider}'; expected one of: {supported}"
+        )
     return normalized
 
 
@@ -133,14 +151,28 @@ def _safe_error_code(response: httpx.Response) -> str | None:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Manage miner provider credentials (Bittensor-signed).")
-    parser.add_argument("--wallet-name", required=True, help="Bittensor wallet name (directory under ~/.bittensor).")
-    parser.add_argument("--hotkey-name", required=True, help="Bittensor hotkey name (file under wallet hotkeys).")
-    parser.add_argument("--get", action="store_true", help="Read redacted miner config.")
+    parser = argparse.ArgumentParser(
+        description="Manage miner provider credentials (Bittensor-signed)."
+    )
+    parser.add_argument(
+        "--wallet-name",
+        required=True,
+        help="Bittensor wallet name (directory under ~/.bittensor).",
+    )
+    parser.add_argument(
+        "--hotkey-name",
+        required=True,
+        help="Bittensor hotkey name (file under wallet hotkeys).",
+    )
+    parser.add_argument(
+        "--get", action="store_true", help="Read redacted miner config."
+    )
     parser.add_argument("--provider", help="Provider to configure.")
     parser.add_argument("--api-key", help="Provider API key to upload.")
     parser.add_argument("--delete-provider", help="Provider credential to delete.")
-    parser.add_argument("--task-retry-count", type=int, help="Miner task retry count, 0 through 3.")
+    parser.add_argument(
+        "--task-retry-count", type=int, help="Miner task retry count, 0 through 3."
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     try:

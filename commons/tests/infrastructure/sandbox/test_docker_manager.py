@@ -87,7 +87,9 @@ def test_http_sandbox_client_default_timeout_exceeds_entrypoint_budget(
     captured: dict[str, object] = {}
 
     class FakeAsyncClient:
-        def __init__(self, *, base_url: str, timeout: float, limits: httpx.Limits) -> None:
+        def __init__(
+            self, *, base_url: str, timeout: float, limits: httpx.Limits
+        ) -> None:
             captured["base_url"] = base_url
             captured["timeout"] = timeout
             captured["limits"] = limits
@@ -181,7 +183,9 @@ def test_docker_sandbox_manager_can_skip_container_log_stream(
         docker_binary="docker",
         host="127.0.0.1",
         command_runner=runner,
-        client_factory=lambda base_url, host_container_url: DummyClient(base_url, host_container_url),
+        client_factory=lambda base_url, host_container_url: DummyClient(
+            base_url, host_container_url
+        ),
         log_consumer=lambda _line: None,
     )
     monkeypatch.setattr(
@@ -224,11 +228,15 @@ def test_docker_sandbox_manager_confirms_disposition_after_failed_removal(
         if args == ["docker", "rm", "-f", "container123"]:
             if removal_failure == "timeout":
                 raise subprocess.TimeoutExpired(cmd=args, timeout=120)
-            raise subprocess.CalledProcessError(returncode=1, cmd=args, stderr="No such container")
+            raise subprocess.CalledProcessError(
+                returncode=1, cmd=args, stderr="No such container"
+            )
         if args == ["docker", "ps", "-aq", "--filter", "id=container123"]:
             if existence == "uncertain":
                 raise subprocess.TimeoutExpired(cmd=args, timeout=120)
-            return subprocess_completed(args, "container123\n" if existence == "present" else "")
+            return subprocess_completed(
+                args, "container123\n" if existence == "present" else ""
+            )
         if args == ["docker", "ps", "-aq", "--filter", "name=^/container123$"]:
             return subprocess_completed(args, "")
         raise AssertionError(f"unexpected command: {args}")
@@ -272,7 +280,9 @@ def test_pull_policy_always_retries_docker_pull_before_local_run(
         docker_binary="docker",
         host="127.0.0.1",
         command_runner=command_runner,
-        client_factory=lambda base_url, host_container_url: DummyClient(base_url, host_container_url),
+        client_factory=lambda base_url, host_container_url: DummyClient(
+            base_url, host_container_url
+        ),
     )
     options = SandboxOptions(
         image="harnyx/sandbox:demo",
@@ -337,7 +347,9 @@ def test_docker_sandbox_manager_adds_labels_to_docker_run() -> None:
     manager.stop(deployment)
 
 
-def test_docker_sandbox_manager_requires_every_label_and_removes_legacy_prefix_matches() -> None:
+def test_docker_sandbox_manager_requires_every_label_and_removes_legacy_prefix_matches() -> (
+    None
+):
     commands: list[list[str]] = []
     removed = False
 
@@ -347,14 +359,32 @@ def test_docker_sandbox_manager_requires_every_label_and_removes_legacy_prefix_m
         assert kwargs["capture_output"] is True
         assert kwargs["text"] is True
         assert kwargs["check"] is True
-        if args == ["docker", "ps", "-aq", "--filter", "label=harnyx.sandbox.managed=true"]:
-            return subprocess_completed(args, "other-managed\n" if removed else "new-labeled\nother-managed\n")
-        if args == ["docker", "ps", "-aq", "--filter", "label=harnyx.sandbox.owner=validator"]:
+        if args == [
+            "docker",
+            "ps",
+            "-aq",
+            "--filter",
+            "label=harnyx.sandbox.managed=true",
+        ]:
+            return subprocess_completed(
+                args, "other-managed\n" if removed else "new-labeled\nother-managed\n"
+            )
+        if args == [
+            "docker",
+            "ps",
+            "-aq",
+            "--filter",
+            "label=harnyx.sandbox.owner=validator",
+        ]:
             return subprocess_completed(args, "" if removed else "new-labeled\n")
         if args == ["docker", "ps", "-aq", "--filter", "name=^/harnyx-sandbox-"]:
             return subprocess_completed(
                 args,
-                "" if removed else "old-created\nold-dead\nold-exited\nold-running\nnew-labeled\n",
+                (
+                    ""
+                    if removed
+                    else "old-created\nold-dead\nold-exited\nold-running\nnew-labeled\n"
+                ),
             )
         if args == [
             "docker",
@@ -370,7 +400,9 @@ def test_docker_sandbox_manager_requires_every_label_and_removes_legacy_prefix_m
             return subprocess_completed(args, "")
         raise AssertionError(f"unexpected command: {args}")
 
-    manager = DockerSandboxManager(docker_binary="docker", command_runner=command_runner)
+    manager = DockerSandboxManager(
+        docker_binary="docker", command_runner=command_runner
+    )
 
     removal_confirmed = manager.cleanup_stale_sandbox_containers(
         labels={"harnyx.sandbox.managed": "true", "harnyx.sandbox.owner": "validator"},
@@ -382,7 +414,16 @@ def test_docker_sandbox_manager_requires_every_label_and_removes_legacy_prefix_m
         ["docker", "ps", "-aq", "--filter", "label=harnyx.sandbox.managed=true"],
         ["docker", "ps", "-aq", "--filter", "label=harnyx.sandbox.owner=validator"],
         ["docker", "ps", "-aq", "--filter", "name=^/harnyx-sandbox-"],
-        ["docker", "rm", "-f", "new-labeled", "old-created", "old-dead", "old-exited", "old-running"],
+        [
+            "docker",
+            "rm",
+            "-f",
+            "new-labeled",
+            "old-created",
+            "old-dead",
+            "old-exited",
+            "old-running",
+        ],
         ["docker", "ps", "-aq", "--filter", "label=harnyx.sandbox.managed=true"],
         ["docker", "ps", "-aq", "--filter", "label=harnyx.sandbox.owner=validator"],
         ["docker", "ps", "-aq", "--filter", "name=^/harnyx-sandbox-"],
@@ -408,11 +449,15 @@ def test_docker_run_timeout_always_retains_uncertain_named_deployment(
         if args[:2] == ["docker", "run"]:
             raise subprocess.TimeoutExpired(cmd=args, timeout=120)
         if args == ["docker", "ps", "-aq", "--filter", "name=^/sandbox-demo$"]:
-            return subprocess_completed(args, "container123\n" if disposition == "present" else "")
+            return subprocess_completed(
+                args, "container123\n" if disposition == "present" else ""
+            )
         if args == ["docker", "rm", "-f", "sandbox-demo"]:
             if removal_confirmed:
                 return subprocess_completed(args, "")
-            raise subprocess.CalledProcessError(returncode=1, cmd=args, stderr="docker unavailable")
+            raise subprocess.CalledProcessError(
+                returncode=1, cmd=args, stderr="docker unavailable"
+            )
         if args == ["docker", "ps", "-aq", "--filter", "id=sandbox-demo"]:
             if disposition == "uncertain":
                 raise subprocess.TimeoutExpired(cmd=args, timeout=120)
@@ -421,7 +466,9 @@ def test_docker_run_timeout_always_retains_uncertain_named_deployment(
             return subprocess_completed(args, "")
         raise AssertionError(f"unexpected command: {args}")
 
-    manager = DockerSandboxManager(docker_binary="docker", command_runner=command_runner)
+    manager = DockerSandboxManager(
+        docker_binary="docker", command_runner=command_runner
+    )
     monkeypatch.setattr(manager, "_write_failure_diagnostics", lambda **_kwargs: None)
     options = SandboxOptions(
         image="harnyx/sandbox:demo",
@@ -437,13 +484,19 @@ def test_docker_run_timeout_always_retains_uncertain_named_deployment(
     assert raised.value.unremoved_deployment.identifier == "sandbox-demo"
 
 
-def test_docker_sandbox_manager_logs_and_continues_when_stale_list_fails(caplog: pytest.LogCaptureFixture) -> None:
+def test_docker_sandbox_manager_logs_and_continues_when_stale_list_fails(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.WARNING, logger="harnyx_commons.sandbox.docker")
 
     def command_runner(args: list[str], **kwargs: object):
-        raise subprocess.CalledProcessError(returncode=1, cmd=args, stderr="docker unavailable")
+        raise subprocess.CalledProcessError(
+            returncode=1, cmd=args, stderr="docker unavailable"
+        )
 
-    manager = DockerSandboxManager(docker_binary="docker", command_runner=command_runner)
+    manager = DockerSandboxManager(
+        docker_binary="docker", command_runner=command_runner
+    )
 
     removal_confirmed = manager.cleanup_stale_sandbox_containers(
         labels={"harnyx.sandbox.managed": "true", "harnyx.sandbox.owner": "validator"},
@@ -454,15 +507,21 @@ def test_docker_sandbox_manager_logs_and_continues_when_stale_list_fails(caplog:
     assert "failed to remove stale sandbox containers" in caplog.text
 
 
-def test_docker_sandbox_manager_logs_and_continues_when_stale_cleanup_fails(caplog: pytest.LogCaptureFixture) -> None:
+def test_docker_sandbox_manager_logs_and_continues_when_stale_cleanup_fails(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.WARNING, logger="harnyx_commons.sandbox.docker")
 
     def command_runner(args: list[str], **kwargs: object):
         if args[1:3] == ["ps", "-aq"]:
             return subprocess_completed(args, "stale-container\n")
-        raise subprocess.CalledProcessError(returncode=1, cmd=args, stderr="remove failed")
+        raise subprocess.CalledProcessError(
+            returncode=1, cmd=args, stderr="remove failed"
+        )
 
-    manager = DockerSandboxManager(docker_binary="docker", command_runner=command_runner)
+    manager = DockerSandboxManager(
+        docker_binary="docker", command_runner=command_runner
+    )
 
     removal_confirmed = manager.cleanup_stale_sandbox_containers(
         labels={"harnyx.sandbox.managed": "true", "harnyx.sandbox.owner": "validator"},
@@ -603,7 +662,11 @@ class SequencedInspectRunner:
 
     @property
     def inspect_commands(self) -> list[tuple[list[str], dict[str, object]]]:
-        return [(args, kwargs) for args, kwargs in self.commands if args[:2] == ["docker", "inspect"]]
+        return [
+            (args, kwargs)
+            for args, kwargs in self.commands
+            if args[:2] == ["docker", "inspect"]
+        ]
 
 
 def _internal_network_options() -> SandboxOptions:
@@ -653,7 +716,9 @@ def test_docker_manager_waits_when_configured_network_is_not_attached_yet(
 
     manager = DockerSandboxManager(
         command_runner=runner,
-        client_factory=lambda base_url, host_container_url: DummyClient(base_url, host_container_url),
+        client_factory=lambda base_url, host_container_url: DummyClient(
+            base_url, host_container_url
+        ),
     )
 
     deployment = manager.start(_internal_network_options())
@@ -666,13 +731,21 @@ def test_docker_manager_network_readiness_uses_container_id_and_classifies_early
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(docker_module, "_CONTAINER_IP_READY_TIMEOUT_SECONDS", 0.001)
-    monkeypatch.setattr(docker_module, "_CONTAINER_IP_READY_POLL_INTERVAL_SECONDS", 0.001)
+    monkeypatch.setattr(
+        docker_module, "_CONTAINER_IP_READY_POLL_INTERVAL_SECONDS", 0.001
+    )
     runner = SequencedInspectRunner(
-        [inspect_container_stdout(status="exited", exit_code=137, error="startup failed")]
+        [
+            inspect_container_stdout(
+                status="exited", exit_code=137, error="startup failed"
+            )
+        ]
     )
     manager = DockerSandboxManager(
         command_runner=runner,
-        client_factory=lambda base_url, host_container_url: DummyClient(base_url, host_container_url),
+        client_factory=lambda base_url, host_container_url: DummyClient(
+            base_url, host_container_url
+        ),
     )
 
     with pytest.raises(RuntimeError, match="sandbox container exited before readiness"):
@@ -682,7 +755,9 @@ def test_docker_manager_network_readiness_uses_container_id_and_classifies_early
     assert inspect_commands == [
         ["docker", "inspect", "--format", "{{json .}}", "container123"],
     ]
-    assert any(args == ["docker", "rm", "-f", "container123"] for args, _ in runner.commands)
+    assert any(
+        args == ["docker", "rm", "-f", "container123"] for args, _ in runner.commands
+    )
 
 
 def test_docker_manager_network_readiness_inspect_command_failure_is_not_retryable(
@@ -697,17 +772,23 @@ def test_docker_manager_network_readiness_inspect_command_failure_is_not_retryab
         if args[:2] == ["docker", "run"]:
             return subprocess_completed(args, "container123\n")
         if args[:2] == ["docker", "inspect"]:
-            raise subprocess.CalledProcessError(returncode=1, cmd=args, stderr="No such object")
+            raise subprocess.CalledProcessError(
+                returncode=1, cmd=args, stderr="No such object"
+            )
         if args[:2] in (["docker", "stop"], ["docker", "rm"]):
             return subprocess_completed(args, "")
         raise AssertionError(f"unexpected command: {args}")
 
     manager = DockerSandboxManager(
         command_runner=command_runner,
-        client_factory=lambda base_url, host_container_url: DummyClient(base_url, host_container_url),
+        client_factory=lambda base_url, host_container_url: DummyClient(
+            base_url, host_container_url
+        ),
     )
 
-    with pytest.raises(RuntimeError, match="docker inspect failed while resolving sandbox network"):
+    with pytest.raises(
+        RuntimeError, match="docker inspect failed while resolving sandbox network"
+    ):
         manager.start(_internal_network_options())
 
     inspect_commands = [args for args in commands if args[:2] == ["docker", "inspect"]]
@@ -731,12 +812,16 @@ def test_docker_manager_bounds_each_container_ip_inspect_poll(
             inspect_timeouts.append(float(kwargs["timeout"]))
             if len(inspect_timeouts) == 1:
                 raise subprocess.TimeoutExpired(cmd=args, timeout=kwargs["timeout"])
-            return subprocess_completed(args, inspect_container_stdout(ip_address="172.19.0.2"))
+            return subprocess_completed(
+                args, inspect_container_stdout(ip_address="172.19.0.2")
+            )
         raise AssertionError(f"unexpected command: {args}")
 
     manager = DockerSandboxManager(
         command_runner=command_runner,
-        client_factory=lambda base_url, host_container_url: DummyClient(base_url, host_container_url),
+        client_factory=lambda base_url, host_container_url: DummyClient(
+            base_url, host_container_url
+        ),
         command_timeout_seconds=120.0,
     )
 
@@ -752,18 +837,29 @@ def test_docker_manager_cleans_up_when_container_ip_never_becomes_valid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(docker_module, "_CONTAINER_IP_READY_TIMEOUT_SECONDS", 0.001)
-    monkeypatch.setattr(docker_module, "_CONTAINER_IP_READY_POLL_INTERVAL_SECONDS", 0.001)
+    monkeypatch.setattr(
+        docker_module, "_CONTAINER_IP_READY_POLL_INTERVAL_SECONDS", 0.001
+    )
     runner = SequencedInspectRunner([inspect_container_stdout(ip_address="")] * 100)
     manager = DockerSandboxManager(
         command_runner=runner,
-        client_factory=lambda base_url, host_container_url: DummyClient(base_url, host_container_url),
+        client_factory=lambda base_url, host_container_url: DummyClient(
+            base_url, host_container_url
+        ),
     )
 
-    with pytest.raises(RuntimeError, match="invalid IP address for network: harnyx-net"):
+    with pytest.raises(
+        RuntimeError, match="invalid IP address for network: harnyx-net"
+    ):
         manager.start(_internal_network_options())
 
-    assert any(args == ["docker", "stop", "-t", "5", "container123"] for args, _ in runner.commands)
-    assert any(args == ["docker", "rm", "-f", "container123"] for args, _ in runner.commands)
+    assert any(
+        args == ["docker", "stop", "-t", "5", "container123"]
+        for args, _ in runner.commands
+    )
+    assert any(
+        args == ["docker", "rm", "-f", "container123"] for args, _ in runner.commands
+    )
 
 
 def test_docker_manager_mounts_volumes() -> None:
@@ -940,7 +1036,9 @@ def test_resolve_sandbox_host_container_url_falls_back_to_mountinfo_container_id
                 stderr=f"error: no such object: {stale_hostname}",
             )
         if args[-1] == live_container_id:
-            return subprocess_completed(args, '{"harnyx-net":{"IPAddress":"172.19.0.2"}}\n')
+            return subprocess_completed(
+                args, '{"harnyx-net":{"IPAddress":"172.19.0.2"}}\n'
+            )
         raise AssertionError(f"unexpected docker target: {args[-1]}")
 
     monkeypatch.setenv("HOSTNAME", stale_hostname)

@@ -7,7 +7,10 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from harnyx_miner_sdk.json_types import JsonObject, JsonValue
-from harnyx_miner_sdk.structured_output import validate_output_schema, validate_output_size
+from harnyx_miner_sdk.structured_output import (
+    validate_output_schema,
+    validate_output_size,
+)
 
 _MINER_SDK_STRICT_CONFIG = ConfigDict(
     extra="forbid",
@@ -25,7 +28,9 @@ class Query(BaseModel):
     model_config = _MINER_SDK_STRICT_CONFIG
 
     text: str = Field(min_length=1)
-    output_schema: JsonObject | None = Field(default=None, exclude_if=lambda value: value is None)
+    output_schema: JsonObject | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @field_validator("text")
     @classmethod
@@ -72,8 +77,12 @@ class Response(BaseModel):
         max_length=_MAX_RESPONSE_CHARS,
         exclude_if=lambda value: value is None,
     )
-    output: JsonValue | None = Field(default=None, exclude_if=lambda value: value is None)
-    citations: list[CitationRef] | None = Field(default=None, max_length=_MAX_RESPONSE_CITATIONS)
+    output: JsonValue | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    citations: list[CitationRef] | None = Field(
+        default=None, max_length=_MAX_RESPONSE_CITATIONS
+    )
 
     @field_validator("text")
     @classmethod
@@ -96,9 +105,14 @@ class Response(BaseModel):
     def validate_total_evidence_segments(self) -> Self:
         if (self.text is None) == (self.output is None):
             raise ValueError("response must include exactly one non-null answer field")
-        total_segments = sum(len(citation.slices) if citation.slices else 1 for citation in self.citations or ())
+        total_segments = sum(
+            len(citation.slices) if citation.slices else 1
+            for citation in self.citations or ()
+        )
         if total_segments > _MAX_RESPONSE_EVIDENCE_SEGMENTS:
-            raise ValueError("response citations exceed 400 materialized evidence segments")
+            raise ValueError(
+                "response citations exceed 400 materialized evidence segments"
+            )
         return self
 
 

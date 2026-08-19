@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from harnyx_miner_sdk.tools.search_models import FetchPageRequest, SearchWebSearchRequest
+from harnyx_miner_sdk.tools.search_models import (
+    FetchPageRequest,
+    SearchWebSearchRequest,
+)
 from harnyx_miner_sdk.tools.search_provider_extra import (
     ExaSearchExtra,
     FirecrawlFetchExtra,
@@ -54,7 +57,11 @@ def test_tavily_fetch_extra_requires_query_for_chunks() -> None:
         ("exa", {"output_schema": {"type": "string"}}, "[Ee]xtra inputs"),
         ("tavily", {"include_answer": True}, "[Ee]xtra inputs"),
         ("tavily", {"search_depth": "fast", "safe_search": True}, "cannot be combined"),
-        ("tavily", {"search_depth": "ultra-fast", "safe_search": True}, "cannot be combined"),
+        (
+            "tavily",
+            {"search_depth": "ultra-fast", "safe_search": True},
+            "cannot be combined",
+        ),
         ("firecrawl", {"scrape_options": {"formats": ["summary"]}}, "[Ee]xtra inputs"),
         ("parallel", {"session_id": "cross-call-state"}, "[Ee]xtra inputs"),
     ],
@@ -118,12 +125,17 @@ def test_tavily_ultra_fast_rejects_chunk_controls_it_cannot_apply() -> None:
             {
                 "provider": "tavily",
                 "search_queries": ["harnyx"],
-                "provider_extra": {"search_depth": "ultra-fast", "chunks_per_source": 2},
+                "provider_extra": {
+                    "search_depth": "ultra-fast",
+                    "chunks_per_source": 2,
+                },
             }
         )
 
 
-@pytest.mark.parametrize("time_range", ("day", "week", "month", "year", "d", "w", "m", "y"))
+@pytest.mark.parametrize(
+    "time_range", ("day", "week", "month", "year", "d", "w", "m", "y")
+)
 def test_tavily_accepts_documented_time_ranges(time_range: str) -> None:
     request = SearchWebSearchRequest.model_validate(
         {
@@ -207,7 +219,9 @@ def test_firecrawl_fetch_preserves_provider_formats(formats: list[str]) -> None:
 
 
 @pytest.mark.parametrize("formats", [[], ["html"], ["markdown", "html"]])
-def test_firecrawl_fetch_rejects_empty_or_unsupported_formats(formats: list[str]) -> None:
+def test_firecrawl_fetch_rejects_empty_or_unsupported_formats(
+    formats: list[str],
+) -> None:
     with pytest.raises(ValidationError):
         FetchPageRequest.model_validate(
             {

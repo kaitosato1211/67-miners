@@ -6,9 +6,18 @@ from uuid import uuid4
 
 import pytest
 
-from harnyx_commons.domain.tool_call import ToolCall, ToolCallDetails, ToolCallOutcome, ToolResultPolicy
+from harnyx_commons.domain.tool_call import (
+    ToolCall,
+    ToolCallDetails,
+    ToolCallOutcome,
+    ToolResultPolicy,
+)
 from harnyx_commons.errors import ConcurrencyLimitError
-from harnyx_commons.tools.dto import ToolBudgetSnapshot, ToolInvocationRequest, ToolInvocationResult
+from harnyx_commons.tools.dto import (
+    ToolBudgetSnapshot,
+    ToolInvocationRequest,
+    ToolInvocationResult,
+)
 from harnyx_commons.tools.executor import execute_tool_with_concurrency_permit
 from harnyx_commons.tools.token_semaphore import (
     DEFAULT_TOOL_CONCURRENCY_LIMITS,
@@ -38,8 +47,14 @@ class FailingExecutor:
         raise RuntimeError("expected failure")
 
 
-def _invocation(token: str, tool: ToolName = "search_web", *, model: str = DEFAULT_LLM_MODEL) -> ToolInvocationRequest:
-    kwargs = {"model": model, "messages": [{"role": "user", "content": "demo"}]} if tool == "llm_chat" else {}
+def _invocation(
+    token: str, tool: ToolName = "search_web", *, model: str = DEFAULT_LLM_MODEL
+) -> ToolInvocationRequest:
+    kwargs = (
+        {"model": model, "messages": [{"role": "user", "content": "demo"}]}
+        if tool == "llm_chat"
+        else {}
+    )
     return ToolInvocationRequest(
         session_id=uuid4(),
         token=token,
@@ -49,9 +64,20 @@ def _invocation(token: str, tool: ToolName = "search_web", *, model: str = DEFAU
     )
 
 
-def _mixed_invocations(count: int, *, token: str = TEST_TOKEN) -> list[ToolInvocationRequest]:
-    tools: tuple[ToolName, ...] = ("search_web", "fetch_page", "tooling_info", "test_tool", "llm_chat")
-    return [_invocation(token, tools[index % len(tools)], model=f"model-{index}") for index in range(count)]
+def _mixed_invocations(
+    count: int, *, token: str = TEST_TOKEN
+) -> list[ToolInvocationRequest]:
+    tools: tuple[ToolName, ...] = (
+        "search_web",
+        "fetch_page",
+        "tooling_info",
+        "test_tool",
+        "llm_chat",
+    )
+    return [
+        _invocation(token, tools[index % len(tools)], model=f"model-{index}")
+        for index in range(count)
+    ]
 
 
 def _result(session_id, tool: ToolName = "search_web") -> ToolInvocationResult:
@@ -80,14 +106,18 @@ def _result(session_id, tool: ToolName = "search_web") -> ToolInvocationResult:
     )
 
 
-async def test_execute_tool_with_concurrency_permit_waits_for_released_token_permit() -> None:
+async def test_execute_tool_with_concurrency_permit_waits_for_released_token_permit() -> (
+    None
+):
     invocation = _invocation(TEST_TOKEN, "llm_chat")
     expected = _result(invocation.session_id, invocation.tool)
     executor = RecordingExecutor(expected)
     limiter = ToolConcurrencyLimiter(ToolConcurrencyLimits(max_parallel_calls=1))
 
     limiter.acquire(invocation)
-    waiter = asyncio.create_task(execute_tool_with_concurrency_permit(executor, limiter, invocation))
+    waiter = asyncio.create_task(
+        execute_tool_with_concurrency_permit(executor, limiter, invocation)
+    )
     await asyncio.sleep(0.05)
 
     assert not waiter.done()
@@ -101,12 +131,16 @@ async def test_execute_tool_with_concurrency_permit_waits_for_released_token_per
     assert limiter.in_flight(invocation) == 0
 
 
-async def test_execute_tool_with_concurrency_permit_releases_token_permit_after_executor_failure() -> None:
+async def test_execute_tool_with_concurrency_permit_releases_token_permit_after_executor_failure() -> (
+    None
+):
     invocation = _invocation(TEST_TOKEN, "llm_chat")
     limiter = ToolConcurrencyLimiter(ToolConcurrencyLimits(max_parallel_calls=2))
 
     with pytest.raises(RuntimeError, match="expected failure"):
-        await execute_tool_with_concurrency_permit(FailingExecutor(), limiter, invocation)
+        await execute_tool_with_concurrency_permit(
+            FailingExecutor(), limiter, invocation
+        )
 
     assert limiter.in_flight(invocation) == 0
 
@@ -121,7 +155,9 @@ async def test_all_tool_calls_share_one_token_cap() -> None:
 
     limiter.acquire(llm_invocation)
     limiter.acquire(search_invocation)
-    waiter = asyncio.create_task(execute_tool_with_concurrency_permit(executor, limiter, waiter_invocation))
+    waiter = asyncio.create_task(
+        execute_tool_with_concurrency_permit(executor, limiter, waiter_invocation)
+    )
     await asyncio.sleep(0.05)
 
     assert not waiter.done()
@@ -144,7 +180,9 @@ def test_default_limit_allows_twenty_mixed_calls_and_blocks_twenty_first() -> No
         limiter.acquire(invocation)
     try:
         with pytest.raises(ConcurrencyLimitError):
-            limiter.acquire(_invocation(TEST_TOKEN, "llm_chat", model="openrouter/native-alias"))
+            limiter.acquire(
+                _invocation(TEST_TOKEN, "llm_chat", model="openrouter/native-alias")
+            )
     finally:
         for invocation in held:
             limiter.release(invocation)
@@ -160,7 +198,9 @@ async def test_default_limits_wait_on_twenty_first_mixed_call_until_release() ->
     for invocation in held:
         limiter.acquire(invocation)
     try:
-        waiter = asyncio.create_task(execute_tool_with_concurrency_permit(executor, limiter, waiter_invocation))
+        waiter = asyncio.create_task(
+            execute_tool_with_concurrency_permit(executor, limiter, waiter_invocation)
+        )
         await asyncio.sleep(0.05)
         assert not waiter.done()
         assert executor.invocations == []
@@ -182,4 +222,7 @@ def test_provider_tool_parallel_call_cap_matches_single_token_cap() -> None:
 
 
 def test_provider_tool_parallel_call_cap_respects_custom_limit() -> None:
-    assert max_parallel_provider_tool_calls(ToolConcurrencyLimits(max_parallel_calls=7)) == 7
+    assert (
+        max_parallel_provider_tool_calls(ToolConcurrencyLimits(max_parallel_calls=7))
+        == 7
+    )

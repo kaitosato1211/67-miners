@@ -25,7 +25,9 @@ class RegistrationRefreshWorker:
     initial_failure_delay_seconds: float = DEFAULT_INITIAL_FAILURE_DELAY_SECONDS
     jitter_ratio: float = DEFAULT_JITTER_RATIO
     random_value: Callable[[], float] = random.random
-    _stop: threading.Event = field(default_factory=threading.Event, init=False, repr=False)
+    _stop: threading.Event = field(
+        default_factory=threading.Event, init=False, repr=False
+    )
     _thread: threading.Thread | None = field(default=None, init=False, repr=False)
     _next_failure_delay_seconds: float = field(init=False, repr=False)
 
@@ -80,7 +82,9 @@ class RegistrationRefreshWorker:
             self.registration_refresh()
         except Exception as exc:
             self.status_provider.mark_platform_registration_refresh_failed(str(exc))
-            logger.warning("validator platform registration refresh failed", exc_info=exc)
+            logger.warning(
+                "validator platform registration refresh failed", exc_info=exc
+            )
             delay_seconds = self._jittered(self._next_failure_delay_seconds)
             self._next_failure_delay_seconds = min(
                 self._next_failure_delay_seconds * 2,
@@ -97,7 +101,9 @@ class RegistrationRefreshWorker:
     def _jittered(self, delay_seconds: float) -> float:
         if self.jitter_ratio == 0:
             return delay_seconds
-        multiplier = 1 - self.jitter_ratio + (self.random_value() * self.jitter_ratio * 2)
+        multiplier = (
+            1 - self.jitter_ratio + (self.random_value() * self.jitter_ratio * 2)
+        )
         return max(0.0, delay_seconds * multiplier)
 
 

@@ -24,7 +24,9 @@ from harnyx_commons.domain_tweak_generation.source_fetch import (
 )
 
 
-def test_source_url_and_dns_reject_credentials_and_private_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_source_url_and_dns_reject_credentials_and_private_addresses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: direct fetch must not become an SSRF path."""
     with pytest.raises(SourceFetchError, match="credentials"):
         _validated_url("https://user:secret@example.com/report")
@@ -32,7 +34,9 @@ def test_source_url_and_dns_reject_credentials_and_private_addresses(monkeypatch
     monkeypatch.setattr(
         socket,
         "getaddrinfo",
-        lambda *_args, **_kwargs: [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))],
+        lambda *_args, **_kwargs: [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))
+        ],
     )
     with pytest.raises(SourceFetchError, match="non-public"):
         _public_addresses("example.com", 443)
@@ -50,7 +54,9 @@ def test_source_url_and_dns_reject_credentials_and_private_addresses(monkeypatch
         ("https://example.com/report", "static_json"),
     ],
 )
-def test_document_url_rejects_exact_api_and_credential_shapes(url: str, kind: str) -> None:
+def test_document_url_rejects_exact_api_and_credential_shapes(
+    url: str, kind: str
+) -> None:
     """Future failure: model declarations must not bypass the host's pre-connect document boundary."""
     with pytest.raises(SourceFetchError) as captured:
         _validated_document_url(url, kind)  # type: ignore[arg-type]
@@ -80,15 +86,20 @@ def test_document_url_rejects_encoded_api_and_credential_shapes(url: str) -> Non
     assert captured.value.code == "source_fetch_rejected"
 
 
-def test_redirect_revalidates_encoded_api_path_before_connect(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_redirect_revalidates_encoded_api_path_before_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: a public redirect must not connect to an encoded API path."""
     connections: list[_RedirectConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: ("93.184.216.34",))
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: ("93.184.216.34",)
+    )
     monkeypatch.setattr(
         source_fetch,
         "_PinnedHTTPSConnection",
-        lambda *_args, **_kwargs: connections.append(_RedirectConnection()) or connections[-1],
+        lambda *_args, **_kwargs: connections.append(_RedirectConnection())
+        or connections[-1],
     )
 
     with pytest.raises(SourceFetchError) as captured:
@@ -208,13 +219,21 @@ def test_fetch_tries_next_validated_public_address_after_connection_failure(
     addresses = ("2600:1406:bc00:53::b81e:94ce", "93.184.216.34")
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: addresses)
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: addresses
+    )
 
-    def create_connection(_host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
         connection = _AddressConnection(
             address,
-            connection_error=OSError(101, "Network is unreachable") if address == addresses[0] else None,
+            connection_error=(
+                OSError(101, "Network is unreachable")
+                if address == addresses[0]
+                else None
+            ),
         )
         connections.append(connection)
         return connection
@@ -224,7 +243,9 @@ def test_fetch_tries_next_validated_public_address_after_connection_failure(
     fetched = _fetch_complete_body("https://example.com/report", "html")
 
     assert fetched.body == b"<html>reachable</html>"
-    assert [connection.sock.getpeername()[0] for connection in connections] == list(addresses)
+    assert [connection.sock.getpeername()[0] for connection in connections] == list(
+        addresses
+    )
     assert all(connection.closed for connection in connections)
 
 
@@ -235,33 +256,49 @@ def test_fetch_reports_unavailable_only_after_every_validated_address_fails(
     addresses = ("2600:1406:bc00:53::b81e:94ce", "93.184.216.34")
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: addresses)
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: addresses
+    )
 
-    def create_connection(_host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
-        connection = _AddressConnection(address, connection_error=OSError(101, f"unreachable {address}"))
+        connection = _AddressConnection(
+            address, connection_error=OSError(101, f"unreachable {address}")
+        )
         connections.append(connection)
         return connection
 
     monkeypatch.setattr(source_fetch, "_PinnedHTTPSConnection", create_connection)
 
-    with pytest.raises(SourceFetchError, match=f"unreachable {addresses[-1]}") as captured:
+    with pytest.raises(
+        SourceFetchError, match=f"unreachable {addresses[-1]}"
+    ) as captured:
         _fetch_complete_body("https://example.com/report", "html")
 
     assert captured.value.code == "source_unavailable"
-    assert [connection.sock.getpeername()[0] for connection in connections] == list(addresses)
+    assert [connection.sock.getpeername()[0] for connection in connections] == list(
+        addresses
+    )
     assert all(connection.closed for connection in connections)
 
 
-def test_fetch_does_not_fallback_after_dns_set_changes(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fetch_does_not_fallback_after_dns_set_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: DNS rebinding detection must stop instead of connecting to another validated address."""
     addresses = ("93.184.216.34", "93.184.216.35")
     resolutions = iter((addresses, ("93.184.216.35",)))
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: next(resolutions))
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: next(resolutions)
+    )
 
-    def create_connection(_host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
         connection = _AddressConnection(address)
         connections.append(connection)
@@ -277,14 +314,20 @@ def test_fetch_does_not_fallback_after_dns_set_changes(monkeypatch: pytest.Monke
     assert connections[0].closed
 
 
-def test_fetch_does_not_fallback_after_connected_peer_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fetch_does_not_fallback_after_connected_peer_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: a connected peer outside the validated DNS set must stop acquisition."""
     addresses = ("93.184.216.34", "93.184.216.35")
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: addresses)
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: addresses
+    )
 
-    def create_connection(_host: str, _port: int, _address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, _address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
         connection = _AddressConnection("93.184.216.99")
         connections.append(connection)
@@ -300,7 +343,9 @@ def test_fetch_does_not_fallback_after_connected_peer_mismatch(monkeypatch: pyte
     assert connections[0].closed
 
 
-def test_fetch_rejects_mixed_public_and_private_dns_before_connect(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fetch_rejects_mixed_public_and_private_dns_before_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: one public answer must not make a mixed unsafe DNS set connectable."""
     monkeypatch.setattr(
         socket,
@@ -326,7 +371,9 @@ def test_fetch_rejects_mixed_public_and_private_dns_before_connect(monkeypatch: 
     assert not connection_attempted
 
 
-def test_cross_host_redirect_uses_the_new_hosts_validated_dns_set(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cross_host_redirect_uses_the_new_hosts_validated_dns_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: redirect acquisition must not reuse the origin host's pinned addresses."""
     address_sets = {
         "example.com": ("93.184.216.34",),
@@ -339,12 +386,16 @@ def test_cross_host_redirect_uses_the_new_hosts_validated_dns_set(monkeypatch: p
         resolutions.append((host, port))
         return address_sets[host]
 
-    def create_connection(host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
         connection = _AddressConnection(
             address,
             response_status=302 if host == "example.com" else 200,
-            response_location="https://reports.example.org/final" if host == "example.com" else None,
+            response_location=(
+                "https://reports.example.org/final" if host == "example.com" else None
+            ),
         )
         connections.append((host, address, connection))
         return connection
@@ -368,14 +419,20 @@ def test_cross_host_redirect_uses_the_new_hosts_validated_dns_set(monkeypatch: p
     assert all(connection.closed for _host, _address, connection in connections)
 
 
-def test_fetch_does_not_try_another_address_after_http_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fetch_does_not_try_another_address_after_http_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: address fallback must not retry an application-level source failure."""
     addresses = ("93.184.216.34", "93.184.216.35")
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: addresses)
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: addresses
+    )
 
-    def create_connection(_host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
         connection = _AddressConnection(address, response_status=503)
         connections.append(connection)
@@ -390,16 +447,24 @@ def test_fetch_does_not_try_another_address_after_http_failure(monkeypatch: pyte
     assert connections[0].closed
 
 
-def test_fetch_does_not_try_another_address_after_tls_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fetch_does_not_try_another_address_after_tls_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: address fallback must not bypass a TLS security failure."""
     addresses = ("93.184.216.34", "93.184.216.35")
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: addresses)
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: addresses
+    )
 
-    def create_connection(_host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
-        connection = _AddressConnection(address, connection_error=ssl.SSLError("TLS validation failed"))
+        connection = _AddressConnection(
+            address, connection_error=ssl.SSLError("TLS validation failed")
+        )
         connections.append(connection)
         return connection
 
@@ -421,9 +486,13 @@ def test_fetch_does_not_try_another_address_after_connected_io_failure(
     addresses = ("93.184.216.34", "93.184.216.35")
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: addresses)
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: addresses
+    )
 
-    def create_connection(_host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
         error = OSError(f"{failure_point} failed")
         connection = _AddressConnection(
@@ -452,11 +521,17 @@ def test_fetch_closes_and_propagates_non_os_connect_failure_without_fallback(
     addresses = ("93.184.216.34", "93.184.216.35")
     connections: list[_AddressConnection] = []
 
-    monkeypatch.setattr(source_fetch, "_public_addresses", lambda _host, _port: addresses)
+    monkeypatch.setattr(
+        source_fetch, "_public_addresses", lambda _host, _port: addresses
+    )
 
-    def create_connection(_host: str, _port: int, address: str, *, timeout: float) -> _AddressConnection:
+    def create_connection(
+        _host: str, _port: int, address: str, *, timeout: float
+    ) -> _AddressConnection:
         del timeout
-        connection = _AddressConnection(address, connection_error=KeyboardInterrupt("connect interrupted"))
+        connection = _AddressConnection(
+            address, connection_error=KeyboardInterrupt("connect interrupted")
+        )
         connections.append(connection)
         return connection
 
@@ -469,7 +544,9 @@ def test_fetch_closes_and_propagates_non_os_connect_failure_without_fallback(
     assert connections[0].closed
 
 
-def test_https_connection_closes_raw_socket_when_tls_wrapping_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_https_connection_closes_raw_socket_when_tls_wrapping_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: a TLS error before self.sock assignment must not leak the raw socket."""
 
     class RawSocket:
@@ -484,8 +561,12 @@ def test_https_connection_closes_raw_socket_when_tls_wrapping_fails(monkeypatch:
             raise ssl.SSLError("TLS validation failed")
 
     raw = RawSocket()
-    monkeypatch.setattr(source_fetch.socket, "create_connection", lambda *_args, **_kwargs: raw)
-    connection = source_fetch._PinnedHTTPSConnection("example.com", 443, "93.184.216.34", timeout=60.0)
+    monkeypatch.setattr(
+        source_fetch.socket, "create_connection", lambda *_args, **_kwargs: raw
+    )
+    connection = source_fetch._PinnedHTTPSConnection(
+        "example.com", 443, "93.184.216.34", timeout=60.0
+    )
     connection._ssl_context = FailingTlsContext()  # type: ignore[assignment]
 
     with pytest.raises(ssl.SSLError, match="TLS validation failed"):
@@ -507,7 +588,9 @@ def test_https_connection_closes_raw_socket_when_tls_wrapping_fails(monkeypatch:
         ("https://example.com/report?name=%26token=secret", "html"),
     ],
 )
-def test_document_url_accepts_ordinary_public_document_shapes(url: str, kind: str) -> None:
+def test_document_url_accepts_ordinary_public_document_shapes(
+    url: str, kind: str
+) -> None:
     _validated_document_url(url, kind)  # type: ignore[arg-type]
 
 
@@ -552,7 +635,10 @@ def test_html_extraction_retains_complete_normalized_navigation_links() -> None:
     ("base_href", "expected_url"),
     [
         ("../published/", "https://example.com/published/report.html"),
-        ("https://cdn.example.net/records/", "https://cdn.example.net/records/report.html"),
+        (
+            "https://cdn.example.net/records/",
+            "https://cdn.example.net/records/report.html",
+        ),
     ],
 )
 def test_html_extraction_resolves_navigation_against_the_document_base(
@@ -573,7 +659,9 @@ def test_html_extraction_resolves_navigation_against_the_document_base(
         "https://example.com/archive/index.html",
     )
 
-    assert tuple((link.url, link.text) for link in extracted.links) == ((expected_url, "Annual report"),)
+    assert tuple((link.url, link.text) for link in extracted.links) == (
+        (expected_url, "Annual report"),
+    )
 
 
 @pytest.mark.parametrize(
@@ -598,30 +686,52 @@ def test_html_extraction_rejects_oversized_individual_link_metadata(
     message: str,
 ) -> None:
     """Future failure: one hostile link must not escape the bounded source-extraction envelope."""
-    monkeypatch.setattr(source_extractor_worker, "MAX_EXTRACTED_LINK_URL_CHARACTERS", 10_000)
-    monkeypatch.setattr(source_extractor_worker, "MAX_EXTRACTED_LINK_TEXT_CHARACTERS", 10_000)
+    monkeypatch.setattr(
+        source_extractor_worker, "MAX_EXTRACTED_LINK_URL_CHARACTERS", 10_000
+    )
+    monkeypatch.setattr(
+        source_extractor_worker, "MAX_EXTRACTED_LINK_TEXT_CHARACTERS", 10_000
+    )
     monkeypatch.setattr(source_extractor_worker, limit_name, 20)
 
     with pytest.raises(source_extractor_worker.ExtractionRejectedError, match=message):
-        source_extractor_worker.extract_source(html, "text/html", "", "https://example.com")
+        source_extractor_worker.extract_source(
+            html, "text/html", "", "https://example.com"
+        )
 
 
-def test_extraction_envelope_rejects_link_metadata_overflow(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_extraction_envelope_rejects_link_metadata_overflow(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: link navigation must fail visibly instead of silently dropping later targets."""
     written: list[bytes] = []
     monkeypatch.setattr(source_extractor_worker, "_set_resource_limits", lambda: None)
-    monkeypatch.setattr(source_extractor_worker, "MAX_EXTRACTED_ENVELOPE_CHARACTERS", 100)
+    monkeypatch.setattr(
+        source_extractor_worker, "MAX_EXTRACTED_ENVELOPE_CHARACTERS", 100
+    )
     monkeypatch.setattr(
         source_extractor_worker,
         "extract_source",
         lambda *_args: source_extractor_worker.ExtractedSource(
             content="body",
-            links=(source_extractor_worker.ExtractedLink(url="https://example.com", text="x" * 200),),
+            links=(
+                source_extractor_worker.ExtractedLink(
+                    url="https://example.com", text="x" * 200
+                ),
+            ),
         ),
     )
     monkeypatch.setattr(source_extractor_worker, "_write", written.append)
-    monkeypatch.setattr(source_extractor_worker.sys, "argv", ["worker", "text/html", "", "https://example.com"])
-    monkeypatch.setattr(source_extractor_worker.sys, "stdin", SimpleNamespace(buffer=io.BytesIO(b"body")))
+    monkeypatch.setattr(
+        source_extractor_worker.sys,
+        "argv",
+        ["worker", "text/html", "", "https://example.com"],
+    )
+    monkeypatch.setattr(
+        source_extractor_worker.sys,
+        "stdin",
+        SimpleNamespace(buffer=io.BytesIO(b"body")),
+    )
 
     source_extractor_worker.main()
 
@@ -630,7 +740,9 @@ def test_extraction_envelope_rejects_link_metadata_overflow(monkeypatch: pytest.
 
 
 @pytest.mark.anyio
-async def test_isolated_pdf_extractor_has_enough_headroom_inside_its_512_mib_limit() -> None:
+async def test_isolated_pdf_extractor_has_enough_headroom_inside_its_512_mib_limit() -> (
+    None
+):
     """Future failure: the worker baseline must not consume its whole address-space allowance before parsing."""
     document = fitz.open()
     page = document.new_page()
@@ -638,13 +750,17 @@ async def test_isolated_pdf_extractor_has_enough_headroom_inside_its_512_mib_lim
     body = document.tobytes()
     document.close()
 
-    extracted = await _extract_isolated(body, "application/pdf", "", "https://example.com/report.pdf")
+    extracted = await _extract_isolated(
+        body, "application/pdf", "", "https://example.com/report.pdf"
+    )
 
     assert "Alpha 1200" in extracted.content
 
 
 @pytest.mark.anyio
-async def test_extracted_character_limit_rejects_the_whole_source_without_a_prefix() -> None:
+async def test_extracted_character_limit_rejects_the_whole_source_without_a_prefix() -> (
+    None
+):
     """Future failure: an oversized source must never become apparently valid truncated evidence."""
     with pytest.raises(SourceFetchError) as captured:
         await _extract_isolated(
@@ -657,7 +773,9 @@ async def test_extracted_character_limit_rejects_the_whole_source_without_a_pref
     assert captured.value.code == "source_extraction_limit"
 
 
-def test_pdf_page_limit_rejects_the_complete_document(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pdf_page_limit_rejects_the_complete_document(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: the PDF guard must reject rather than extract a permitted prefix."""
     monkeypatch.setattr(source_extractor_worker, "MAX_PDF_PAGES", 1)
     document = fitz.open()
@@ -675,7 +793,9 @@ def test_pdf_page_limit_rejects_the_complete_document(monkeypatch: pytest.Monkey
 def test_malformed_declared_json_is_an_explicit_source_failure() -> None:
     """Future failure: an extractor parse failure must not silently degrade into raw evidence."""
     with pytest.raises(SourceFetchError) as captured:
-        _extract_content(b'{"broken":', "application/json", "", "https://example.com/report.json")
+        _extract_content(
+            b'{"broken":', "application/json", "", "https://example.com/report.json"
+        )
 
     assert captured.value.code == "source_unavailable"
 
@@ -727,7 +847,12 @@ def test_xlsx_preflight_rejects_macro_payload() -> None:
 @pytest.mark.parametrize(
     ("limit_name", "limit_value", "entries", "message"),
     [
-        ("MAX_XLSX_ZIP_ENTRIES", 1, (("one.xml", b"1"), ("two.xml", b"2")), "too many entries"),
+        (
+            "MAX_XLSX_ZIP_ENTRIES",
+            1,
+            (("one.xml", b"1"), ("two.xml", b"2")),
+            "too many entries",
+        ),
         ("MAX_XLSX_UNCOMPRESSED_BYTES", 3, (("large.xml", b"1234"),), "128 MiB"),
     ],
 )
@@ -744,7 +869,9 @@ def test_xlsx_preflight_rejects_entry_and_expansion_limits(
             archive.writestr(name, content)
     monkeypatch.setattr(source_extractor_worker, limit_name, limit_value)
 
-    with pytest.raises(source_extractor_worker.ExtractionRejectedError, match=message) as captured:
+    with pytest.raises(
+        source_extractor_worker.ExtractionRejectedError, match=message
+    ) as captured:
         source_extractor_worker._preflight_xlsx_zip(payload.getvalue())
 
     assert captured.value.code == "source_extraction_limit"
@@ -755,13 +882,17 @@ def test_xlsx_preflight_rejects_unsafe_compression_ratio() -> None:
     with zipfile.ZipFile(payload, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("large.xml", b"0" * 20_000)
 
-    with pytest.raises(source_extractor_worker.ExtractionRejectedError, match="compression ratio") as captured:
+    with pytest.raises(
+        source_extractor_worker.ExtractionRejectedError, match="compression ratio"
+    ) as captured:
         source_extractor_worker._preflight_xlsx_zip(payload.getvalue())
 
     assert captured.value.code == "source_extraction_limit"
 
 
-def test_xlsx_preflight_rejects_encrypted_entry(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_xlsx_preflight_rejects_encrypted_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _EncryptedEntry:
         flag_bits = 0x1
         filename = "xl/workbook.xml"
@@ -778,9 +909,13 @@ def test_xlsx_preflight_rejects_encrypted_entry(monkeypatch: pytest.MonkeyPatch)
         def infolist(self) -> list[_EncryptedEntry]:
             return [_EncryptedEntry()]
 
-    monkeypatch.setattr(source_extractor_worker.zipfile, "ZipFile", lambda _body: _EncryptedArchive())
+    monkeypatch.setattr(
+        source_extractor_worker.zipfile, "ZipFile", lambda _body: _EncryptedArchive()
+    )
 
-    with pytest.raises(source_extractor_worker.ExtractionRejectedError, match="encrypted") as captured:
+    with pytest.raises(
+        source_extractor_worker.ExtractionRejectedError, match="encrypted"
+    ) as captured:
         source_extractor_worker._preflight_xlsx_zip(b"encrypted")
 
     assert captured.value.code == "source_unavailable"
@@ -817,7 +952,9 @@ class _BlockingProcess:
 
 
 @pytest.mark.anyio
-async def test_fetch_cancellation_kills_and_drains_the_source_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_fetch_cancellation_kills_and_drains_the_source_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Future failure: cancelled candidates must not leave source threads or sockets alive."""
     process = _BlockingProcess()
 
@@ -825,7 +962,9 @@ async def test_fetch_cancellation_kills_and_drains_the_source_worker(monkeypatch
         return process
 
     monkeypatch.setattr(asyncio, "create_subprocess_exec", create_process)
-    task = asyncio.create_task(PublicSourceFetcher().fetch("https://example.com/report", document_kind="html"))
+    task = asyncio.create_task(
+        PublicSourceFetcher().fetch("https://example.com/report", document_kind="html")
+    )
     await process.started.wait()
 
     task.cancel()

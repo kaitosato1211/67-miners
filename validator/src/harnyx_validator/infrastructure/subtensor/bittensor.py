@@ -27,7 +27,9 @@ from harnyx_validator.application.ports.subtensor import (
     ValidatorNodeInfo,
     WeightSubmissionTooEarlyError,
 )
-from harnyx_validator.infrastructure.transient_network import classify_transient_network_failure
+from harnyx_validator.infrastructure.transient_network import (
+    classify_transient_network_failure,
+)
 
 from .hotkey import create_wallet
 
@@ -38,7 +40,9 @@ _PLAIN_SET_WEIGHTS_MAX_RETRIES = 5
 _COMMIT_REVEAL_VERSION = 4
 _PRIMARY_MECHANISM_ID = 0
 _DEFAULT_BLOCK_TIME_SECONDS = 12.0
-_NO_WEIGHT_ATTEMPT_MESSAGE = "No attempt made. Perhaps it is too soon to commit weights!"
+_NO_WEIGHT_ATTEMPT_MESSAGE = (
+    "No attempt made. Perhaps it is too soon to commit weights!"
+)
 _CHAIN_TOO_EARLY_REFUSAL_ERROR_NAMES = frozenset(
     {
         "SettingWeightsTooFast",
@@ -227,7 +231,10 @@ class BittensorSubtensorClient(SubtensorClientPort):
             raise RuntimeError("commit-reveal metadata unavailable")
         logger.debug(
             "submitting weights to subtensor",
-            extra={"uids": uids, "wait_for_inclusion": self.settings.wait_for_inclusion},
+            extra={
+                "uids": uids,
+                "wait_for_inclusion": self.settings.wait_for_inclusion,
+            },
         )
         if commit_reveal_enabled:
             success, message = self._submit_commit_reveal_weights(
@@ -251,7 +258,9 @@ class BittensorSubtensorClient(SubtensorClientPort):
             raise RuntimeError(f"set_weights failed: {message}")
         return str(message) if message is not None else ""
 
-    def _normalize_weights(self, weights: Mapping[int, float]) -> tuple[list[int], list[float]]:
+    def _normalize_weights(
+        self, weights: Mapping[int, float]
+    ) -> tuple[list[int], list[float]]:
         ordered = sorted(weights.items(), key=lambda item: item[0])
         uids = [int(uid) for uid, _ in ordered]
         values = [float(score) for _, score in ordered]
@@ -278,11 +287,20 @@ class BittensorSubtensorClient(SubtensorClientPort):
         except ValidationError as exc:
             raise RuntimeError(f"invalid subtensor weights payload: {exc}") from exc
 
-        row = next((candidate for candidate in payload.rows if candidate.source_uid == validator_uid), None)
+        row = next(
+            (
+                candidate
+                for candidate in payload.rows
+                if candidate.source_uid == validator_uid
+            ),
+            None,
+        )
         if row is None:
             return 0.0
 
-        target = next((candidate for candidate in row.targets if candidate.uid == uid), None)
+        target = next(
+            (candidate for candidate in row.targets if candidate.uid == uid), None
+        )
         if target is None:
             return 0.0
         return float(target.weight)
@@ -333,7 +351,9 @@ class BittensorSubtensorClient(SubtensorClientPort):
         return self._extrinsic_response_result(response)
 
     def _weight_submission_wait_for_inclusion(self) -> bool:
-        return self.settings.wait_for_inclusion or not self.settings.wait_for_finalization
+        return (
+            self.settings.wait_for_inclusion or not self.settings.wait_for_finalization
+        )
 
     def _publish_commitment_extrinsic(
         self,
@@ -353,7 +373,16 @@ class BittensorSubtensorClient(SubtensorClientPort):
             call_params={
                 "netuid": self.settings.netuid,
                 "info": {
-                    "fields": [[{"TimelockEncrypted": {"encrypted": encrypted, "reveal_round": reveal_round}}]]
+                    "fields": [
+                        [
+                            {
+                                "TimelockEncrypted": {
+                                    "encrypted": encrypted,
+                                    "reveal_round": reveal_round,
+                                }
+                            }
+                        ]
+                    ]
                 },
             },
         )
@@ -391,7 +420,10 @@ class BittensorSubtensorClient(SubtensorClientPort):
                     wait_for_finalization=self.settings.wait_for_finalization,
                 )
             except Exception as exc:
-                if self._error_name_from_object(exc) in _CHAIN_TOO_EARLY_REFUSAL_ERROR_NAMES:
+                if (
+                    self._error_name_from_object(exc)
+                    in _CHAIN_TOO_EARLY_REFUSAL_ERROR_NAMES
+                ):
                     raise WeightSubmissionTooEarlyError(str(exc)) from exc
                 cause = classify_transient_network_failure(exc)
                 if cause is None:
@@ -399,7 +431,9 @@ class BittensorSubtensorClient(SubtensorClientPort):
                     transient_failure = None
                 else:
                     transient_failure = exc
-                logger.warning("commit-reveal weight submission attempt failed", exc_info=exc)
+                logger.warning(
+                    "commit-reveal weight submission attempt failed", exc_info=exc
+                )
                 message = str(exc)
                 continue
             message = result.message
@@ -411,10 +445,15 @@ class BittensorSubtensorClient(SubtensorClientPort):
             transient_failure = None
             logger.warning(
                 "commit-reveal weight submission attempt failed",
-                extra={"set_weights_message": message, "set_weights_error": result.error_name},
+                extra={
+                    "set_weights_message": message,
+                    "set_weights_error": result.error_name,
+                },
             )
         if all_failures_transient and transient_failure is not None:
-            raise RuntimeError("commit-reveal weight submission attempts failed") from transient_failure
+            raise RuntimeError(
+                "commit-reveal weight submission attempts failed"
+            ) from transient_failure
         return False, message
 
     def _submit_plain_weights(
@@ -448,7 +487,10 @@ class BittensorSubtensorClient(SubtensorClientPort):
                 return True, message
             logger.warning(
                 "plain weight submission attempt failed",
-                extra={"set_weights_message": message, "set_weights_error": result.error_name},
+                extra={
+                    "set_weights_message": message,
+                    "set_weights_error": result.error_name,
+                },
             )
         return False, message
 
@@ -460,7 +502,9 @@ class BittensorSubtensorClient(SubtensorClientPort):
         uids: list[int],
         normalized: list[float],
     ) -> tuple[Any, int]:
-        weight_uids, weight_vals = convert_and_normalize_weights_and_uids(uids, normalized)
+        weight_uids, weight_vals = convert_and_normalize_weights_and_uids(
+            uids, normalized
+        )
         current_block = int(subtensor.get_current_block())
         hyperparameters = subtensor.get_subnet_hyperparameters(
             self.settings.netuid,
@@ -509,9 +553,13 @@ class BittensorSubtensorClient(SubtensorClientPort):
         cls,
         response: ExtrinsicResponse | Sequence[object],
     ) -> _WeightExtrinsicResult:
-        if isinstance(response, Sequence) and not isinstance(response, (str, bytes, bytearray)):
+        if isinstance(response, Sequence) and not isinstance(
+            response, (str, bytes, bytearray)
+        ):
             success = bool(response[0]) if len(response) > 0 else False
-            message = "" if len(response) < 2 or response[1] is None else str(response[1])
+            message = (
+                "" if len(response) < 2 or response[1] is None else str(response[1])
+            )
             return _WeightExtrinsicResult(success=success, message=message)
 
         success = bool(getattr(response, "success", False))
@@ -542,7 +590,10 @@ class BittensorSubtensorClient(SubtensorClientPort):
             mapping_value = cast(Mapping[object, object], value)
             for key in ("name", "error", "error_name"):
                 nested = mapping_value.get(key)
-                if isinstance(nested, str) and nested in _CHAIN_TOO_EARLY_REFUSAL_ERROR_NAMES:
+                if (
+                    isinstance(nested, str)
+                    and nested in _CHAIN_TOO_EARLY_REFUSAL_ERROR_NAMES
+                ):
                     return nested
             for nested in mapping_value.values():
                 error_name = cls._error_name_from_object(nested)
@@ -563,12 +614,17 @@ class BittensorSubtensorClient(SubtensorClientPort):
             return None
         for attr in ("name", "error", "error_name"):
             nested = getattr(value, attr, None)
-            if isinstance(nested, str) and nested in _CHAIN_TOO_EARLY_REFUSAL_ERROR_NAMES:
+            if (
+                isinstance(nested, str)
+                and nested in _CHAIN_TOO_EARLY_REFUSAL_ERROR_NAMES
+            ):
                 return nested
         return None
 
     @staticmethod
-    def _query_commit_reveal_enabled(*, subtensor: bt.Subtensor, netuid: int) -> bool | None:
+    def _query_commit_reveal_enabled(
+        *, subtensor: bt.Subtensor, netuid: int
+    ) -> bool | None:
         try:
             return bool(subtensor.commit_reveal_enabled(netuid=netuid))
         except Exception as exc:
@@ -576,9 +632,13 @@ class BittensorSubtensorClient(SubtensorClientPort):
             return None
 
     @staticmethod
-    def _query_last_update_values(*, subtensor: bt.Subtensor, netuid: int) -> _LastUpdateValues | None:
+    def _query_last_update_values(
+        *, subtensor: bt.Subtensor, netuid: int
+    ) -> _LastUpdateValues | None:
         try:
-            values = subtensor.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
+            values = subtensor.get_hyperparameter(
+                param_name="LastUpdate", netuid=netuid
+            )
         except Exception as exc:
             logger.debug("unable to read LastUpdate metadata", exc_info=exc)
             return None
@@ -589,11 +649,15 @@ class BittensorSubtensorClient(SubtensorClientPort):
         if isinstance(values, Mapping):
             normalized: dict[int, _LastUpdateValue] = {}
             for key, value in values.items():
-                if not isinstance(key, int) or (value is not None and not isinstance(value, int)):
+                if not isinstance(key, int) or (
+                    value is not None and not isinstance(value, int)
+                ):
                     return None
                 normalized[key] = value
             return normalized
-        if not isinstance(values, Sequence) or isinstance(values, (str, bytes, bytearray)):
+        if not isinstance(values, Sequence) or isinstance(
+            values, (str, bytes, bytearray)
+        ):
             return None
         normalized_values: list[_LastUpdateValue] = []
         for value in values:

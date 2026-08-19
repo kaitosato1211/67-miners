@@ -13,7 +13,9 @@ from harnyx_commons.domain_tweak_generation.contracts import (
     ReferenceProof,
     ResponseMode,
 )
-from harnyx_commons.domain_tweak_generation.source_workspace import _serialize_audit_packet
+from harnyx_commons.domain_tweak_generation.source_workspace import (
+    _serialize_audit_packet,
+)
 
 PORTFOLIO_SYSTEM = """You allocate diverse public-document search spaces for independent benchmark-question authors.
 You do not receive a source form or benchmark answer and must not invent a question or answer. For every input slot,
@@ -255,9 +257,13 @@ def portfolio_prompt(
 ) -> str:
     payload = {
         "slots": [{"slot": slot} for slot in slots],
-        "already_accepted_routes_to_avoid": [item.model_dump(mode="json") for item in accepted_route_contexts],
+        "already_accepted_routes_to_avoid": [
+            item.model_dump(mode="json") for item in accepted_route_contexts
+        ],
     }
-    return "Allocate public-document ecosystems for this request:\n" + json.dumps(payload, ensure_ascii=False, indent=2)
+    return "Allocate public-document ecosystems for this request:\n" + json.dumps(
+        payload, ensure_ascii=False, indent=2
+    )
 
 
 def question_generation_prompt(
@@ -290,7 +296,9 @@ def reference_prompt(
         "dossier_hypothesis": dossier.model_dump(mode="json"),
         "pre_registered_evidence": list(evidence_identities),
     }
-    return "Build the minimal complete verified reference proof:\n" + json.dumps(payload, ensure_ascii=False, indent=2)
+    return "Build the minimal complete verified reference proof:\n" + json.dumps(
+        payload, ensure_ascii=False, indent=2
+    )
 
 
 def reference_repair_prompt(

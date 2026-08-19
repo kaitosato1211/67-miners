@@ -28,16 +28,24 @@ from harnyx_commons.llm.tool_models import MINER_SELECTED_LLM_PROVIDER_MODELS
 pytestmark = pytest.mark.anyio("asyncio")
 
 
-def test_ai_gateway_supported_models_come_from_miner_selected_provider_contract() -> None:
-    assert AI_GATEWAY_SUPPORTED_MODELS == MINER_SELECTED_LLM_PROVIDER_MODELS["ai_gateway"]
+def test_ai_gateway_supported_models_come_from_miner_selected_provider_contract() -> (
+    None
+):
+    assert (
+        AI_GATEWAY_SUPPORTED_MODELS == MINER_SELECTED_LLM_PROVIDER_MODELS["ai_gateway"]
+    )
 
 
 def test_ai_gateway_provider_rejects_blank_key() -> None:
-    with pytest.raises(LlmProviderConfigurationError, match="AI_GATEWAY_API_KEY must be configured"):
+    with pytest.raises(
+        LlmProviderConfigurationError, match="AI_GATEWAY_API_KEY must be configured"
+    ):
         AiGatewayLlmProvider(ai_gateway_api_key=SecretStr(" "))
 
 
-async def test_ai_gateway_provider_rejects_unsupported_model_before_http_request() -> None:
+async def test_ai_gateway_provider_rejects_unsupported_model_before_http_request() -> (
+    None
+):
     request_count = 0
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -46,10 +54,14 @@ async def test_ai_gateway_provider_rejects_unsupported_model_before_http_request
         return _streaming_response(request)
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
-        with pytest.raises(ValueError, match="AI Gateway provider does not support model"):
+        with pytest.raises(
+            ValueError, match="AI Gateway provider does not support model"
+        ):
             await provider.invoke(_request(model="unsupported/model"))
     finally:
         await provider.aclose()
@@ -58,7 +70,9 @@ async def test_ai_gateway_provider_rejects_unsupported_model_before_http_request
     assert request_count == 0
 
 
-async def test_ai_gateway_provider_serializes_request_extra_and_provider_metadata() -> None:
+async def test_ai_gateway_provider_serializes_request_extra_and_provider_metadata() -> (
+    None
+):
     extra = {"providerOptions": {"gateway": {"only": ["cerebras"]}}}
     captured: dict[str, Any] = {}
 
@@ -72,10 +86,14 @@ async def test_ai_gateway_provider_serializes_request_extra_and_provider_metadat
         headers={"Authorization": "Bearer test-ai-gateway-key"},
         transport=httpx.MockTransport(handler),
     )
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
-        response = await provider.invoke(_request(model="zai/glm-5.2-fast", extra=extra))
+        response = await provider.invoke(
+            _request(model="zai/glm-5.2-fast", extra=extra)
+        )
     finally:
         await provider.aclose()
         await client.aclose()
@@ -89,10 +107,15 @@ async def test_ai_gateway_provider_serializes_request_extra_and_provider_metadat
     assert response.usage.completion_tokens == 2
     assert response.usage.total_tokens == 5
     assert response.metadata is not None
-    assert response.metadata["raw_response"]["providerMetadata"] == {"gateway": {"cost": "0.0042"}}
+    assert response.metadata["raw_response"]["providerMetadata"] == {
+        "gateway": {"cost": "0.0042"}
+    }
     assert response.metadata["actual_cost_provider"] == "ai_gateway"
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.0042)
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "provider_returned"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "provider_returned"
+    )
 
 
 async def test_ai_gateway_provider_preserves_nested_reasoning_usage() -> None:
@@ -108,14 +131,21 @@ async def test_ai_gateway_provider_preserves_nested_reasoning_usage() -> None:
                 "",
             )
         )
-        return httpx.Response(200, text=payload, request=request, headers={"content-type": "text/event-stream"})
+        return httpx.Response(
+            200,
+            text=payload,
+            request=request,
+            headers={"content-type": "text/event-stream"},
+        )
 
     client = httpx.AsyncClient(
         base_url=AI_GATEWAY_BASE_URL,
         headers={"Authorization": "Bearer test-ai-gateway-key"},
         transport=httpx.MockTransport(handler),
     )
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
         response = await provider.invoke(_request(model="openai/gpt-oss-20b"))
@@ -128,7 +158,10 @@ async def test_ai_gateway_provider_preserves_nested_reasoning_usage() -> None:
     assert response.usage.reasoning_tokens == 4
     assert response.usage.total_tokens == 9
     assert response.metadata is not None
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "static_pricing"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "static_pricing"
+    )
 
 
 @pytest.mark.parametrize(
@@ -136,8 +169,14 @@ async def test_ai_gateway_provider_preserves_nested_reasoning_usage() -> None:
     (
         (LlmThinkingConfig(enabled=False), {"effort": "none"}),
         (LlmThinkingConfig(enabled=True), {"enabled": True}),
-        (LlmThinkingConfig(enabled=True, effort="low"), {"enabled": True, "effort": "low"}),
-        (LlmThinkingConfig(enabled=True, budget=256), {"enabled": True, "max_tokens": 256}),
+        (
+            LlmThinkingConfig(enabled=True, effort="low"),
+            {"enabled": True, "effort": "low"},
+        ),
+        (
+            LlmThinkingConfig(enabled=True, budget=256),
+            {"enabled": True, "max_tokens": 256},
+        ),
     ),
 )
 @pytest.mark.parametrize(
@@ -165,7 +204,9 @@ async def test_ai_gateway_provider_serializes_typed_thinking_to_reasoning(
         headers={"Authorization": "Bearer test-ai-gateway-key"},
         transport=httpx.MockTransport(handler),
     )
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
         await provider.invoke(_request(model=model, thinking=thinking))
@@ -176,7 +217,9 @@ async def test_ai_gateway_provider_serializes_typed_thinking_to_reasoning(
     assert captured["json"]["reasoning"] == expected_reasoning
 
 
-async def test_ai_gateway_provider_maps_gemma_thinking_to_cerebras_reasoning_effort() -> None:
+async def test_ai_gateway_provider_maps_gemma_thinking_to_cerebras_reasoning_effort() -> (
+    None
+):
     captured: dict[str, Any] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -188,7 +231,9 @@ async def test_ai_gateway_provider_maps_gemma_thinking_to_cerebras_reasoning_eff
         headers={"Authorization": "Bearer test-ai-gateway-key"},
         transport=httpx.MockTransport(handler),
     )
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
         await provider.invoke(
@@ -209,7 +254,9 @@ async def test_ai_gateway_provider_maps_gemma_thinking_to_cerebras_reasoning_eff
     }
 
 
-async def test_ai_gateway_provider_does_not_add_cerebras_reasoning_to_other_routes() -> None:
+async def test_ai_gateway_provider_does_not_add_cerebras_reasoning_to_other_routes() -> (
+    None
+):
     captured: dict[str, Any] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -221,7 +268,9 @@ async def test_ai_gateway_provider_does_not_add_cerebras_reasoning_to_other_rout
         headers={"Authorization": "Bearer test-ai-gateway-key"},
         transport=httpx.MockTransport(handler),
     )
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
         await provider.invoke(
@@ -235,10 +284,14 @@ async def test_ai_gateway_provider_does_not_add_cerebras_reasoning_to_other_rout
         await provider.aclose()
         await client.aclose()
 
-    assert captured["json"]["providerOptions"] == {"gateway": {"only": ["other-provider"]}}
+    assert captured["json"]["providerOptions"] == {
+        "gateway": {"only": ["other-provider"]}
+    }
 
 
-async def test_ai_gateway_provider_preserves_gemma_extra_without_provider_selection() -> None:
+async def test_ai_gateway_provider_preserves_gemma_extra_without_provider_selection() -> (
+    None
+):
     captured: dict[str, Any] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -250,7 +303,9 @@ async def test_ai_gateway_provider_preserves_gemma_extra_without_provider_select
         headers={"Authorization": "Bearer test-ai-gateway-key"},
         transport=httpx.MockTransport(handler),
     )
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
         await provider.invoke(
@@ -272,7 +327,9 @@ async def test_ai_gateway_provider_preserves_gemma_extra_without_provider_select
     }
 
 
-async def test_ai_gateway_provider_merges_typed_thinking_into_internal_reasoning_extra() -> None:
+async def test_ai_gateway_provider_merges_typed_thinking_into_internal_reasoning_extra() -> (
+    None
+):
     captured: dict[str, Any] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -284,7 +341,9 @@ async def test_ai_gateway_provider_merges_typed_thinking_into_internal_reasoning
         headers={"Authorization": "Bearer test-ai-gateway-key"},
         transport=httpx.MockTransport(handler),
     )
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
         await provider.invoke(
@@ -298,16 +357,31 @@ async def test_ai_gateway_provider_merges_typed_thinking_into_internal_reasoning
         await provider.aclose()
         await client.aclose()
 
-    assert captured["json"]["reasoning"] == {"exclude": True, "enabled": True, "effort": "high"}
+    assert captured["json"]["reasoning"] == {
+        "exclude": True,
+        "enabled": True,
+        "effort": "high",
+    }
 
 
-async def test_ai_gateway_provider_rejects_non_object_internal_reasoning_extra() -> None:
-    client = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: _streaming_response(request)))
-    provider = AiGatewayLlmProvider(ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client)
+async def test_ai_gateway_provider_rejects_non_object_internal_reasoning_extra() -> (
+    None
+):
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: _streaming_response(request))
+    )
+    provider = AiGatewayLlmProvider(
+        ai_gateway_api_key=SecretStr("test-ai-gateway-key"), client=client
+    )
 
     try:
-        with pytest.raises(LlmProviderError, match="AI Gateway request extra.reasoning must be an object"):
-            await provider.invoke(_request(model="openai/gpt-oss-120b", extra={"reasoning": "low"}))
+        with pytest.raises(
+            LlmProviderError,
+            match="AI Gateway request extra.reasoning must be an object",
+        ):
+            await provider.invoke(
+                _request(model="openai/gpt-oss-120b", extra={"reasoning": "low"})
+            )
     finally:
         await provider.aclose()
         await client.aclose()
@@ -347,7 +421,12 @@ def _streaming_response(request: httpx.Request) -> httpx.Response:
             "",
         )
     )
-    return httpx.Response(200, text=payload, request=request, headers={"content-type": "text/event-stream"})
+    return httpx.Response(
+        200,
+        text=payload,
+        request=request,
+        headers={"content-type": "text/event-stream"},
+    )
 
 
 def test_ai_gateway_request_serializes_complete_tool_loop() -> None:
@@ -381,7 +460,11 @@ def test_ai_gateway_request_serializes_complete_tool_loop() -> None:
         ),
         temperature=0.0,
         max_output_tokens=32,
-        tools=(LlmTool(type="function", function={"name": "lookup_weather", "strict": True}),),
+        tools=(
+            LlmTool(
+                type="function", function={"name": "lookup_weather", "strict": True}
+            ),
+        ),
         tool_choice={"type": "function", "function": {"name": "lookup_weather"}},
         parallel_tool_calls=True,
     )
@@ -400,5 +483,8 @@ def test_ai_gateway_request_serializes_complete_tool_loop() -> None:
         "content": '{"temperature":19}',
         "tool_call_id": "call-1",
     }
-    assert payload["tool_choice"] == {"type": "function", "function": {"name": "lookup_weather"}}
+    assert payload["tool_choice"] == {
+        "type": "function",
+        "function": {"name": "lookup_weather"},
+    }
     assert payload["parallel_tool_calls"] is True

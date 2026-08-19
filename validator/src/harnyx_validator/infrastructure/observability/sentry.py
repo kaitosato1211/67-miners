@@ -15,7 +15,9 @@ def configure_sentry_from_env() -> None:
     configure_sentry_sdk_from_env(dsn_env_var="SENTRY_DSN")
 
 
-def configure_sentry_from_observability(*, observability: ObservabilitySettings) -> None:
+def configure_sentry_from_observability(
+    *, observability: ObservabilitySettings
+) -> None:
     configure_sentry_sdk(
         dsn=observability.sentry_dsn_value,
         observability=observability,

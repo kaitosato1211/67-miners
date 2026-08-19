@@ -33,7 +33,9 @@ pytestmark = pytest.mark.anyio("asyncio")
 
 class RecordingSandbox(SandboxClient):
     def __init__(self) -> None:
-        self.invocations: list[tuple[str, Mapping[str, object], Mapping[str, object], str, UUID]] = []
+        self.invocations: list[
+            tuple[str, Mapping[str, object], Mapping[str, object], str, UUID]
+        ] = []
         self.response: Mapping[str, object] = {"text": "Answer"}
         self.raise_error: Exception | None = None
         self.on_invoke: Callable[[UUID], None] | None = None
@@ -93,7 +95,15 @@ def _build_invoker(token: str) -> tuple[
         token_registry=token_registry,
         receipt_log=receipt_log,
     )
-    return invoker, sandbox, request.session_id, session_registry, manager, token_registry, receipt_log
+    return (
+        invoker,
+        sandbox,
+        request.session_id,
+        session_registry,
+        manager,
+        token_registry,
+        receipt_log,
+    )
 
 
 async def test_invoke_entrypoint_calls_query_with_query_payload() -> None:
@@ -144,7 +154,9 @@ async def test_invoke_entrypoint_returns_structured_output() -> None:
     assert sandbox.invocations[0][1] == {"text": "question", "output_schema": schema}
 
 
-async def test_invoke_entrypoint_maps_schema_mismatch_as_miner_response_invalid() -> None:
+async def test_invoke_entrypoint_maps_schema_mismatch_as_miner_response_invalid() -> (
+    None
+):
     token = uuid4().hex
     invoker, sandbox, session_id, _, _, _, _ = _build_invoker(token)
     sandbox.response = {"output": {"answer": 1}}
@@ -473,7 +485,9 @@ async def test_invoke_entrypoint_rejects_inactive_session() -> None:
         )
 
 
-async def test_invoke_entrypoint_raises_when_session_exhausts_after_successful_response() -> None:
+async def test_invoke_entrypoint_raises_when_session_exhausts_after_successful_response() -> (
+    None
+):
     token = uuid4().hex
     invoker, sandbox, session_id, session_registry, _, _, _ = _build_invoker(token)
 
@@ -495,7 +509,9 @@ async def test_invoke_entrypoint_raises_when_session_exhausts_after_successful_r
         )
 
 
-async def test_invoke_entrypoint_raises_exhausted_when_sandbox_errors_after_exhaustion() -> None:
+async def test_invoke_entrypoint_raises_exhausted_when_sandbox_errors_after_exhaustion() -> (
+    None
+):
     token = uuid4().hex
     invoker, sandbox, session_id, session_registry, _, _, _ = _build_invoker(token)
 

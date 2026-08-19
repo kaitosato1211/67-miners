@@ -26,6 +26,7 @@ class EvidenceBundle:
     receipt_id: str
     items: tuple[EvidenceItem, ...]
 
+
 @entrypoint("query")
 async def query(query: Query) -> Response:
     evidence = await _gather_evidence(query.text)
@@ -38,7 +39,9 @@ async def query(query: Query) -> Response:
 
 
 async def _gather_evidence(query: str) -> EvidenceBundle:
-    response = await search_web((query,), provider="parallel", num=max(MAX_EVIDENCE_RESULTS, 5))
+    response = await search_web(
+        (query,), provider="parallel", num=max(MAX_EVIDENCE_RESULTS, 5)
+    )
     items: list[EvidenceItem] = []
     for result in response.results:
         if result.url is None:

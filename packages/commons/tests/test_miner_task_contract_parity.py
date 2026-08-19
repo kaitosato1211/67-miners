@@ -8,7 +8,9 @@ from harnyx_miner_sdk.query import Query as MinerSdkQuery
 from harnyx_miner_sdk.query import Response as MinerSdkResponse
 
 
-def _relevant_model_config(model: type[object]) -> tuple[object, object, object, object]:
+def _relevant_model_config(
+    model: type[object],
+) -> tuple[object, object, object, object]:
     config = model.model_config
     return (
         config.get("extra"),
@@ -31,8 +33,12 @@ def test_response_contract_matches_miner_sdk_boundary() -> None:
     sdk_schema = MinerSdkResponse.model_json_schema()
 
     assert commons_schema != sdk_schema
-    assert _relevant_model_config(CommonsResponse) == _relevant_model_config(MinerSdkResponse)
-    assert CommonsResponse(text="hello", citations=(AnswerCitation(url="https://example.com"),))
+    assert _relevant_model_config(CommonsResponse) == _relevant_model_config(
+        MinerSdkResponse
+    )
+    assert CommonsResponse(
+        text="hello", citations=(AnswerCitation(url="https://example.com"),)
+    )
     assert MinerSdkResponse(
         text="hello",
         citations=[CitationRef(receipt_id="receipt-1", result_id="result-1")],
@@ -50,5 +56,8 @@ def test_response_contract_matches_miner_sdk_boundary() -> None:
 
 
 def test_response_contracts_share_answer_modes_with_distinct_citation_types() -> None:
-    assert CommonsResponse(output={"answer": [1, None]}).answer_text == '{"answer":[1,null]}'
+    assert (
+        CommonsResponse(output={"answer": [1, None]}).answer_text
+        == '{"answer":[1,null]}'
+    )
     assert MinerSdkResponse(output={"answer": [1, None]})

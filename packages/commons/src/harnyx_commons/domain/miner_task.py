@@ -6,7 +6,14 @@ from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    field_validator,
+    model_validator,
+)
 
 from harnyx_commons.domain.judge_usage import JudgeUsageSummary
 from harnyx_commons.domain.shared_config import COMMONS_STRICT_CONFIG
@@ -68,8 +75,12 @@ class Response(BaseModel):
         str_strip_whitespace=False,
     )
 
-    text: str | None = Field(default=None, max_length=80_000, exclude_if=lambda value: value is None)
-    output: JsonValue | None = Field(default=None, exclude_if=lambda value: value is None)
+    text: str | None = Field(
+        default=None, max_length=80_000, exclude_if=lambda value: value is None
+    )
+    output: JsonValue | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     citations: tuple[AnswerCitation | None, ...] | None = Field(
         default=None,
         description=_POSITIONAL_CITATIONS_DESCRIPTION,
@@ -182,15 +193,17 @@ class MinerTaskErrorCode(StrEnum):
     VALIDATOR_TIMEOUT = "validator_timeout"
 
 
-DELIVERY_DISQUALIFYING_VALIDATOR_PAIR_ERROR_CODES: frozenset[MinerTaskErrorCode] = frozenset(
-    (
-        MinerTaskErrorCode.SCORING_LLM_RETRY_EXHAUSTED,
-        MinerTaskErrorCode.ARTIFACT_FETCH_FAILED,
-        MinerTaskErrorCode.ARTIFACT_HASH_MISMATCH,
-        MinerTaskErrorCode.ARTIFACT_STAGING_FAILED,
-        MinerTaskErrorCode.ARTIFACT_SETUP_FAILED,
-        MinerTaskErrorCode.SANDBOX_START_FAILED,
-        MinerTaskErrorCode.SANDBOX_INVOCATION_FAILED,
+DELIVERY_DISQUALIFYING_VALIDATOR_PAIR_ERROR_CODES: frozenset[MinerTaskErrorCode] = (
+    frozenset(
+        (
+            MinerTaskErrorCode.SCORING_LLM_RETRY_EXHAUSTED,
+            MinerTaskErrorCode.ARTIFACT_FETCH_FAILED,
+            MinerTaskErrorCode.ARTIFACT_HASH_MISMATCH,
+            MinerTaskErrorCode.ARTIFACT_STAGING_FAILED,
+            MinerTaskErrorCode.ARTIFACT_SETUP_FAILED,
+            MinerTaskErrorCode.SANDBOX_START_FAILED,
+            MinerTaskErrorCode.SANDBOX_INVOCATION_FAILED,
+        )
     )
 )
 
@@ -244,7 +257,9 @@ class EvaluationTrace(BaseModel):
     scoring_judge_duration_ms: float | None = Field(default=None, ge=0.0)
     scoring_judge_status: Literal["ok", "exhausted", "failed"] | None = None
 
-    @field_validator("scoring_judge_selected_routes", "scoring_judge_retry_reasons", mode="before")
+    @field_validator(
+        "scoring_judge_selected_routes", "scoring_judge_retry_reasons", mode="before"
+    )
     @classmethod
     def _normalize_tuple_fields(cls, value: object) -> object:
         if isinstance(value, list):
@@ -279,7 +294,9 @@ class EvaluationDetails(BaseModel):
         has_score_breakdown = self.score_breakdown is not None
         has_error = self.error is not None
         if has_score_breakdown == has_error:
-            raise ValueError("evaluation details must include exactly one of score_breakdown or error")
+            raise ValueError(
+                "evaluation details must include exactly one of score_breakdown or error"
+            )
         return self
 
 

@@ -7,7 +7,11 @@ from harnyx_commons.config.llm import LlmSettings
 from harnyx_commons.tools.firecrawl import FirecrawlClient
 from harnyx_commons.tools.search_models import FetchPageRequest, SearchWebSearchRequest
 
-pytestmark = [pytest.mark.integration, pytest.mark.expensive, pytest.mark.anyio("asyncio")]
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.expensive,
+    pytest.mark.anyio("asyncio"),
+]
 
 
 def _api_key() -> str:

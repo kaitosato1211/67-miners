@@ -11,7 +11,9 @@ from harnyx_commons.tools.search_models import FetchPageRequest, SearchWebSearch
 pytestmark = pytest.mark.anyio("asyncio")
 
 
-async def test_desearch_client_search_web_applies_request_timeout_to_provider_call() -> None:
+async def test_desearch_client_search_web_applies_request_timeout_to_provider_call() -> (
+    None
+):
     captured: dict[str, Any] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:

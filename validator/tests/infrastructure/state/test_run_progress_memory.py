@@ -46,7 +46,9 @@ def _large_log_batch(*, submission_count: int) -> MinerTaskBatchSpec:
         )
         for index in range(submission_count)
     )
-    artifact = ScriptArtifactSpec(uid=7, artifact_id=uuid4(), content_hash="abc", size_bytes=1)
+    artifact = ScriptArtifactSpec(
+        uid=7, artifact_id=uuid4(), content_hash="abc", size_bytes=1
+    )
     return MinerTaskBatchSpec(
         batch_id=uuid4(),
         cutoff_at="2025-01-01T00:00:00Z",
@@ -170,7 +172,9 @@ def _estimated_execution_log_payload_bytes(submission: MinerTaskRunSubmission) -
     return total
 
 
-def _estimated_attempt_execution_log_payload_bytes(attempt: MinerTaskAttemptAuditRecord) -> int:
+def _estimated_attempt_execution_log_payload_bytes(
+    attempt: MinerTaskAttemptAuditRecord,
+) -> int:
     total = 0
     for receipt in attempt.execution_log:
         response_payload = receipt.details.response_payload
@@ -257,7 +261,9 @@ def _measure_large_attempt_log_retention(
     }
 
 
-def test_run_progress_retained_memory_is_sublinear_in_execution_log_bytes(tmp_path: Path) -> None:
+def test_run_progress_retained_memory_is_sublinear_in_execution_log_bytes(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     batch = _large_log_batch(submission_count=16)
     measurement = _measure_large_log_retention(
@@ -273,7 +279,9 @@ def test_run_progress_retained_memory_is_sublinear_in_execution_log_bytes(tmp_pa
         measurement["total_log_bytes"] // 5,
     ), measurement
     if measurement["blob_bytes"] == 0:
-        pytest.fail(f"full execution logs were not spooled to blob storage: {measurement!r}")
+        pytest.fail(
+            f"full execution logs were not spooled to blob storage: {measurement!r}"
+        )
     assert measurement["blob_bytes"] >= measurement["total_log_bytes"], measurement
     assert measurement["rss_delta"] < max(
         64 * 1024 * 1024,
@@ -301,7 +309,9 @@ def test_run_progress_retained_memory_is_sublinear_in_attempt_execution_log_byte
         measurement["total_log_bytes"] // 5,
     ), measurement
     if measurement["blob_bytes"] == 0:
-        pytest.fail(f"attempt execution logs were not spooled to blob storage: {measurement!r}")
+        pytest.fail(
+            f"attempt execution logs were not spooled to blob storage: {measurement!r}"
+        )
     assert measurement["blob_bytes"] >= measurement["total_log_bytes"], measurement
     assert measurement["rss_delta"] < max(
         64 * 1024 * 1024,

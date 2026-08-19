@@ -51,12 +51,18 @@ class VertexTextEmbeddingClient:
         dimensions: int = 768,
     ) -> VertexTextEmbeddingClient:
         if project is None or not project.strip():
-            raise RuntimeError("GCP_PROJECT_ID must be configured for validator run scoring embeddings")
+            raise RuntimeError(
+                "GCP_PROJECT_ID must be configured for validator run scoring embeddings"
+            )
         if location is None or not location.strip():
-            raise RuntimeError("GCP_LOCATION must be configured for validator run scoring embeddings")
+            raise RuntimeError(
+                "GCP_LOCATION must be configured for validator run scoring embeddings"
+            )
         normalized_model = model.strip()
         if not normalized_model:
-            raise RuntimeError("validator run scoring embedding model must be configured")
+            raise RuntimeError(
+                "validator run scoring embedding model must be configured"
+            )
         timeout_ms = math.ceil(timeout_seconds * 1000) if timeout_seconds > 0 else None
         credentials, _ = prepare_credentials(None, service_account_b64)
         client = genai.Client(
@@ -85,7 +91,9 @@ class VertexTextEmbeddingClient:
                 response = await self.client.aio.models.embed_content(
                     model=self.model,
                     contents=normalized,
-                    config=types.EmbedContentConfig(output_dimensionality=self.dimensions),
+                    config=types.EmbedContentConfig(
+                        output_dimensionality=self.dimensions
+                    ),
                 )
                 return _extract_vector(
                     cast(_EmbeddingResponse, response),
@@ -125,7 +133,9 @@ class LazyVertexTextEmbeddingClient:
     model: str
     timeout_seconds: float
     dimensions: int = 768
-    _client: VertexTextEmbeddingClient | None = field(default=None, init=False, repr=False)
+    _client: VertexTextEmbeddingClient | None = field(
+        default=None, init=False, repr=False
+    )
 
     async def embed(self, text: str) -> tuple[float, ...]:
         client = self._client
@@ -164,7 +174,9 @@ def _classify_embedding_exception(exc: Exception) -> tuple[bool, str]:
     return False, str(exc)
 
 
-def _extract_vector(response: _EmbeddingResponse, *, expected_dimensions: int) -> tuple[float, ...]:
+def _extract_vector(
+    response: _EmbeddingResponse, *, expected_dimensions: int
+) -> tuple[float, ...]:
     embeddings = response.embeddings
     if embeddings is None or not embeddings:
         raise RuntimeError("embedding response missing embeddings")

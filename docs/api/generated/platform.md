@@ -3,6 +3,7 @@
 Generated from FastAPI OpenAPI.
 
 ## Domains
+
 - [feeds](#feeds)
   - [POST /v1/feeds/search](#endpoint-post-v1-feeds-search)
   - [POST /v1/feeds/{feed_id}/tool/search](#endpoint-post-v1-feeds-feed_id-tool-search)
@@ -42,6 +43,7 @@ Generated from FastAPI OpenAPI.
 ### search
 
 <a id="endpoint-post-v1-feeds-search"></a>
+
 #### POST /v1/feeds/search
 
 Search for similar indexed feed items, optionally scoped to strict prior items.
@@ -52,57 +54,56 @@ Search for similar indexed feed items, optionally scoped to strict prior items.
 Content-Type: `application/json`
 Body: [FeedSearchRequestModel](#model-feedsearchrequestmodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `enqueue_seq` |  |  | opt | `integer` (nullable) |
-| `feed_id` |  |  | req | `string` (format: uuid) |
-| `num_hit` |  |  | opt | `integer` (default: 20) |
-| `search_queries` |  |  | req | array[`string`] |
+| 1st level        | 2nd level | 3rd level | Req | Notes                   |
+| ---------------- | --------- | --------- | --- | ----------------------- |
+| `enqueue_seq`    |           |           | opt | `integer` (nullable)    |
+| `feed_id`        |           |           | req | `string` (format: uuid) |
+| `num_hit`        |           |           | opt | `integer` (default: 20) |
+| `search_queries` |           |           | req | array[`string`]         |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [FeedSearchResponseModel](#model-feedsearchresponsemodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `hits` |  |  | req | array[[FeedSearchHitModel](#model-feedsearchhitmodel)] |
-|  | `content_id` |  | req | `string` (format: uuid) |
-|  | `content_review_rubric_result` |  | opt | [ExternalEvalResultModel](#model-externalevalresultmodel) (nullable) |
-|  |  | `criteria` | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] |
-|  |  | `overall_rationale` | opt | `string` (nullable) |
-|  |  | `rubric_id` | req | `string` |
-|  |  | `rubric_score` | req | `number` |
-|  | `content_review_topic_gate` |  | opt | [TopicGateModel](#model-topicgatemodel) (nullable) |
-|  |  | `criteria` | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
-|  |  | `score` | opt | `number` (nullable) |
-|  | `decision` |  | opt | `string` (nullable) |
-|  | `enqueue_seq` |  | req | `integer` |
-|  | `external_id` |  | req | `string` |
-|  | `is_excluded` |  | opt | `boolean` (nullable) |
-|  | `job_error_code` |  | opt | `string` (nullable) |
-|  | `job_error_message` |  | opt | `string` (nullable) |
-|  | `job_id` |  | req | `string` (format: uuid) |
-|  | `job_status` |  | opt | `string` (nullable) |
-|  | `provider` |  | req | `string` |
-|  | `requested_at_epoch_ms` |  | req | `integer` |
-|  | `score` |  | opt | `number` (nullable) |
-|  | `text` |  | req | `string` |
-|  | `url` |  | opt | `string` (nullable) |
+| 1st level | 2nd level                      | 3rd level           | Req | Notes                                                                            |
+| --------- | ------------------------------ | ------------------- | --- | -------------------------------------------------------------------------------- |
+| `hits`    |                                |                     | req | array[[FeedSearchHitModel](#model-feedsearchhitmodel)]                           |
+|           | `content_id`                   |                     | req | `string` (format: uuid)                                                          |
+|           | `content_review_rubric_result` |                     | opt | [ExternalEvalResultModel](#model-externalevalresultmodel) (nullable)             |
+|           |                                | `criteria`          | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)]               |
+|           |                                | `overall_rationale` | opt | `string` (nullable)                                                              |
+|           |                                | `rubric_id`         | req | `string`                                                                         |
+|           |                                | `rubric_score`      | req | `number`                                                                         |
+|           | `content_review_topic_gate`    |                     | opt | [TopicGateModel](#model-topicgatemodel) (nullable)                               |
+|           |                                | `criteria`          | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
+|           |                                | `score`             | opt | `number` (nullable)                                                              |
+|           | `decision`                     |                     | opt | `string` (nullable)                                                              |
+|           | `enqueue_seq`                  |                     | req | `integer`                                                                        |
+|           | `external_id`                  |                     | req | `string`                                                                         |
+|           | `is_excluded`                  |                     | opt | `boolean` (nullable)                                                             |
+|           | `job_error_code`               |                     | opt | `string` (nullable)                                                              |
+|           | `job_error_message`            |                     | opt | `string` (nullable)                                                              |
+|           | `job_id`                       |                     | req | `string` (format: uuid)                                                          |
+|           | `job_status`                   |                     | opt | `string` (nullable)                                                              |
+|           | `provider`                     |                     | req | `string`                                                                         |
+|           | `requested_at_epoch_ms`        |                     | req | `integer`                                                                        |
+|           | `score`                        |                     | opt | `number` (nullable)                                                              |
+|           | `text`                         |                     | req | `string`                                                                         |
+|           | `url`                          |                     | opt | `string` (nullable)                                                              |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### {feed_id}
 
@@ -111,6 +112,7 @@ Body: [HTTPValidationError](#model-httpvalidationerror)
 ##### search
 
 <a id="endpoint-post-v1-feeds-feed_id-tool-search"></a>
+
 ###### POST /v1/feeds/{feed_id}/tool/search
 
 Provider-native simple search endpoint for feed-item grounding with optional enqueue boundary.
@@ -118,47 +120,47 @@ Provider-native simple search endpoint for feed-item grounding with optional enq
 **Auth**: Bittensor-signed (`Authorization: Bittensor ss58="...",sig="..."`) OR ConfiguredApiKey
 
 **Parameters**
-| Param | In | Req | Notes |
-| --- | --- | --- | --- |
-| `feed_id` | path | req | `string` (format: uuid) |
-| `enqueue_seq` | query | opt | `integer` (nullable) |
+
+| Param         | In    | Req | Notes                   |
+| ------------- | ----- | --- | ----------------------- |
+| `feed_id`     | path  | req | `string` (format: uuid) |
+| `enqueue_seq` | query | opt | `integer` (nullable)    |
 
 **Request**
 Content-Type: `application/json`
 Body: [_RepoSimpleSearchRequest](#model-_reposimplesearchrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `query` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `query`   |           |           | req | `string` |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: array[[_RepoSimpleSearchHit](#model-_reposimplesearchhit)]
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `snippet` |  |  | req | `string` |
-| `uri` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `snippet` |           |           | req | `string` |
+| `uri`     |           |           | req | `string` |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## miner-config
 
 <a id="endpoint-get-v1-miner-config"></a>
+
 ### GET /v1/miner-config
 
 Read redacted miner provider credential status.
@@ -170,15 +172,15 @@ Read redacted miner provider credential status.
 Content-Type: `application/json`
 Body: [MinerConfigResponse](#model-minerconfigresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `provider_credentials` |  |  | req | `object` |
-| `task_retry_count` |  |  | req | `integer` |
-| `uid` |  |  | req | `integer` (nullable) |
-
+| 1st level              | 2nd level | 3rd level | Req | Notes                |
+| ---------------------- | --------- | --------- | --- | -------------------- |
+| `miner_hotkey_ss58`    |           |           | req | `string`             |
+| `provider_credentials` |           |           | req | `object`             |
+| `task_retry_count`     |           |           | req | `integer`            |
+| `uid`                  |           |           | req | `integer` (nullable) |
 
 <a id="endpoint-put-v1-miner-config"></a>
+
 ### PUT /v1/miner-config
 
 Create or update one miner provider credential.
@@ -189,38 +191,38 @@ Create or update one miner provider credential.
 Content-Type: `application/json`
 Body: [MinerConfigPutRequest](#model-minerconfigputrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `key` |  |  | req | `string` |
-| `value` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `key`     |           |           | req | `string` |
+| `value`   |           |           | req | `string` |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [MinerConfigResponse](#model-minerconfigresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `provider_credentials` |  |  | req | `object` |
-| `task_retry_count` |  |  | req | `integer` |
-| `uid` |  |  | req | `integer` (nullable) |
+| 1st level              | 2nd level | 3rd level | Req | Notes                |
+| ---------------------- | --------- | --------- | --- | -------------------- |
+| `miner_hotkey_ss58`    |           |           | req | `string`             |
+| `provider_credentials` |           |           | req | `object`             |
+| `task_retry_count`     |           |           | req | `integer`            |
+| `uid`                  |           |           | req | `integer` (nullable) |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 <a id="endpoint-delete-v1-miner-config"></a>
+
 ### DELETE /v1/miner-config
 
 Delete one miner provider credential.
@@ -231,42 +233,41 @@ Delete one miner provider credential.
 Content-Type: `application/json`
 Body: [MinerConfigDeleteRequest](#model-minerconfigdeleterequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `key` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `key`     |           |           | req | `string` |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [MinerConfigResponse](#model-minerconfigresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `provider_credentials` |  |  | req | `object` |
-| `task_retry_count` |  |  | req | `integer` |
-| `uid` |  |  | req | `integer` (nullable) |
+| 1st level              | 2nd level | 3rd level | Req | Notes                |
+| ---------------------- | --------- | --------- | --- | -------------------- |
+| `miner_hotkey_ss58`    |           |           | req | `string`             |
+| `provider_credentials` |           |           | req | `object`             |
+| `task_retry_count`     |           |           | req | `integer`            |
+| `uid`                  |           |           | req | `integer` (nullable) |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## miner-task-batches
 
 ### batch
 
 <a id="endpoint-post-v1-miner-task-batches-batch"></a>
+
 #### POST /v1/miner-task-batches/batch
 
 Subnet owner or platform admin API-key emergency recovery route. Each request force-creates a fresh batch, is not replay-safe, and fails fast with 409 while batch creation is already in progress or another batch is running. Returns once the unfinished batch and its immutable inputs are durable; the existing work sweep continues construction.
@@ -277,46 +278,46 @@ Subnet owner or platform admin API-key emergency recovery route. Each request fo
 Content-Type: `application/json`
 Body: [CreateBatchRequest](#model-createbatchrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `champion_artifact_id` |  |  | opt | `string` (format: uuid; nullable) |
-| `use_previous_task_dataset` |  |  | opt | `boolean` (default: False) |
+| 1st level                   | 2nd level | 3rd level | Req | Notes                             |
+| --------------------------- | --------- | --------- | --- | --------------------------------- |
+| `champion_artifact_id`      |           |           | opt | `string` (format: uuid; nullable) |
+| `use_previous_task_dataset` |           |           | opt | `boolean` (default: False)        |
 
 **Responses**
 `202` Successful Response
 Content-Type: `application/json`
 Body: [CreateBatchAcceptedResponse](#model-createbatchacceptedresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `batch_id` |  |  | req | `string` (format: uuid) |
+| 1st level  | 2nd level | 3rd level | Req | Notes                   |
+| ---------- | --------- | --------- | --- | ----------------------- |
+| `batch_id` |           |           | req | `string` (format: uuid) |
 
 `409` Batch creation already in progress or another batch is running.
 Content-Type: `application/json`
 Body: [ErrorResponse](#model-errorresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `error_code` |  |  | req | `string` |
-| `message` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes    |
+| ------------ | --------- | --------- | --- | -------- |
+| `error_code` |           |           | req | `string` |
+| `message`    |           |           | req | `string` |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 #### {batch_id}
 
 <a id="endpoint-get-v1-miner-task-batches-batch-batch_id"></a>
+
 ##### GET /v1/miner-task-batches/batch/{batch_id}
 
 Fetch a previously created miner-task batch.
@@ -324,8 +325,9 @@ Fetch a previously created miner-task batch.
 **Auth**: Bittensor-signed (`Authorization: Bittensor ss58="...",sig="..."`)
 
 **Parameters**
-| Param | In | Req | Notes |
-| --- | --- | --- | --- |
+
+| Param      | In   | Req | Notes                   |
+| ---------- | ---- | --- | ----------------------- |
 | `batch_id` | path | req | `string` (format: uuid) |
 
 **Responses**
@@ -333,45 +335,44 @@ Fetch a previously created miner-task batch.
 Content-Type: `application/json`
 Body: [MinerTaskBatchModel](#model-minertaskbatchmodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifacts` |  |  | req | array[[MinerTaskBatchArtifactModel](#model-minertaskbatchartifactmodel)] |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `content_hash` |  | req | `string` |
-|  | `miner_hotkey_ss58` |  | req | `string` |
-|  | `size_bytes` |  | req | `integer` |
-|  | `submitted_at` |  | req | `string` (format: date-time) |
-|  | `task_retry_count` |  | req | `integer` |
-|  | `uid` |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `champion_artifact_id` |  |  | req | `string` (format: uuid; nullable) |
-| `completed_at` |  |  | opt | `string` (format: date-time; nullable) |
-| `created_at` |  |  | req | `string` (format: date-time) |
-| `cutoff_at` |  |  | req | `string` (format: date-time) |
-| `failed_at` |  |  | opt | `string` (format: date-time; nullable) |
-| `tasks` |  |  | req | array[[MinerTask](#model-minertask)] |
-|  | `budget_usd` |  | opt | `number` (default: 0.5) |
-|  | `query` |  | req | [Query](#model-query) |
-|  |  | `output_schema` | opt | [JsonObject-Input](#model-jsonobject-input) (nullable) |
-|  |  | `text` | req | `string` |
-|  | `reference_answer` |  | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `text` | req | `string` |
-|  | `task_id` |  | req | `string` (format: uuid) |
+| 1st level              | 2nd level           | 3rd level       | Req | Notes                                                                    |
+| ---------------------- | ------------------- | --------------- | --- | ------------------------------------------------------------------------ |
+| `artifacts`            |                     |                 | req | array[[MinerTaskBatchArtifactModel](#model-minertaskbatchartifactmodel)] |
+|                        | `artifact_id`       |                 | req | `string` (format: uuid)                                                  |
+|                        | `content_hash`      |                 | req | `string`                                                                 |
+|                        | `miner_hotkey_ss58` |                 | req | `string`                                                                 |
+|                        | `size_bytes`        |                 | req | `integer`                                                                |
+|                        | `submitted_at`      |                 | req | `string` (format: date-time)                                             |
+|                        | `task_retry_count`  |                 | req | `integer`                                                                |
+|                        | `uid`               |                 | req | `integer`                                                                |
+| `batch_id`             |                     |                 | req | `string` (format: uuid)                                                  |
+| `champion_artifact_id` |                     |                 | req | `string` (format: uuid; nullable)                                        |
+| `completed_at`         |                     |                 | opt | `string` (format: date-time; nullable)                                   |
+| `created_at`           |                     |                 | req | `string` (format: date-time)                                             |
+| `cutoff_at`            |                     |                 | req | `string` (format: date-time)                                             |
+| `failed_at`            |                     |                 | opt | `string` (format: date-time; nullable)                                   |
+| `tasks`                |                     |                 | req | array[[MinerTask](#model-minertask)]                                     |
+|                        | `budget_usd`        |                 | opt | `number` (default: 0.5)                                                  |
+|                        | `query`             |                 | req | [Query](#model-query)                                                    |
+|                        |                     | `output_schema` | opt | [JsonObject-Input](#model-jsonobject-input) (nullable)                   |
+|                        |                     | `text`          | req | `string`                                                                 |
+|                        | `reference_answer`  |                 | req | [ReferenceAnswer](#model-referenceanswer)                                |
+|                        |                     | `citations`     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                |
+|                        |                     | `text`          | req | `string`                                                                 |
+|                        | `task_id`           |                 | req | `string` (format: uuid)                                                  |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### {batch_id}
 
@@ -380,6 +381,7 @@ Body: [HTTPValidationError](#model-httpvalidationerror)
 ##### {artifact_id}
 
 <a id="endpoint-get-v1-miner-task-batches-batch_id-artifacts-artifact_id"></a>
+
 ###### GET /v1/miner-task-batches/{batch_id}/artifacts/{artifact_id}
 
 Download a stored script artifact for a batch.
@@ -387,9 +389,10 @@ Download a stored script artifact for a batch.
 **Auth**: Bittensor-signed (`Authorization: Bittensor ss58="...",sig="..."`)
 
 **Parameters**
-| Param | In | Req | Notes |
-| --- | --- | --- | --- |
-| `batch_id` | path | req | `string` (format: uuid) |
+
+| Param         | In   | Req | Notes                   |
+| ------------- | ---- | --- | ----------------------- |
+| `batch_id`    | path | req | `string` (format: uuid) |
 | `artifact_id` | path | req | `string` (format: uuid) |
 
 **Responses**
@@ -399,22 +402,21 @@ Download a stored script artifact for a batch.
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## miner-task-work
 
 ### executions
 
 <a id="endpoint-post-v2-miner-task-work-executions"></a>
+
 #### POST /v2/miner-task-work/executions
 
 Submit completed platform-owned miner-task execution evidence for the caller validator.
@@ -425,99 +427,99 @@ Submit completed platform-owned miner-task execution evidence for the caller val
 Content-Type: `application/json`
 Body: [MinerTaskWorkExecutionsRequest](#model-minertaskworkexecutionsrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `executions` |  |  | opt | array[[MinerTaskWorkExecutionEnvelope](#model-minertaskworkexecutionenvelope)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `execution_completed_at` |  | req | `string` (format: date-time) |
-|  | `execution_log` |  | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `details` | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  |  | `issued_at` | req | `string` (format: date-time) |
-|  |  | `outcome` | req | [ToolCallOutcome](#model-toolcalloutcome) |
-|  |  | `receipt_id` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `tool` | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-|  |  | `uid` | req | `integer` |
-|  | `miner_hotkey_ss58` |  | req | `string` |
-|  | `response` |  | req | [Response](#model-response) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `output` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `text` | opt | `string` (nullable) |
-|  | `session` |  | req | [SessionModel](#model-sessionmodel) |
-|  |  | `expires_at` | req | `string` |
-|  |  | `issued_at` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `status` | req | `string` |
-|  |  | `uid` | req | `integer` |
-|  | `started_at` |  | req | `string` (format: date-time) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `total_tool_usage` |  | req | [ToolUsageSummary](#model-toolusagesummary) |
-|  |  | `actual_cost_by_provider` | opt | `object` |
-|  |  | `actual_total_cost_usd` | opt | `number` (nullable) |
-|  |  | `embedding` | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `embedding_cost` | opt | `number` (default: 0.0) |
-|  |  | `llm` | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `llm_cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost_by_provider` | opt | `object` |
-|  |  | `reference_total_cost_usd` | opt | `number` (default: 0.0) |
-|  |  | `search_tool` | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `search_tool_cost` | opt | `number` (default: 0.0) |
-|  | `trace` |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  |  | `entrypoint_invocation_ms` | opt | `number` (nullable) |
-|  |  | `orchestration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_attempt_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_duration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_retry_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_retry_reasons` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_selected_routes` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_status` | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  |  | `scoring_ms` | opt | `number` (nullable) |
-|  | `uid` |  | req | `integer` |
-|  | `usage` |  | req | [UsageModel](#model-usagemodel) |
-|  |  | `by_provider` | opt | `object` |
-|  |  | `call_count` | req | `integer` |
-|  |  | `total_completion_tokens` | req | `integer` |
-|  |  | `total_prompt_tokens` | req | `integer` |
-|  |  | `total_tokens` | req | `integer` |
-|  | `validator_session_id` |  | req | `string` (format: uuid) |
+| 1st level    | 2nd level                | 3rd level                       | Req | Notes                                                                                               |
+| ------------ | ------------------------ | ------------------------------- | --- | --------------------------------------------------------------------------------------------------- |
+| `executions` |                          |                                 | opt | array[[MinerTaskWorkExecutionEnvelope](#model-minertaskworkexecutionenvelope)] (default: [])        |
+|              | `artifact_id`            |                                 | req | `string` (format: uuid)                                                                             |
+|              | `attempt_number`         |                                 | req | `integer`                                                                                           |
+|              | `batch_id`               |                                 | req | `string` (format: uuid)                                                                             |
+|              | `execution_completed_at` |                                 | req | `string` (format: date-time)                                                                        |
+|              | `execution_log`          |                                 | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                                        |
+|              |                          | `details`                       | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|              |                          | `issued_at`                     | req | `string` (format: date-time)                                                                        |
+|              |                          | `outcome`                       | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+|              |                          | `receipt_id`                    | req | `string`                                                                                            |
+|              |                          | `session_id`                    | req | `string` (format: uuid)                                                                             |
+|              |                          | `tool`                          | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+|              |                          | `uid`                           | req | `integer`                                                                                           |
+|              | `miner_hotkey_ss58`      |                                 | req | `string`                                                                                            |
+|              | `response`               |                                 | req | [Response](#model-response)                                                                         |
+|              |                          | `citations`                     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                                           |
+|              |                          | `output`                        | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|              |                          | `text`                          | opt | `string` (nullable)                                                                                 |
+|              | `session`                |                                 | req | [SessionModel](#model-sessionmodel)                                                                 |
+|              |                          | `expires_at`                    | req | `string`                                                                                            |
+|              |                          | `issued_at`                     | req | `string`                                                                                            |
+|              |                          | `session_id`                    | req | `string` (format: uuid)                                                                             |
+|              |                          | `status`                        | req | `string`                                                                                            |
+|              |                          | `uid`                           | req | `integer`                                                                                           |
+|              | `started_at`             |                                 | req | `string` (format: date-time)                                                                        |
+|              | `task_id`                |                                 | req | `string` (format: uuid)                                                                             |
+|              | `total_tool_usage`       |                                 | req | [ToolUsageSummary](#model-toolusagesummary)                                                         |
+|              |                          | `actual_cost_by_provider`       | opt | `object`                                                                                            |
+|              |                          | `actual_total_cost_usd`         | opt | `number` (nullable)                                                                                 |
+|              |                          | `embedding`                     | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary)                                       |
+|              |                          | `embedding_cost`                | opt | `number` (default: 0.0)                                                                             |
+|              |                          | `llm`                           | opt | [LlmUsageSummary](#model-llmusagesummary)                                                           |
+|              |                          | `llm_cost`                      | opt | `number` (default: 0.0)                                                                             |
+|              |                          | `reference_cost_by_provider`    | opt | `object`                                                                                            |
+|              |                          | `reference_total_cost_usd`      | opt | `number` (default: 0.0)                                                                             |
+|              |                          | `search_tool`                   | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)                                             |
+|              |                          | `search_tool_cost`              | opt | `number` (default: 0.0)                                                                             |
+|              | `trace`                  |                                 | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                                                |
+|              |                          | `entrypoint_invocation_ms`      | opt | `number` (nullable)                                                                                 |
+|              |                          | `orchestration_ms`              | opt | `number` (nullable)                                                                                 |
+|              |                          | `scoring_judge_attempt_count`   | opt | `integer` (nullable)                                                                                |
+|              |                          | `scoring_judge_duration_ms`     | opt | `number` (nullable)                                                                                 |
+|              |                          | `scoring_judge_retry_count`     | opt | `integer` (nullable)                                                                                |
+|              |                          | `scoring_judge_retry_reasons`   | opt | array[`string`] (default: [])                                                                       |
+|              |                          | `scoring_judge_selected_routes` | opt | array[`string`] (default: [])                                                                       |
+|              |                          | `scoring_judge_status`          | opt | `string` (enum: [ok, exhausted, failed]; nullable)                                                  |
+|              |                          | `scoring_ms`                    | opt | `number` (nullable)                                                                                 |
+|              | `uid`                    |                                 | req | `integer`                                                                                           |
+|              | `usage`                  |                                 | req | [UsageModel](#model-usagemodel)                                                                     |
+|              |                          | `by_provider`                   | opt | `object`                                                                                            |
+|              |                          | `call_count`                    | req | `integer`                                                                                           |
+|              |                          | `total_completion_tokens`       | req | `integer`                                                                                           |
+|              |                          | `total_prompt_tokens`           | req | `integer`                                                                                           |
+|              |                          | `total_tokens`                  | req | `integer`                                                                                           |
+|              | `validator_session_id`   |                                 | req | `string` (format: uuid)                                                                             |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [MinerTaskWorkExecutionsResponse](#model-minertaskworkexecutionsresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `executions` |  |  | opt | array[[MinerTaskWorkExecutionItemResponse](#model-minertaskworkexecutionitemresponse)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `canonical` |  | req | `boolean` |
-|  | `outcome` |  | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome) |
-|  | `reason` |  | opt | `string` (nullable) |
-|  | `reason_code` |  | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-| `server_time` |  |  | req | `string` (format: date-time) |
+| 1st level     | 2nd level        | 3rd level | Req | Notes                                                                                                |
+| ------------- | ---------------- | --------- | --- | ---------------------------------------------------------------------------------------------------- |
+| `executions`  |                  |           | opt | array[[MinerTaskWorkExecutionItemResponse](#model-minertaskworkexecutionitemresponse)] (default: []) |
+|               | `artifact_id`    |           | req | `string` (format: uuid)                                                                              |
+|               | `attempt_number` |           | req | `integer`                                                                                            |
+|               | `batch_id`       |           | req | `string` (format: uuid)                                                                              |
+|               | `canonical`      |           | req | `boolean`                                                                                            |
+|               | `outcome`        |           | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome)                                              |
+|               | `reason`         |           | opt | `string` (nullable)                                                                                  |
+|               | `reason_code`    |           | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable)                             |
+|               | `task_id`        |           | req | `string` (format: uuid)                                                                              |
+| `server_time` |                  |           | req | `string` (format: date-time)                                                                         |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### results
 
 <a id="endpoint-post-v2-miner-task-work-results"></a>
+
 #### POST /v2/miner-task-work/results
 
 Submit final scored platform-owned miner-task results for the caller validator.
@@ -528,76 +530,76 @@ Submit final scored platform-owned miner-task results for the caller validator.
 Content-Type: `application/json`
 Body: [MinerTaskWorkResultsRequest](#model-minertaskworkresultsrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `results` |  |  | opt | array[[MinerTaskWorkResultEnvelope](#model-minertaskworkresultenvelope)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `result` |  | opt | [MinerTaskRunRequest](#model-minertaskrunrequest) (nullable) |
-|  |  | `batch_id` | req | `string` (format: uuid) |
-|  |  | `execution_log` | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `run` | req | [MinerTaskRunSection](#model-minertaskrunsection) |
-|  |  | `score` | opt | `number` (nullable) |
-|  |  | `session` | req | [SessionModel](#model-sessionmodel) |
-|  |  | `specifics` | req | [EvaluationDetails](#model-evaluationdetails) |
-|  |  | `usage` | req | [UsageModel](#model-usagemodel) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `terminal_attempt` |  | req | [MinerTaskAttemptAuditPayload](#model-minertaskattemptauditpayload) |
-|  |  | `artifact_id` | req | `string` (format: uuid) |
-|  |  | `attempt_number` | req | `integer` |
-|  |  | `batch_id` | req | `string` (format: uuid) |
-|  |  | `delivery_failure_detail` | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable) |
-|  |  | `diagnostics` | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable) |
-|  |  | `error_code` | opt | `string` (nullable) |
-|  |  | `error_summary_code` | opt | `string` (nullable) |
-|  |  | `execution_log` | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `finished_at` | req | `string` (format: date-time) |
-|  |  | `max_attempts` | req | `integer` |
-|  |  | `miner_hotkey_ss58` | req | `string` |
-|  |  | `retry_decision` | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision) |
-|  |  | `started_at` | req | `string` (format: date-time) |
-|  |  | `status` | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus) |
-|  |  | `task_id` | req | `string` (format: uuid) |
-|  |  | `terminal_effect` | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable) |
-|  |  | `uid` | req | `integer` |
-|  |  | `validator_session_id` | req | `string` (format: uuid) |
+| 1st level | 2nd level          | 3rd level                 | Req | Notes                                                                                      |
+| --------- | ------------------ | ------------------------- | --- | ------------------------------------------------------------------------------------------ |
+| `results` |                    |                           | opt | array[[MinerTaskWorkResultEnvelope](#model-minertaskworkresultenvelope)] (default: [])     |
+|           | `artifact_id`      |                           | req | `string` (format: uuid)                                                                    |
+|           | `attempt_number`   |                           | req | `integer`                                                                                  |
+|           | `batch_id`         |                           | req | `string` (format: uuid)                                                                    |
+|           | `result`           |                           | opt | [MinerTaskRunRequest](#model-minertaskrunrequest) (nullable)                               |
+|           |                    | `batch_id`                | req | `string` (format: uuid)                                                                    |
+|           |                    | `execution_log`           | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                               |
+|           |                    | `run`                     | req | [MinerTaskRunSection](#model-minertaskrunsection)                                          |
+|           |                    | `score`                   | opt | `number` (nullable)                                                                        |
+|           |                    | `session`                 | req | [SessionModel](#model-sessionmodel)                                                        |
+|           |                    | `specifics`               | req | [EvaluationDetails](#model-evaluationdetails)                                              |
+|           |                    | `usage`                   | req | [UsageModel](#model-usagemodel)                                                            |
+|           | `task_id`          |                           | req | `string` (format: uuid)                                                                    |
+|           | `terminal_attempt` |                           | req | [MinerTaskAttemptAuditPayload](#model-minertaskattemptauditpayload)                        |
+|           |                    | `artifact_id`             | req | `string` (format: uuid)                                                                    |
+|           |                    | `attempt_number`          | req | `integer`                                                                                  |
+|           |                    | `batch_id`                | req | `string` (format: uuid)                                                                    |
+|           |                    | `delivery_failure_detail` | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable)                             |
+|           |                    | `diagnostics`             | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable) |
+|           |                    | `error_code`              | opt | `string` (nullable)                                                                        |
+|           |                    | `error_summary_code`      | opt | `string` (nullable)                                                                        |
+|           |                    | `execution_log`           | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                               |
+|           |                    | `finished_at`             | req | `string` (format: date-time)                                                               |
+|           |                    | `max_attempts`            | req | `integer`                                                                                  |
+|           |                    | `miner_hotkey_ss58`       | req | `string`                                                                                   |
+|           |                    | `retry_decision`          | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision)                      |
+|           |                    | `started_at`              | req | `string` (format: date-time)                                                               |
+|           |                    | `status`                  | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus)                                    |
+|           |                    | `task_id`                 | req | `string` (format: uuid)                                                                    |
+|           |                    | `terminal_effect`         | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable)         |
+|           |                    | `uid`                     | req | `integer`                                                                                  |
+|           |                    | `validator_session_id`    | req | `string` (format: uuid)                                                                    |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [MinerTaskWorkResultsResponse](#model-minertaskworkresultsresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `results` |  |  | opt | array[[MinerTaskWorkResultItemResponse](#model-minertaskworkresultitemresponse)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `canonical` |  | req | `boolean` |
-|  | `outcome` |  | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome) |
-|  | `reason` |  | opt | `string` (nullable) |
-|  | `reason_code` |  | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-| `server_time` |  |  | req | `string` (format: date-time) |
+| 1st level     | 2nd level        | 3rd level | Req | Notes                                                                                          |
+| ------------- | ---------------- | --------- | --- | ---------------------------------------------------------------------------------------------- |
+| `results`     |                  |           | opt | array[[MinerTaskWorkResultItemResponse](#model-minertaskworkresultitemresponse)] (default: []) |
+|               | `artifact_id`    |           | req | `string` (format: uuid)                                                                        |
+|               | `attempt_number` |           | req | `integer`                                                                                      |
+|               | `batch_id`       |           | req | `string` (format: uuid)                                                                        |
+|               | `canonical`      |           | req | `boolean`                                                                                      |
+|               | `outcome`        |           | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome)                                        |
+|               | `reason`         |           | opt | `string` (nullable)                                                                            |
+|               | `reason_code`    |           | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable)                       |
+|               | `task_id`        |           | req | `string` (format: uuid)                                                                        |
+| `server_time` |                  |           | req | `string` (format: date-time)                                                                   |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### scoreable-executions
 
 <a id="endpoint-post-v2-miner-task-work-scoreable-executions"></a>
+
 #### POST /v2/miner-task-work/scoreable-executions
 
 Return accepted miner-task executions that still need final scoring.
@@ -608,99 +610,99 @@ Return accepted miner-task executions that still need final scoring.
 Content-Type: `application/json`
 Body: [MinerTaskWorkScoreableExecutionsRequest](#model-minertaskworkscoreableexecutionsrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `active_scoring` |  |  | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `validator_session_id` |  | opt | `string` (format: uuid; nullable) |
-| `limit` |  |  | req | `integer` |
+| 1st level        | 2nd level              | 3rd level | Req | Notes                                                                                          |
+| ---------------- | ---------------------- | --------- | --- | ---------------------------------------------------------------------------------------------- |
+| `active_scoring` |                        |           | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
+|                  | `artifact_id`          |           | req | `string` (format: uuid)                                                                        |
+|                  | `attempt_number`       |           | req | `integer`                                                                                      |
+|                  | `batch_id`             |           | req | `string` (format: uuid)                                                                        |
+|                  | `task_id`              |           | req | `string` (format: uuid)                                                                        |
+|                  | `validator_session_id` |           | opt | `string` (format: uuid; nullable)                                                              |
+| `limit`          |                        |           | req | `integer`                                                                                      |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [MinerTaskWorkScoreableExecutionsResponse](#model-minertaskworkscoreableexecutionsresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `executions` |  |  | opt | array[[MinerTaskWorkScoreableExecutionPayload](#model-minertaskworkscoreableexecutionpayload)] (default: []) |
-|  | `artifact` |  | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
-|  |  | `artifact_id` | req | `string` (format: uuid) |
-|  |  | `content_hash` | req | `string` |
-|  |  | `miner_hotkey_ss58` | opt | `string` (nullable) |
-|  |  | `size_bytes` | req | `integer` |
-|  |  | `uid` | req | `integer` |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `execution_completed_at` |  | req | `string` (format: date-time) |
-|  | `max_attempts` |  | req | `integer` |
-|  | `miner_hotkey_ss58` |  | req | `string` |
-|  | `response` |  | req | [Response](#model-response) (nullable) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `output` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `text` | opt | `string` (nullable) |
-|  | `session` |  | req | [SessionModel](#model-sessionmodel) |
-|  |  | `expires_at` | req | `string` |
-|  |  | `issued_at` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `status` | req | `string` |
-|  |  | `uid` | req | `integer` |
-|  | `started_at` |  | req | `string` (format: date-time) |
-|  | `task` |  | req | [MinerTask](#model-minertask) |
-|  |  | `budget_usd` | opt | `number` (default: 0.5) |
-|  |  | `query` | req | [Query](#model-query) |
-|  |  | `reference_answer` | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `task_id` | req | `string` (format: uuid) |
-|  | `total_tool_usage` |  | req | [ToolUsageSummary](#model-toolusagesummary) |
-|  |  | `actual_cost_by_provider` | opt | `object` |
-|  |  | `actual_total_cost_usd` | opt | `number` (nullable) |
-|  |  | `embedding` | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `embedding_cost` | opt | `number` (default: 0.0) |
-|  |  | `llm` | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `llm_cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost_by_provider` | opt | `object` |
-|  |  | `reference_total_cost_usd` | opt | `number` (default: 0.0) |
-|  |  | `search_tool` | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `search_tool_cost` | opt | `number` (default: 0.0) |
-|  | `trace` |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  |  | `entrypoint_invocation_ms` | opt | `number` (nullable) |
-|  |  | `orchestration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_attempt_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_duration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_retry_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_retry_reasons` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_selected_routes` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_status` | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  |  | `scoring_ms` | opt | `number` (nullable) |
-|  | `uid` |  | req | `integer` |
-|  | `usage` |  | req | [UsageModel](#model-usagemodel) |
-|  |  | `by_provider` | opt | `object` |
-|  |  | `call_count` | req | `integer` |
-|  |  | `total_completion_tokens` | req | `integer` |
-|  |  | `total_prompt_tokens` | req | `integer` |
-|  |  | `total_tokens` | req | `integer` |
-|  | `validator_session_id` |  | req | `string` (format: uuid) |
-| `server_time` |  |  | req | `string` (format: date-time) |
+| 1st level     | 2nd level                | 3rd level                       | Req | Notes                                                                                                        |
+| ------------- | ------------------------ | ------------------------------- | --- | ------------------------------------------------------------------------------------------------------------ |
+| `executions`  |                          |                                 | opt | array[[MinerTaskWorkScoreableExecutionPayload](#model-minertaskworkscoreableexecutionpayload)] (default: []) |
+|               | `artifact`               |                                 | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload)                                          |
+|               |                          | `artifact_id`                   | req | `string` (format: uuid)                                                                                      |
+|               |                          | `content_hash`                  | req | `string`                                                                                                     |
+|               |                          | `miner_hotkey_ss58`             | opt | `string` (nullable)                                                                                          |
+|               |                          | `size_bytes`                    | req | `integer`                                                                                                    |
+|               |                          | `uid`                           | req | `integer`                                                                                                    |
+|               | `attempt_number`         |                                 | req | `integer`                                                                                                    |
+|               | `batch_id`               |                                 | req | `string` (format: uuid)                                                                                      |
+|               | `execution_completed_at` |                                 | req | `string` (format: date-time)                                                                                 |
+|               | `max_attempts`           |                                 | req | `integer`                                                                                                    |
+|               | `miner_hotkey_ss58`      |                                 | req | `string`                                                                                                     |
+|               | `response`               |                                 | req | [Response](#model-response) (nullable)                                                                       |
+|               |                          | `citations`                     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                                                    |
+|               |                          | `output`                        | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                         |
+|               |                          | `text`                          | opt | `string` (nullable)                                                                                          |
+|               | `session`                |                                 | req | [SessionModel](#model-sessionmodel)                                                                          |
+|               |                          | `expires_at`                    | req | `string`                                                                                                     |
+|               |                          | `issued_at`                     | req | `string`                                                                                                     |
+|               |                          | `session_id`                    | req | `string` (format: uuid)                                                                                      |
+|               |                          | `status`                        | req | `string`                                                                                                     |
+|               |                          | `uid`                           | req | `integer`                                                                                                    |
+|               | `started_at`             |                                 | req | `string` (format: date-time)                                                                                 |
+|               | `task`                   |                                 | req | [MinerTask](#model-minertask)                                                                                |
+|               |                          | `budget_usd`                    | opt | `number` (default: 0.5)                                                                                      |
+|               |                          | `query`                         | req | [Query](#model-query)                                                                                        |
+|               |                          | `reference_answer`              | req | [ReferenceAnswer](#model-referenceanswer)                                                                    |
+|               |                          | `task_id`                       | req | `string` (format: uuid)                                                                                      |
+|               | `total_tool_usage`       |                                 | req | [ToolUsageSummary](#model-toolusagesummary)                                                                  |
+|               |                          | `actual_cost_by_provider`       | opt | `object`                                                                                                     |
+|               |                          | `actual_total_cost_usd`         | opt | `number` (nullable)                                                                                          |
+|               |                          | `embedding`                     | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary)                                                |
+|               |                          | `embedding_cost`                | opt | `number` (default: 0.0)                                                                                      |
+|               |                          | `llm`                           | opt | [LlmUsageSummary](#model-llmusagesummary)                                                                    |
+|               |                          | `llm_cost`                      | opt | `number` (default: 0.0)                                                                                      |
+|               |                          | `reference_cost_by_provider`    | opt | `object`                                                                                                     |
+|               |                          | `reference_total_cost_usd`      | opt | `number` (default: 0.0)                                                                                      |
+|               |                          | `search_tool`                   | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)                                                      |
+|               |                          | `search_tool_cost`              | opt | `number` (default: 0.0)                                                                                      |
+|               | `trace`                  |                                 | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                                                         |
+|               |                          | `entrypoint_invocation_ms`      | opt | `number` (nullable)                                                                                          |
+|               |                          | `orchestration_ms`              | opt | `number` (nullable)                                                                                          |
+|               |                          | `scoring_judge_attempt_count`   | opt | `integer` (nullable)                                                                                         |
+|               |                          | `scoring_judge_duration_ms`     | opt | `number` (nullable)                                                                                          |
+|               |                          | `scoring_judge_retry_count`     | opt | `integer` (nullable)                                                                                         |
+|               |                          | `scoring_judge_retry_reasons`   | opt | array[`string`] (default: [])                                                                                |
+|               |                          | `scoring_judge_selected_routes` | opt | array[`string`] (default: [])                                                                                |
+|               |                          | `scoring_judge_status`          | opt | `string` (enum: [ok, exhausted, failed]; nullable)                                                           |
+|               |                          | `scoring_ms`                    | opt | `number` (nullable)                                                                                          |
+|               | `uid`                    |                                 | req | `integer`                                                                                                    |
+|               | `usage`                  |                                 | req | [UsageModel](#model-usagemodel)                                                                              |
+|               |                          | `by_provider`                   | opt | `object`                                                                                                     |
+|               |                          | `call_count`                    | req | `integer`                                                                                                    |
+|               |                          | `total_completion_tokens`       | req | `integer`                                                                                                    |
+|               |                          | `total_prompt_tokens`           | req | `integer`                                                                                                    |
+|               |                          | `total_tokens`                  | req | `integer`                                                                                                    |
+|               | `validator_session_id`   |                                 | req | `string` (format: uuid)                                                                                      |
+| `server_time` |                          |                                 | req | `string` (format: date-time)                                                                                 |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### tasks
 
 <a id="endpoint-post-v2-miner-task-work-tasks"></a>
+
 #### POST /v2/miner-task-work/tasks
 
 Return the next platform-owned miner-task attempts for the caller validator.
@@ -711,62 +713,61 @@ Return the next platform-owned miner-task attempts for the caller validator.
 Content-Type: `application/json`
 Body: [MinerTaskWorkTasksRequest](#model-minertaskworktasksrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `active_attempts` |  |  | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `validator_session_id` |  | opt | `string` (format: uuid; nullable) |
-| `max_active_artifacts` |  |  | req | `integer` |
-| `target_concurrency` |  |  | req | `integer` |
+| 1st level              | 2nd level              | 3rd level | Req | Notes                                                                                          |
+| ---------------------- | ---------------------- | --------- | --- | ---------------------------------------------------------------------------------------------- |
+| `active_attempts`      |                        |           | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
+|                        | `artifact_id`          |           | req | `string` (format: uuid)                                                                        |
+|                        | `attempt_number`       |           | req | `integer`                                                                                      |
+|                        | `batch_id`             |           | req | `string` (format: uuid)                                                                        |
+|                        | `task_id`              |           | req | `string` (format: uuid)                                                                        |
+|                        | `validator_session_id` |           | opt | `string` (format: uuid; nullable)                                                              |
+| `max_active_artifacts` |                        |           | req | `integer`                                                                                      |
+| `target_concurrency`   |                        |           | req | `integer`                                                                                      |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [MinerTaskWorkTasksResponse](#model-minertaskworktasksresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `server_time` |  |  | req | `string` (format: date-time) |
-| `tasks` |  |  | opt | array[[MinerTaskWorkAssignmentPayload](#model-minertaskworkassignmentpayload)] (default: []) |
-|  | `artifact` |  | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
-|  |  | `artifact_id` | req | `string` (format: uuid) |
-|  |  | `content_hash` | req | `string` |
-|  |  | `miner_hotkey_ss58` | opt | `string` (nullable) |
-|  |  | `size_bytes` | req | `integer` |
-|  |  | `uid` | req | `integer` |
-|  | `assignment_token` |  | req | `string` |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `max_attempts` |  | req | `integer` |
-|  | `task` |  | req | [MinerTask](#model-minertask) |
-|  |  | `budget_usd` | opt | `number` (default: 0.5) |
-|  |  | `query` | req | [Query](#model-query) |
-|  |  | `reference_answer` | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `task_id` | req | `string` (format: uuid) |
+| 1st level     | 2nd level          | 3rd level           | Req | Notes                                                                                        |
+| ------------- | ------------------ | ------------------- | --- | -------------------------------------------------------------------------------------------- |
+| `server_time` |                    |                     | req | `string` (format: date-time)                                                                 |
+| `tasks`       |                    |                     | opt | array[[MinerTaskWorkAssignmentPayload](#model-minertaskworkassignmentpayload)] (default: []) |
+|               | `artifact`         |                     | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload)                          |
+|               |                    | `artifact_id`       | req | `string` (format: uuid)                                                                      |
+|               |                    | `content_hash`      | req | `string`                                                                                     |
+|               |                    | `miner_hotkey_ss58` | opt | `string` (nullable)                                                                          |
+|               |                    | `size_bytes`        | req | `integer`                                                                                    |
+|               |                    | `uid`               | req | `integer`                                                                                    |
+|               | `assignment_token` |                     | req | `string`                                                                                     |
+|               | `attempt_number`   |                     | req | `integer`                                                                                    |
+|               | `batch_id`         |                     | req | `string` (format: uuid)                                                                      |
+|               | `max_attempts`     |                     | req | `integer`                                                                                    |
+|               | `task`             |                     | req | [MinerTask](#model-minertask)                                                                |
+|               |                    | `budget_usd`        | opt | `number` (default: 0.5)                                                                      |
+|               |                    | `query`             | req | [Query](#model-query)                                                                        |
+|               |                    | `reference_answer`  | req | [ReferenceAnswer](#model-referenceanswer)                                                    |
+|               |                    | `task_id`           | req | `string` (format: uuid)                                                                      |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## miners
 
 ### scripts
 
 <a id="endpoint-post-v1-miners-scripts"></a>
+
 #### POST /v1/miners/scripts
 
 Upload a miner script artifact (base64 + sha256) for later evaluation.
@@ -777,44 +778,43 @@ Upload a miner script artifact (base64 + sha256) for later evaluation.
 Content-Type: `application/json`
 Body: [UploadScriptRequest](#model-uploadscriptrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `script_b64` |  |  | req | `string` |
-| `sha256` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes    |
+| ------------ | --------- | --------- | --- | -------- |
+| `script_b64` |           |           | req | `string` |
+| `sha256`     |           |           | req | `string` |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [ScriptArtifactModel](#model-scriptartifactmodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `content_hash` |  |  | req | `string` |
-| `size_bytes` |  |  | req | `integer` |
-| `submitted_at` |  |  | req | `string` (format: date-time) |
-| `uid` |  |  | req | `integer` |
+| 1st level      | 2nd level | 3rd level | Req | Notes                        |
+| -------------- | --------- | --------- | --- | ---------------------------- |
+| `artifact_id`  |           |           | req | `string` (format: uuid)      |
+| `content_hash` |           |           | req | `string`                     |
+| `size_bytes`   |           |           | req | `integer`                    |
+| `submitted_at` |           |           | req | `string` (format: date-time) |
+| `uid`          |           |           | req | `integer`                    |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## platform-tool-proxy
 
 ### grants
 
 <a id="endpoint-post-v1-platform-tool-proxy-grants"></a>
+
 #### POST /v1/platform-tool-proxy/grants
 
 Create a short-lived platform-tool-proxy token for a validator-owned task attempt.
@@ -825,45 +825,44 @@ Create a short-lived platform-tool-proxy token for a validator-owned task attemp
 Content-Type: `application/json`
 Body: [PlatformToolProxyGrantRequest](#model-platformtoolproxygrantrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `assignment_token` |  |  | req | `string` |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `task_id` |  |  | req | `string` (format: uuid) |
-| `validator_session_id` |  |  | req | `string` (format: uuid) |
+| 1st level              | 2nd level | 3rd level | Req | Notes                   |
+| ---------------------- | --------- | --------- | --- | ----------------------- |
+| `artifact_id`          |           |           | req | `string` (format: uuid) |
+| `assignment_token`     |           |           | req | `string`                |
+| `attempt_number`       |           |           | req | `integer`               |
+| `batch_id`             |           |           | req | `string` (format: uuid) |
+| `task_id`              |           |           | req | `string` (format: uuid) |
+| `validator_session_id` |           |           | req | `string` (format: uuid) |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [PlatformToolProxyGrantResponse](#model-platformtoolproxygrantresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `expires_at` |  |  | req | `string` (format: date-time) |
-| `token` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes                        |
+| ------------ | --------- | --------- | --- | ---------------------------- |
+| `expires_at` |           |           | req | `string` (format: date-time) |
+| `token`      |           |           | req | `string`                     |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## repo-search
 
 ### ensure-index
 
 <a id="endpoint-post-v1-repo-search-ensure-index"></a>
+
 #### POST /v1/repo-search/ensure-index
 
 Ensure a repository index is available for repo tools.
@@ -874,37 +873,37 @@ Ensure a repository index is available for repo tools.
 Content-Type: `application/json`
 Body: [RepoSearchEnsureIndexRequestModel](#model-reposearchensureindexrequestmodel)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `commit_sha` |  |  | req | `string` |
-| `repo_url` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes    |
+| ------------ | --------- | --------- | --- | -------- |
+| `commit_sha` |           |           | req | `string` |
+| `repo_url`   |           |           | req | `string` |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [StatusResponse](#model-statusresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### get-file
 
 <a id="endpoint-post-v1-repo-search-get-file"></a>
+
 #### POST /v1/repo-search/get-file
 
 Fetch a markdown file from a repository snapshot.
@@ -915,45 +914,45 @@ Fetch a markdown file from a repository snapshot.
 Content-Type: `application/json`
 Body: [GetRepoFileRequest](#model-getrepofilerequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `commit_sha` |  |  | req | `string` |
-| `end_line` |  |  | opt | `integer` (nullable) |
-| `path` |  |  | req | `string` |
-| `repo_url` |  |  | req | `string` |
-| `start_line` |  |  | opt | `integer` (nullable) |
+| 1st level    | 2nd level | 3rd level | Req | Notes                |
+| ------------ | --------- | --------- | --- | -------------------- |
+| `commit_sha` |           |           | req | `string`             |
+| `end_line`   |           |           | opt | `integer` (nullable) |
+| `path`       |           |           | req | `string`             |
+| `repo_url`   |           |           | req | `string`             |
+| `start_line` |           |           | opt | `integer` (nullable) |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [GetRepoFileResponse](#model-getrepofileresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `data` |  |  | opt | array[[GetRepoFileResult](#model-getrepofileresult)] |
-|  | `excerpt` |  | opt | `string` (nullable) |
-|  | `path` |  | req | `string` |
-|  | `text` |  | req | `string` |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                                |
+| --------- | --------- | --------- | --- | ---------------------------------------------------- |
+| `data`    |           |           | opt | array[[GetRepoFileResult](#model-getrepofileresult)] |
+|           | `excerpt` |           | opt | `string` (nullable)                                  |
+|           | `path`    |           | req | `string`                                             |
+|           | `text`    |           | req | `string`                                             |
+|           | `title`   |           | opt | `string` (nullable)                                  |
+|           | `url`     |           | req | `string`                                             |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### search
 
 <a id="endpoint-post-v1-repo-search-search"></a>
+
 #### POST /v1/repo-search/search
 
 Search markdown files in a repository snapshot.
@@ -964,47 +963,47 @@ Search markdown files in a repository snapshot.
 Content-Type: `application/json`
 Body: [SearchRepoSearchRequest](#model-searchreposearchrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `commit_sha` |  |  | req | `string` |
-| `limit` |  |  | opt | `integer` (default: 10) |
-| `path_glob` |  |  | opt | `string` (nullable) |
-| `query` |  |  | req | `string` |
-| `repo_url` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes                   |
+| ------------ | --------- | --------- | --- | ----------------------- |
+| `commit_sha` |           |           | req | `string`                |
+| `limit`      |           |           | opt | `integer` (default: 10) |
+| `path_glob`  |           |           | opt | `string` (nullable)     |
+| `query`      |           |           | req | `string`                |
+| `repo_url`   |           |           | req | `string`                |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [SearchRepoSearchResponse](#model-searchreposearchresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `data` |  |  | opt | array[[SearchRepoResult](#model-searchreporesult)] |
-|  | `bm25` |  | opt | `number` (nullable) |
-|  | `excerpt` |  | opt | `string` (nullable) |
-|  | `path` |  | req | `string` |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                              |
+| --------- | --------- | --------- | --- | -------------------------------------------------- |
+| `data`    |           |           | opt | array[[SearchRepoResult](#model-searchreporesult)] |
+|           | `bm25`    |           | opt | `number` (nullable)                                |
+|           | `excerpt` |           | opt | `string` (nullable)                                |
+|           | `path`    |           | req | `string`                                           |
+|           | `title`   |           | opt | `string` (nullable)                                |
+|           | `url`     |           | req | `string`                                           |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ### tool
 
 #### get-file
 
 <a id="endpoint-post-v1-repo-search-tool-get-file"></a>
+
 ##### POST /v1/repo-search/tool/get-file
 
 Provider-native simple search endpoint for full-file repo grounding.
@@ -1012,46 +1011,47 @@ Provider-native simple search endpoint for full-file repo grounding.
 **Auth**: Bittensor-signed (`Authorization: Bittensor ss58="...",sig="..."`) OR ConfiguredApiKey
 
 **Parameters**
-| Param | In | Req | Notes |
-| --- | --- | --- | --- |
-| `repo_url` | query | req | `string` |
+
+| Param        | In    | Req | Notes    |
+| ------------ | ----- | --- | -------- |
+| `repo_url`   | query | req | `string` |
 | `commit_sha` | query | req | `string` |
 
 **Request**
 Content-Type: `application/json`
 Body: [_RepoSimpleSearchRequest](#model-_reposimplesearchrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `query` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `query`   |           |           | req | `string` |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: array[[_RepoSimpleSearchHit](#model-_reposimplesearchhit)]
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `snippet` |  |  | req | `string` |
-| `uri` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `snippet` |           |           | req | `string` |
+| `uri`     |           |           | req | `string` |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 #### search
 
 <a id="endpoint-post-v1-repo-search-tool-search"></a>
+
 ##### POST /v1/repo-search/tool/search
 
 Provider-native simple search endpoint for repo-diff grounding.
@@ -1059,49 +1059,49 @@ Provider-native simple search endpoint for repo-diff grounding.
 **Auth**: Bittensor-signed (`Authorization: Bittensor ss58="...",sig="..."`) OR ConfiguredApiKey
 
 **Parameters**
-| Param | In | Req | Notes |
-| --- | --- | --- | --- |
-| `repo_url` | query | req | `string` |
+
+| Param        | In    | Req | Notes    |
+| ------------ | ----- | --- | -------- |
+| `repo_url`   | query | req | `string` |
 | `commit_sha` | query | req | `string` |
 
 **Request**
 Content-Type: `application/json`
 Body: [_RepoSimpleSearchRequest](#model-_reposimplesearchrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `query` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `query`   |           |           | req | `string` |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: array[[_RepoSimpleSearchHit](#model-_reposimplesearchhit)]
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `snippet` |  |  | req | `string` |
-| `uri` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `snippet` |           |           | req | `string` |
+| `uri`     |           |           | req | `string` |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## validators
 
 ### register
 
 <a id="endpoint-post-v1-validators-register"></a>
+
 #### POST /v1/validators/register
 
 Register (or refresh) the caller validator's base URL.
@@ -1112,41 +1112,40 @@ Register (or refresh) the caller validator's base URL.
 Content-Type: `application/json`
 Body: [RegisterValidatorRequest](#model-registervalidatorrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `base_url` |  |  | req | `string` |
-| `local_image_id` |  |  | opt | `string` (nullable) |
-| `registry_digest` |  |  | opt | `string` (nullable) |
-| `source_revision` |  |  | opt | `string` (nullable) |
-| `validator_version` |  |  | opt | `string` (nullable) |
+| 1st level           | 2nd level | 3rd level | Req | Notes               |
+| ------------------- | --------- | --------- | --- | ------------------- |
+| `base_url`          |           |           | req | `string`            |
+| `local_image_id`    |           |           | opt | `string` (nullable) |
+| `registry_digest`   |           |           | opt | `string` (nullable) |
+| `source_revision`   |           |           | opt | `string` (nullable) |
+| `validator_version` |           |           | opt | `string` (nullable) |
 
 **Responses**
 `200` Successful Response
 Content-Type: `application/json`
 Body: [StatusResponse](#model-statusresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 `422` Validation Error
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## weights
 
 <a id="endpoint-get-v1-weights"></a>
+
 ### GET /v1/weights
 
 Fetch the latest weights for the caller validator.
@@ -1158,18 +1157,17 @@ Fetch the latest weights for the caller validator.
 Content-Type: `application/json`
 Body: [WeightsResponse](#model-weightsresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `champion_uid` |  |  | opt | `integer` (nullable) |
-| `weights` |  |  | req | `object` |
-
-
+| 1st level      | 2nd level | 3rd level | Req | Notes                |
+| -------------- | --------- | --------- | --- | -------------------- |
+| `champion_uid` |           |           | opt | `integer` (nullable) |
+| `weights`      |           |           | req | `object`             |
 
 ## Misc
 
 ### healthz
 
 <a id="endpoint-get-healthz"></a>
+
 #### GET /healthz
 
 Platform health check.
@@ -1181,14 +1179,14 @@ Platform health check.
 Content-Type: `application/json`
 Body: [StatusResponse](#model-statusresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
-
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 ### readyz
 
 <a id="endpoint-get-readyz"></a>
+
 #### GET /readyz
 
 Platform readiness check.
@@ -1200,29 +1198,28 @@ Platform readiness check.
 Content-Type: `application/json`
 Body: [StatusResponse](#model-statusresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 `503` Platform is draining.
 Content-Type: `application/json`
 Body: [StatusResponse](#model-statusresponse)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 ## Models
 
 <a id="model-_reposimplesearchhit"></a>
+
 ### Model: _RepoSimpleSearchHit
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `snippet` |  |  | req | `string` |
-| `uri` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `snippet` |           |           | req | `string` |
+| `uri`     |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -1239,10 +1236,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "snippet",
-    "uri"
-  ],
+  "required": ["snippet", "uri"],
   "title": "_RepoSimpleSearchHit",
   "type": "object"
 }
@@ -1251,11 +1245,12 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-_reposimplesearchrequest"></a>
+
 ### Model: _RepoSimpleSearchRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `query` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `query`   |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -1269,9 +1264,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "query"
-  ],
+  "required": ["query"],
   "title": "_RepoSimpleSearchRequest",
   "type": "object"
 }
@@ -1280,13 +1273,14 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-answercitation"></a>
+
 ### Model: AnswerCitation
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `note` |  |  | opt | `string` (nullable) |
-| `title` |  |  | opt | `string` (nullable) |
-| `url` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes               |
+| --------- | --------- | --------- | --- | ------------------- |
+| `note`    |           |           | opt | `string` (nullable) |
+| `title`   |           |           | opt | `string` (nullable) |
+| `url`     |           |           | req | `string`            |
 
 <details>
 <summary>JSON schema</summary>
@@ -1323,9 +1317,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "url"
-  ],
+  "required": ["url"],
   "title": "AnswerCitation",
   "type": "object"
 }
@@ -1334,13 +1326,14 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-citationmodel"></a>
+
 ### Model: CitationModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `note` |  |  | opt | `string` (nullable) |
-| `title` |  |  | opt | `string` (nullable) |
-| `url` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes               |
+| --------- | --------- | --------- | --- | ------------------- |
+| `note`    |           |           | opt | `string` (nullable) |
+| `title`   |           |           | opt | `string` (nullable) |
+| `url`     |           |           | req | `string`            |
 
 <details>
 <summary>JSON schema</summary>
@@ -1375,9 +1368,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "url"
-  ],
+  "required": ["url"],
   "title": "CitationModel",
   "type": "object"
 }
@@ -1386,11 +1377,12 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-createbatchacceptedresponse"></a>
+
 ### Model: CreateBatchAcceptedResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `batch_id` |  |  | req | `string` (format: uuid) |
+| 1st level  | 2nd level | 3rd level | Req | Notes                   |
+| ---------- | --------- | --------- | --- | ----------------------- |
+| `batch_id` |           |           | req | `string` (format: uuid) |
 
 <details>
 <summary>JSON schema</summary>
@@ -1404,9 +1396,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "batch_id"
-  ],
+  "required": ["batch_id"],
   "title": "CreateBatchAcceptedResponse",
   "type": "object"
 }
@@ -1415,12 +1405,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-createbatchrequest"></a>
+
 ### Model: CreateBatchRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `champion_artifact_id` |  |  | opt | `string` (format: uuid; nullable) |
-| `use_previous_task_dataset` |  |  | opt | `boolean` (default: False) |
+| 1st level                   | 2nd level | 3rd level | Req | Notes                             |
+| --------------------------- | --------- | --------- | --- | --------------------------------- |
+| `champion_artifact_id`      |           |           | opt | `string` (format: uuid; nullable) |
+| `use_previous_task_dataset` |           |           | opt | `boolean` (default: False)        |
 
 <details>
 <summary>JSON schema</summary>
@@ -1455,27 +1446,28 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-criterionassessmentmodel"></a>
+
 ### Model: CriterionAssessmentModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `aggregate_score` |  |  | req | `number` |
-| `criterion_evaluations` |  |  | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)] |
-|  | `citations` |  | opt | array[[CitationModel](#model-citationmodel)] (default: []) |
-|  |  | `note` | opt | `string` (nullable) |
-|  |  | `title` | opt | `string` (nullable) |
-|  |  | `url` | req | `string` |
-|  | `internal_metadata` |  | opt | `object` (nullable) |
-|  | `justification` |  | req | `string` |
-|  | `spans` |  | opt | array[[SpanModel](#model-spanmodel)] (default: []) |
-|  |  | `end` | req | `integer` |
-|  |  | `excerpt` | req | `string` |
-|  |  | `start` | req | `integer` |
-|  | `verdict` |  | req | `integer` |
-| `criterion_id` |  |  | req | `string` |
-| `verdict_options` |  |  | req | array[[VerdictOptionModel](#model-verdictoptionmodel)] |
-|  | `description` |  | req | `string` |
-|  | `value` |  | req | `integer` |
+| 1st level               | 2nd level           | 3rd level | Req | Notes                                                              |
+| ----------------------- | ------------------- | --------- | --- | ------------------------------------------------------------------ |
+| `aggregate_score`       |                     |           | req | `number`                                                           |
+| `criterion_evaluations` |                     |           | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)] |
+|                         | `citations`         |           | opt | array[[CitationModel](#model-citationmodel)] (default: [])         |
+|                         |                     | `note`    | opt | `string` (nullable)                                                |
+|                         |                     | `title`   | opt | `string` (nullable)                                                |
+|                         |                     | `url`     | req | `string`                                                           |
+|                         | `internal_metadata` |           | opt | `object` (nullable)                                                |
+|                         | `justification`     |           | req | `string`                                                           |
+|                         | `spans`             |           | opt | array[[SpanModel](#model-spanmodel)] (default: [])                 |
+|                         |                     | `end`     | req | `integer`                                                          |
+|                         |                     | `excerpt` | req | `string`                                                           |
+|                         |                     | `start`   | req | `integer`                                                          |
+|                         | `verdict`           |           | req | `integer`                                                          |
+| `criterion_id`          |                     |           | req | `string`                                                           |
+| `verdict_options`       |                     |           | req | array[[VerdictOptionModel](#model-verdictoptionmodel)]             |
+|                         | `description`       |           | req | `string`                                                           |
+|                         | `value`             |           | req | `integer`                                                          |
 
 <details>
 <summary>JSON schema</summary>
@@ -1527,21 +1519,22 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-criterionevaluationmodel"></a>
+
 ### Model: CriterionEvaluationModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `citations` |  |  | opt | array[[CitationModel](#model-citationmodel)] (default: []) |
-|  | `note` |  | opt | `string` (nullable) |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | req | `string` |
-| `internal_metadata` |  |  | opt | `object` (nullable) |
-| `justification` |  |  | req | `string` |
-| `spans` |  |  | opt | array[[SpanModel](#model-spanmodel)] (default: []) |
-|  | `end` |  | req | `integer` |
-|  | `excerpt` |  | req | `string` |
-|  | `start` |  | req | `integer` |
-| `verdict` |  |  | req | `integer` |
+| 1st level           | 2nd level | 3rd level | Req | Notes                                                      |
+| ------------------- | --------- | --------- | --- | ---------------------------------------------------------- |
+| `citations`         |           |           | opt | array[[CitationModel](#model-citationmodel)] (default: []) |
+|                     | `note`    |           | opt | `string` (nullable)                                        |
+|                     | `title`   |           | opt | `string` (nullable)                                        |
+|                     | `url`     |           | req | `string`                                                   |
+| `internal_metadata` |           |           | opt | `object` (nullable)                                        |
+| `justification`     |           |           | req | `string`                                                   |
+| `spans`             |           |           | opt | array[[SpanModel](#model-spanmodel)] (default: [])         |
+|                     | `end`     |           | req | `integer`                                                  |
+|                     | `excerpt` |           | req | `string`                                                   |
+|                     | `start`   |           | req | `integer`                                                  |
+| `verdict`           |           |           | req | `integer`                                                  |
 
 <details>
 <summary>JSON schema</summary>
@@ -1586,10 +1579,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "integer"
     }
   },
-  "required": [
-    "verdict",
-    "justification"
-  ],
+  "required": ["verdict", "justification"],
   "title": "CriterionEvaluationModel",
   "type": "object"
 }
@@ -1598,14 +1588,15 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-embeddingtoolusagesummary"></a>
+
 ### Model: EmbeddingToolUsageSummary
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost` |  |  | opt | `number` (nullable) |
-| `call_count` |  |  | opt | `integer` (default: 0) |
-| `cost` |  |  | opt | `number` (default: 0.0) |
-| `reference_cost` |  |  | opt | `number` (default: 0.0) |
+| 1st level        | 2nd level | 3rd level | Req | Notes                   |
+| ---------------- | --------- | --------- | --- | ----------------------- |
+| `actual_cost`    |           |           | opt | `number` (nullable)     |
+| `call_count`     |           |           | opt | `integer` (default: 0)  |
+| `cost`           |           |           | opt | `number` (default: 0.0) |
+| `reference_cost` |           |           | opt | `number` (default: 0.0) |
 
 <details>
 <summary>JSON schema</summary>
@@ -1648,12 +1639,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-errorresponse"></a>
+
 ### Model: ErrorResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `error_code` |  |  | req | `string` |
-| `message` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes    |
+| ------------ | --------- | --------- | --- | -------- |
+| `error_code` |           |           | req | `string` |
+| `message`    |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -1670,10 +1662,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "error_code",
-    "message"
-  ],
+  "required": ["error_code", "message"],
   "title": "ErrorResponse",
   "type": "object"
 }
@@ -1682,78 +1671,79 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-evaluationdetails"></a>
+
 ### Model: EvaluationDetails
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `elapsed_ms` |  |  | opt | `number` (nullable) |
-| `error` |  |  | opt | [EvaluationError](#model-evaluationerror) (nullable) |
-|  | `code` |  | req | [MinerTaskErrorCode](#model-minertaskerrorcode) |
-|  | `message` |  | req | `string` |
-| `score_breakdown` |  |  | opt | [ScoreBreakdown](#model-scorebreakdown) (nullable) |
-|  | `comparison_score` |  | req | `number` |
-|  | `reasoning` |  | opt | [ScorerReasoning](#model-scorerreasoning) (nullable) |
-|  |  | `reasoning_tokens` | opt | `integer` (nullable) |
-|  |  | `text` | opt | `string` (nullable) |
-|  | `scoring_version` |  | req | `string` |
-|  | `total_score` |  | req | `number` |
-| `scoring_judge_usage` |  |  | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
-|  | `actual_cost_usd` |  | req | `number` (nullable) |
-|  | `call_count` |  | req | `integer` |
-|  | `completion_tokens` |  | req | `integer` |
-|  | `models` |  | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  |  | `actual_cost_evidence` | opt | `string` (nullable) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_source` | req | `string` (enum: [provider_actual, unavailable]) |
-|  |  | `actual_cost_usd` | req | `number` (nullable) |
-|  |  | `call_count` | req | `integer` |
-|  |  | `completion_tokens` | req | `integer` |
-|  |  | `model` | req | `string` |
-|  |  | `prompt_tokens` | req | `integer` |
-|  |  | `provider` | req | `string` |
-|  |  | `reasoning_tokens` | req | `integer` (nullable) |
-|  |  | `total_tokens` | req | `integer` |
-|  | `prompt_tokens` |  | req | `integer` |
-|  | `reasoning_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
-| `total_tool_usage` |  |  | opt | [ToolUsageSummary](#model-toolusagesummary) |
-|  | `actual_cost_by_provider` |  | opt | `object` |
-|  | `actual_total_cost_usd` |  | opt | `number` (nullable) |
-|  | `embedding` |  | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  | `embedding_cost` |  | opt | `number` (default: 0.0) |
-|  | `llm` |  | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `completion_tokens` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `prompt_tokens` | opt | `integer` (default: 0) |
-|  |  | `providers` | opt | `object` |
-|  |  | `reasoning_tokens` | opt | `integer` (default: 0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  |  | `total_tokens` | opt | `integer` (default: 0) |
-|  | `llm_cost` |  | opt | `number` (default: 0.0) |
-|  | `reference_cost_by_provider` |  | opt | `object` |
-|  | `reference_total_cost_usd` |  | opt | `number` (default: 0.0) |
-|  | `search_tool` |  | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  | `search_tool_cost` |  | opt | `number` (default: 0.0) |
-| `trace` |  |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  | `entrypoint_invocation_ms` |  | opt | `number` (nullable) |
-|  | `orchestration_ms` |  | opt | `number` (nullable) |
-|  | `scoring_judge_attempt_count` |  | opt | `integer` (nullable) |
-|  | `scoring_judge_duration_ms` |  | opt | `number` (nullable) |
-|  | `scoring_judge_retry_count` |  | opt | `integer` (nullable) |
-|  | `scoring_judge_retry_reasons` |  | opt | array[`string`] (default: []) |
-|  | `scoring_judge_selected_routes` |  | opt | array[`string`] (default: []) |
-|  | `scoring_judge_status` |  | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  | `scoring_ms` |  | opt | `number` (nullable) |
+| 1st level             | 2nd level                       | 3rd level              | Req | Notes                                                         |
+| --------------------- | ------------------------------- | ---------------------- | --- | ------------------------------------------------------------- |
+| `elapsed_ms`          |                                 |                        | opt | `number` (nullable)                                           |
+| `error`               |                                 |                        | opt | [EvaluationError](#model-evaluationerror) (nullable)          |
+|                       | `code`                          |                        | req | [MinerTaskErrorCode](#model-minertaskerrorcode)               |
+|                       | `message`                       |                        | req | `string`                                                      |
+| `score_breakdown`     |                                 |                        | opt | [ScoreBreakdown](#model-scorebreakdown) (nullable)            |
+|                       | `comparison_score`              |                        | req | `number`                                                      |
+|                       | `reasoning`                     |                        | opt | [ScorerReasoning](#model-scorerreasoning) (nullable)          |
+|                       |                                 | `reasoning_tokens`     | opt | `integer` (nullable)                                          |
+|                       |                                 | `text`                 | opt | `string` (nullable)                                           |
+|                       | `scoring_version`               |                        | req | `string`                                                      |
+|                       | `total_score`                   |                        | req | `number`                                                      |
+| `scoring_judge_usage` |                                 |                        | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable)      |
+|                       | `actual_cost_usd`               |                        | req | `number` (nullable)                                           |
+|                       | `call_count`                    |                        | req | `integer`                                                     |
+|                       | `completion_tokens`             |                        | req | `integer`                                                     |
+|                       | `models`                        |                        | req | array[[JudgeModelUsage](#model-judgemodelusage)]              |
+|                       |                                 | `actual_cost_evidence` | opt | `string` (nullable)                                           |
+|                       |                                 | `actual_cost_provider` | opt | `string` (nullable)                                           |
+|                       |                                 | `actual_cost_source`   | req | `string` (enum: [provider_actual, unavailable])               |
+|                       |                                 | `actual_cost_usd`      | req | `number` (nullable)                                           |
+|                       |                                 | `call_count`           | req | `integer`                                                     |
+|                       |                                 | `completion_tokens`    | req | `integer`                                                     |
+|                       |                                 | `model`                | req | `string`                                                      |
+|                       |                                 | `prompt_tokens`        | req | `integer`                                                     |
+|                       |                                 | `provider`             | req | `string`                                                      |
+|                       |                                 | `reasoning_tokens`     | req | `integer` (nullable)                                          |
+|                       |                                 | `total_tokens`         | req | `integer`                                                     |
+|                       | `prompt_tokens`                 |                        | req | `integer`                                                     |
+|                       | `reasoning_tokens`              |                        | req | `integer`                                                     |
+|                       | `total_tokens`                  |                        | req | `integer`                                                     |
+| `total_tool_usage`    |                                 |                        | opt | [ToolUsageSummary](#model-toolusagesummary)                   |
+|                       | `actual_cost_by_provider`       |                        | opt | `object`                                                      |
+|                       | `actual_total_cost_usd`         |                        | opt | `number` (nullable)                                           |
+|                       | `embedding`                     |                        | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
+|                       |                                 | `actual_cost`          | opt | `number` (nullable)                                           |
+|                       |                                 | `call_count`           | opt | `integer` (default: 0)                                        |
+|                       |                                 | `cost`                 | opt | `number` (default: 0.0)                                       |
+|                       |                                 | `reference_cost`       | opt | `number` (default: 0.0)                                       |
+|                       | `embedding_cost`                |                        | opt | `number` (default: 0.0)                                       |
+|                       | `llm`                           |                        | opt | [LlmUsageSummary](#model-llmusagesummary)                     |
+|                       |                                 | `actual_cost`          | opt | `number` (nullable)                                           |
+|                       |                                 | `call_count`           | opt | `integer` (default: 0)                                        |
+|                       |                                 | `completion_tokens`    | opt | `integer` (default: 0)                                        |
+|                       |                                 | `cost`                 | opt | `number` (default: 0.0)                                       |
+|                       |                                 | `prompt_tokens`        | opt | `integer` (default: 0)                                        |
+|                       |                                 | `providers`            | opt | `object`                                                      |
+|                       |                                 | `reasoning_tokens`     | opt | `integer` (default: 0)                                        |
+|                       |                                 | `reference_cost`       | opt | `number` (default: 0.0)                                       |
+|                       |                                 | `total_tokens`         | opt | `integer` (default: 0)                                        |
+|                       | `llm_cost`                      |                        | opt | `number` (default: 0.0)                                       |
+|                       | `reference_cost_by_provider`    |                        | opt | `object`                                                      |
+|                       | `reference_total_cost_usd`      |                        | opt | `number` (default: 0.0)                                       |
+|                       | `search_tool`                   |                        | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)       |
+|                       |                                 | `actual_cost`          | opt | `number` (nullable)                                           |
+|                       |                                 | `call_count`           | opt | `integer` (default: 0)                                        |
+|                       |                                 | `cost`                 | opt | `number` (default: 0.0)                                       |
+|                       |                                 | `reference_cost`       | opt | `number` (default: 0.0)                                       |
+|                       | `search_tool_cost`              |                        | opt | `number` (default: 0.0)                                       |
+| `trace`               |                                 |                        | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)          |
+|                       | `entrypoint_invocation_ms`      |                        | opt | `number` (nullable)                                           |
+|                       | `orchestration_ms`              |                        | opt | `number` (nullable)                                           |
+|                       | `scoring_judge_attempt_count`   |                        | opt | `integer` (nullable)                                          |
+|                       | `scoring_judge_duration_ms`     |                        | opt | `number` (nullable)                                           |
+|                       | `scoring_judge_retry_count`     |                        | opt | `integer` (nullable)                                          |
+|                       | `scoring_judge_retry_reasons`   |                        | opt | array[`string`] (default: [])                                 |
+|                       | `scoring_judge_selected_routes` |                        | opt | array[`string`] (default: [])                                 |
+|                       | `scoring_judge_status`          |                        | opt | `string` (enum: [ok, exhausted, failed]; nullable)            |
+|                       | `scoring_ms`                    |                        | opt | `number` (nullable)                                           |
 
 <details>
 <summary>JSON schema</summary>
@@ -1826,12 +1816,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-evaluationerror"></a>
+
 ### Model: EvaluationError
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `code` |  |  | req | [MinerTaskErrorCode](#model-minertaskerrorcode) |
-| `message` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                           |
+| --------- | --------- | --------- | --- | ----------------------------------------------- |
+| `code`    |           |           | req | [MinerTaskErrorCode](#model-minertaskerrorcode) |
+| `message` |           |           | req | `string`                                        |
 
 <details>
 <summary>JSON schema</summary>
@@ -1849,10 +1840,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "code",
-    "message"
-  ],
+  "required": ["code", "message"],
   "title": "EvaluationError",
   "type": "object"
 }
@@ -1861,19 +1849,20 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-evaluationtrace"></a>
+
 ### Model: EvaluationTrace
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `entrypoint_invocation_ms` |  |  | opt | `number` (nullable) |
-| `orchestration_ms` |  |  | opt | `number` (nullable) |
-| `scoring_judge_attempt_count` |  |  | opt | `integer` (nullable) |
-| `scoring_judge_duration_ms` |  |  | opt | `number` (nullable) |
-| `scoring_judge_retry_count` |  |  | opt | `integer` (nullable) |
-| `scoring_judge_retry_reasons` |  |  | opt | array[`string`] (default: []) |
-| `scoring_judge_selected_routes` |  |  | opt | array[`string`] (default: []) |
-| `scoring_judge_status` |  |  | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-| `scoring_ms` |  |  | opt | `number` (nullable) |
+| 1st level                       | 2nd level | 3rd level | Req | Notes                                              |
+| ------------------------------- | --------- | --------- | --- | -------------------------------------------------- |
+| `entrypoint_invocation_ms`      |           |           | opt | `number` (nullable)                                |
+| `orchestration_ms`              |           |           | opt | `number` (nullable)                                |
+| `scoring_judge_attempt_count`   |           |           | opt | `integer` (nullable)                               |
+| `scoring_judge_duration_ms`     |           |           | opt | `number` (nullable)                                |
+| `scoring_judge_retry_count`     |           |           | opt | `integer` (nullable)                               |
+| `scoring_judge_retry_reasons`   |           |           | opt | array[`string`] (default: [])                      |
+| `scoring_judge_selected_routes` |           |           | opt | array[`string`] (default: [])                      |
+| `scoring_judge_status`          |           |           | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
+| `scoring_ms`                    |           |           | opt | `number` (nullable)                                |
 
 <details>
 <summary>JSON schema</summary>
@@ -1961,11 +1950,7 @@ Body: [StatusResponse](#model-statusresponse)
     "scoring_judge_status": {
       "anyOf": [
         {
-          "enum": [
-            "ok",
-            "exhausted",
-            "failed"
-          ],
+          "enum": ["ok", "exhausted", "failed"],
           "type": "string"
         },
         {
@@ -1995,25 +1980,26 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-externalevalresultmodel"></a>
+
 ### Model: ExternalEvalResultModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `criteria` |  |  | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] |
-|  | `aggregate_score` |  | req | `number` |
-|  | `criterion_evaluations` |  | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)] |
-|  |  | `citations` | opt | array[[CitationModel](#model-citationmodel)] (default: []) |
-|  |  | `internal_metadata` | opt | `object` (nullable) |
-|  |  | `justification` | req | `string` |
-|  |  | `spans` | opt | array[[SpanModel](#model-spanmodel)] (default: []) |
-|  |  | `verdict` | req | `integer` |
-|  | `criterion_id` |  | req | `string` |
-|  | `verdict_options` |  | req | array[[VerdictOptionModel](#model-verdictoptionmodel)] |
-|  |  | `description` | req | `string` |
-|  |  | `value` | req | `integer` |
-| `overall_rationale` |  |  | opt | `string` (nullable) |
-| `rubric_id` |  |  | req | `string` |
-| `rubric_score` |  |  | req | `number` |
+| 1st level           | 2nd level               | 3rd level           | Req | Notes                                                              |
+| ------------------- | ----------------------- | ------------------- | --- | ------------------------------------------------------------------ |
+| `criteria`          |                         |                     | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] |
+|                     | `aggregate_score`       |                     | req | `number`                                                           |
+|                     | `criterion_evaluations` |                     | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)] |
+|                     |                         | `citations`         | opt | array[[CitationModel](#model-citationmodel)] (default: [])         |
+|                     |                         | `internal_metadata` | opt | `object` (nullable)                                                |
+|                     |                         | `justification`     | req | `string`                                                           |
+|                     |                         | `spans`             | opt | array[[SpanModel](#model-spanmodel)] (default: [])                 |
+|                     |                         | `verdict`           | req | `integer`                                                          |
+|                     | `criterion_id`          |                     | req | `string`                                                           |
+|                     | `verdict_options`       |                     | req | array[[VerdictOptionModel](#model-verdictoptionmodel)]             |
+|                     |                         | `description`       | req | `string`                                                           |
+|                     |                         | `value`             | req | `integer`                                                          |
+| `overall_rationale` |                         |                     | opt | `string` (nullable)                                                |
+| `rubric_id`         |                         |                     | req | `string`                                                           |
+| `rubric_score`      |                         |                     | req | `number`                                                           |
 
 <details>
 <summary>JSON schema</summary>
@@ -2048,11 +2034,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "number"
     }
   },
-  "required": [
-    "rubric_id",
-    "criteria",
-    "rubric_score"
-  ],
+  "required": ["rubric_id", "criteria", "rubric_score"],
   "title": "ExternalEvalResultModel",
   "type": "object"
 }
@@ -2061,37 +2043,38 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-failuredetailpayload"></a>
+
 ### Model: FailureDetailPayload
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | opt | `string` (format: uuid; nullable) |
-| `error_code` |  |  | req | `string` |
-| `error_message` |  |  | req | `string` |
-| `exception_type` |  |  | opt | `string` (nullable) |
-| `occurred_at` |  |  | req | `string` (format: date-time) |
-| `sandbox_diagnostics` |  |  | opt | [SandboxFailureDiagnostics](#model-sandboxfailurediagnostics) (nullable) |
-|  | `container_id` |  | opt | `string` (nullable) |
-|  | `container_name` |  | opt | `string` (nullable) |
-|  | `docker_inspect_error_tail` |  | opt | `string` (nullable) |
-|  | `docker_logs_error_tail` |  | opt | `string` (nullable) |
-|  | `docker_logs_tail` |  | opt | `string` (nullable) |
-|  | `error_text` |  | opt | `string` (nullable) |
-|  | `exit_code` |  | opt | `integer` (nullable) |
-|  | `image` |  | opt | `string` (nullable) |
-|  | `oom_killed` |  | opt | `boolean` (nullable) |
-|  | `pull_policy` |  | opt | `string` (nullable) |
-|  | `pull_returncode` |  | opt | `integer` (nullable) |
-|  | `pull_stderr_tail` |  | opt | `string` (nullable) |
-|  | `pull_stdout_tail` |  | opt | `string` (nullable) |
-|  | `run_returncode` |  | opt | `integer` (nullable) |
-|  | `run_stderr_tail` |  | opt | `string` (nullable) |
-|  | `run_stdout_tail` |  | opt | `string` (nullable) |
-|  | `state_error` |  | opt | `string` (nullable) |
-|  | `status` |  | opt | `string` (nullable) |
-| `task_id` |  |  | opt | `string` (format: uuid; nullable) |
-| `traceback` |  |  | opt | `string` (nullable) |
-| `uid` |  |  | opt | `integer` (nullable) |
+| 1st level             | 2nd level                   | 3rd level | Req | Notes                                                                    |
+| --------------------- | --------------------------- | --------- | --- | ------------------------------------------------------------------------ |
+| `artifact_id`         |                             |           | opt | `string` (format: uuid; nullable)                                        |
+| `error_code`          |                             |           | req | `string`                                                                 |
+| `error_message`       |                             |           | req | `string`                                                                 |
+| `exception_type`      |                             |           | opt | `string` (nullable)                                                      |
+| `occurred_at`         |                             |           | req | `string` (format: date-time)                                             |
+| `sandbox_diagnostics` |                             |           | opt | [SandboxFailureDiagnostics](#model-sandboxfailurediagnostics) (nullable) |
+|                       | `container_id`              |           | opt | `string` (nullable)                                                      |
+|                       | `container_name`            |           | opt | `string` (nullable)                                                      |
+|                       | `docker_inspect_error_tail` |           | opt | `string` (nullable)                                                      |
+|                       | `docker_logs_error_tail`    |           | opt | `string` (nullable)                                                      |
+|                       | `docker_logs_tail`          |           | opt | `string` (nullable)                                                      |
+|                       | `error_text`                |           | opt | `string` (nullable)                                                      |
+|                       | `exit_code`                 |           | opt | `integer` (nullable)                                                     |
+|                       | `image`                     |           | opt | `string` (nullable)                                                      |
+|                       | `oom_killed`                |           | opt | `boolean` (nullable)                                                     |
+|                       | `pull_policy`               |           | opt | `string` (nullable)                                                      |
+|                       | `pull_returncode`           |           | opt | `integer` (nullable)                                                     |
+|                       | `pull_stderr_tail`          |           | opt | `string` (nullable)                                                      |
+|                       | `pull_stdout_tail`          |           | opt | `string` (nullable)                                                      |
+|                       | `run_returncode`            |           | opt | `integer` (nullable)                                                     |
+|                       | `run_stderr_tail`           |           | opt | `string` (nullable)                                                      |
+|                       | `run_stdout_tail`           |           | opt | `string` (nullable)                                                      |
+|                       | `state_error`               |           | opt | `string` (nullable)                                                      |
+|                       | `status`                    |           | opt | `string` (nullable)                                                      |
+| `task_id`             |                             |           | opt | `string` (format: uuid; nullable)                                        |
+| `traceback`           |                             |           | opt | `string` (nullable)                                                      |
+| `uid`                 |                             |           | opt | `integer` (nullable)                                                     |
 
 <details>
 <summary>JSON schema</summary>
@@ -2182,11 +2165,7 @@ Body: [StatusResponse](#model-statusresponse)
       "title": "Uid"
     }
   },
-  "required": [
-    "error_code",
-    "error_message",
-    "occurred_at"
-  ],
+  "required": ["error_code", "error_message", "occurred_at"],
   "title": "FailureDetailPayload",
   "type": "object"
 }
@@ -2195,40 +2174,41 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-feedsearchhitmodel"></a>
+
 ### Model: FeedSearchHitModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `content_id` |  |  | req | `string` (format: uuid) |
-| `content_review_rubric_result` |  |  | opt | [ExternalEvalResultModel](#model-externalevalresultmodel) (nullable) |
-|  | `criteria` |  | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] |
-|  |  | `aggregate_score` | req | `number` |
-|  |  | `criterion_evaluations` | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)] |
-|  |  | `criterion_id` | req | `string` |
-|  |  | `verdict_options` | req | array[[VerdictOptionModel](#model-verdictoptionmodel)] |
-|  | `overall_rationale` |  | opt | `string` (nullable) |
-|  | `rubric_id` |  | req | `string` |
-|  | `rubric_score` |  | req | `number` |
-| `content_review_topic_gate` |  |  | opt | [TopicGateModel](#model-topicgatemodel) (nullable) |
-|  | `criteria` |  | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
-|  |  | `aggregate_score` | req | `number` |
-|  |  | `criterion_evaluations` | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)] |
-|  |  | `criterion_id` | req | `string` |
-|  |  | `verdict_options` | req | array[[VerdictOptionModel](#model-verdictoptionmodel)] |
-|  | `score` |  | opt | `number` (nullable) |
-| `decision` |  |  | opt | `string` (nullable) |
-| `enqueue_seq` |  |  | req | `integer` |
-| `external_id` |  |  | req | `string` |
-| `is_excluded` |  |  | opt | `boolean` (nullable) |
-| `job_error_code` |  |  | opt | `string` (nullable) |
-| `job_error_message` |  |  | opt | `string` (nullable) |
-| `job_id` |  |  | req | `string` (format: uuid) |
-| `job_status` |  |  | opt | `string` (nullable) |
-| `provider` |  |  | req | `string` |
-| `requested_at_epoch_ms` |  |  | req | `integer` |
-| `score` |  |  | opt | `number` (nullable) |
-| `text` |  |  | req | `string` |
-| `url` |  |  | opt | `string` (nullable) |
+| 1st level                      | 2nd level           | 3rd level               | Req | Notes                                                                            |
+| ------------------------------ | ------------------- | ----------------------- | --- | -------------------------------------------------------------------------------- |
+| `content_id`                   |                     |                         | req | `string` (format: uuid)                                                          |
+| `content_review_rubric_result` |                     |                         | opt | [ExternalEvalResultModel](#model-externalevalresultmodel) (nullable)             |
+|                                | `criteria`          |                         | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)]               |
+|                                |                     | `aggregate_score`       | req | `number`                                                                         |
+|                                |                     | `criterion_evaluations` | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)]               |
+|                                |                     | `criterion_id`          | req | `string`                                                                         |
+|                                |                     | `verdict_options`       | req | array[[VerdictOptionModel](#model-verdictoptionmodel)]                           |
+|                                | `overall_rationale` |                         | opt | `string` (nullable)                                                              |
+|                                | `rubric_id`         |                         | req | `string`                                                                         |
+|                                | `rubric_score`      |                         | req | `number`                                                                         |
+| `content_review_topic_gate`    |                     |                         | opt | [TopicGateModel](#model-topicgatemodel) (nullable)                               |
+|                                | `criteria`          |                         | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
+|                                |                     | `aggregate_score`       | req | `number`                                                                         |
+|                                |                     | `criterion_evaluations` | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)]               |
+|                                |                     | `criterion_id`          | req | `string`                                                                         |
+|                                |                     | `verdict_options`       | req | array[[VerdictOptionModel](#model-verdictoptionmodel)]                           |
+|                                | `score`             |                         | opt | `number` (nullable)                                                              |
+| `decision`                     |                     |                         | opt | `string` (nullable)                                                              |
+| `enqueue_seq`                  |                     |                         | req | `integer`                                                                        |
+| `external_id`                  |                     |                         | req | `string`                                                                         |
+| `is_excluded`                  |                     |                         | opt | `boolean` (nullable)                                                             |
+| `job_error_code`               |                     |                         | opt | `string` (nullable)                                                              |
+| `job_error_message`            |                     |                         | opt | `string` (nullable)                                                              |
+| `job_id`                       |                     |                         | req | `string` (format: uuid)                                                          |
+| `job_status`                   |                     |                         | opt | `string` (nullable)                                                              |
+| `provider`                     |                     |                         | req | `string`                                                                         |
+| `requested_at_epoch_ms`        |                     |                         | req | `integer`                                                                        |
+| `score`                        |                     |                         | opt | `number` (nullable)                                                              |
+| `text`                         |                     |                         | req | `string`                                                                         |
+| `url`                          |                     |                         | opt | `string` (nullable)                                                              |
 
 <details>
 <summary>JSON schema</summary>
@@ -2381,14 +2361,15 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-feedsearchrequestmodel"></a>
+
 ### Model: FeedSearchRequestModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `enqueue_seq` |  |  | opt | `integer` (nullable) |
-| `feed_id` |  |  | req | `string` (format: uuid) |
-| `num_hit` |  |  | opt | `integer` (default: 20) |
-| `search_queries` |  |  | req | array[`string`] |
+| 1st level        | 2nd level | 3rd level | Req | Notes                   |
+| ---------------- | --------- | --------- | --- | ----------------------- |
+| `enqueue_seq`    |           |           | opt | `integer` (nullable)    |
+| `feed_id`        |           |           | req | `string` (format: uuid) |
+| `num_hit`        |           |           | opt | `integer` (default: 20) |
+| `search_queries` |           |           | req | array[`string`]         |
 
 <details>
 <summary>JSON schema</summary>
@@ -2430,10 +2411,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "array"
     }
   },
-  "required": [
-    "feed_id",
-    "search_queries"
-  ],
+  "required": ["feed_id", "search_queries"],
   "title": "FeedSearchRequestModel",
   "type": "object"
 }
@@ -2442,33 +2420,34 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-feedsearchresponsemodel"></a>
+
 ### Model: FeedSearchResponseModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `hits` |  |  | req | array[[FeedSearchHitModel](#model-feedsearchhitmodel)] |
-|  | `content_id` |  | req | `string` (format: uuid) |
-|  | `content_review_rubric_result` |  | opt | [ExternalEvalResultModel](#model-externalevalresultmodel) (nullable) |
-|  |  | `criteria` | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] |
-|  |  | `overall_rationale` | opt | `string` (nullable) |
-|  |  | `rubric_id` | req | `string` |
-|  |  | `rubric_score` | req | `number` |
-|  | `content_review_topic_gate` |  | opt | [TopicGateModel](#model-topicgatemodel) (nullable) |
-|  |  | `criteria` | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
-|  |  | `score` | opt | `number` (nullable) |
-|  | `decision` |  | opt | `string` (nullable) |
-|  | `enqueue_seq` |  | req | `integer` |
-|  | `external_id` |  | req | `string` |
-|  | `is_excluded` |  | opt | `boolean` (nullable) |
-|  | `job_error_code` |  | opt | `string` (nullable) |
-|  | `job_error_message` |  | opt | `string` (nullable) |
-|  | `job_id` |  | req | `string` (format: uuid) |
-|  | `job_status` |  | opt | `string` (nullable) |
-|  | `provider` |  | req | `string` |
-|  | `requested_at_epoch_ms` |  | req | `integer` |
-|  | `score` |  | opt | `number` (nullable) |
-|  | `text` |  | req | `string` |
-|  | `url` |  | opt | `string` (nullable) |
+| 1st level | 2nd level                      | 3rd level           | Req | Notes                                                                            |
+| --------- | ------------------------------ | ------------------- | --- | -------------------------------------------------------------------------------- |
+| `hits`    |                                |                     | req | array[[FeedSearchHitModel](#model-feedsearchhitmodel)]                           |
+|           | `content_id`                   |                     | req | `string` (format: uuid)                                                          |
+|           | `content_review_rubric_result` |                     | opt | [ExternalEvalResultModel](#model-externalevalresultmodel) (nullable)             |
+|           |                                | `criteria`          | req | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)]               |
+|           |                                | `overall_rationale` | opt | `string` (nullable)                                                              |
+|           |                                | `rubric_id`         | req | `string`                                                                         |
+|           |                                | `rubric_score`      | req | `number`                                                                         |
+|           | `content_review_topic_gate`    |                     | opt | [TopicGateModel](#model-topicgatemodel) (nullable)                               |
+|           |                                | `criteria`          | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
+|           |                                | `score`             | opt | `number` (nullable)                                                              |
+|           | `decision`                     |                     | opt | `string` (nullable)                                                              |
+|           | `enqueue_seq`                  |                     | req | `integer`                                                                        |
+|           | `external_id`                  |                     | req | `string`                                                                         |
+|           | `is_excluded`                  |                     | opt | `boolean` (nullable)                                                             |
+|           | `job_error_code`               |                     | opt | `string` (nullable)                                                              |
+|           | `job_error_message`            |                     | opt | `string` (nullable)                                                              |
+|           | `job_id`                       |                     | req | `string` (format: uuid)                                                          |
+|           | `job_status`                   |                     | opt | `string` (nullable)                                                              |
+|           | `provider`                     |                     | req | `string`                                                                         |
+|           | `requested_at_epoch_ms`        |                     | req | `integer`                                                                        |
+|           | `score`                        |                     | opt | `number` (nullable)                                                              |
+|           | `text`                         |                     | req | `string`                                                                         |
+|           | `url`                          |                     | opt | `string` (nullable)                                                              |
 
 <details>
 <summary>JSON schema</summary>
@@ -2484,9 +2463,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "array"
     }
   },
-  "required": [
-    "hits"
-  ],
+  "required": ["hits"],
   "title": "FeedSearchResponseModel",
   "type": "object"
 }
@@ -2495,15 +2472,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-getrepofilerequest"></a>
+
 ### Model: GetRepoFileRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `commit_sha` |  |  | req | `string` |
-| `end_line` |  |  | opt | `integer` (nullable) |
-| `path` |  |  | req | `string` |
-| `repo_url` |  |  | req | `string` |
-| `start_line` |  |  | opt | `integer` (nullable) |
+| 1st level    | 2nd level | 3rd level | Req | Notes                |
+| ------------ | --------- | --------- | --- | -------------------- |
+| `commit_sha` |           |           | req | `string`             |
+| `end_line`   |           |           | opt | `integer` (nullable) |
+| `path`       |           |           | req | `string`             |
+| `repo_url`   |           |           | req | `string`             |
+| `start_line` |           |           | opt | `integer` (nullable) |
 
 <details>
 <summary>JSON schema</summary>
@@ -2551,11 +2529,7 @@ Body: [StatusResponse](#model-statusresponse)
       "title": "Start Line"
     }
   },
-  "required": [
-    "repo_url",
-    "commit_sha",
-    "path"
-  ],
+  "required": ["repo_url", "commit_sha", "path"],
   "title": "GetRepoFileRequest",
   "type": "object"
 }
@@ -2564,16 +2538,17 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-getrepofileresponse"></a>
+
 ### Model: GetRepoFileResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `data` |  |  | opt | array[[GetRepoFileResult](#model-getrepofileresult)] |
-|  | `excerpt` |  | opt | `string` (nullable) |
-|  | `path` |  | req | `string` |
-|  | `text` |  | req | `string` |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                                |
+| --------- | --------- | --------- | --- | ---------------------------------------------------- |
+| `data`    |           |           | opt | array[[GetRepoFileResult](#model-getrepofileresult)] |
+|           | `excerpt` |           | opt | `string` (nullable)                                  |
+|           | `path`    |           | req | `string`                                             |
+|           | `text`    |           | req | `string`                                             |
+|           | `title`   |           | opt | `string` (nullable)                                  |
+|           | `url`     |           | req | `string`                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -2598,15 +2573,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-getrepofileresult"></a>
+
 ### Model: GetRepoFileResult
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `excerpt` |  |  | opt | `string` (nullable) |
-| `path` |  |  | req | `string` |
-| `text` |  |  | req | `string` |
-| `title` |  |  | opt | `string` (nullable) |
-| `url` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes               |
+| --------- | --------- | --------- | --- | ------------------- |
+| `excerpt` |           |           | opt | `string` (nullable) |
+| `path`    |           |           | req | `string`            |
+| `text`    |           |           | req | `string`            |
+| `title`   |           |           | opt | `string` (nullable) |
+| `url`     |           |           | req | `string`            |
 
 <details>
 <summary>JSON schema</summary>
@@ -2650,11 +2626,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "path",
-    "url",
-    "text"
-  ],
+  "required": ["path", "url", "text"],
   "title": "GetRepoFileResult",
   "type": "object"
 }
@@ -2663,16 +2635,17 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-httpvalidationerror"></a>
+
 ### Model: HTTPValidationError
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 <details>
 <summary>JSON schema</summary>
@@ -2696,6 +2669,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-jsonobject-input"></a>
+
 ### Model: JsonObject-Input
 
 (no documented fields)
@@ -2715,6 +2689,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-jsonvalue-input"></a>
+
 ### Model: JsonValue-Input
 
 (no documented fields)
@@ -2759,21 +2734,22 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-judgemodelusage"></a>
+
 ### Model: JudgeModelUsage
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost_evidence` |  |  | opt | `string` (nullable) |
-| `actual_cost_provider` |  |  | opt | `string` (nullable) |
-| `actual_cost_source` |  |  | req | `string` (enum: [provider_actual, unavailable]) |
-| `actual_cost_usd` |  |  | req | `number` (nullable) |
-| `call_count` |  |  | req | `integer` |
-| `completion_tokens` |  |  | req | `integer` |
-| `model` |  |  | req | `string` |
-| `prompt_tokens` |  |  | req | `integer` |
-| `provider` |  |  | req | `string` |
-| `reasoning_tokens` |  |  | req | `integer` (nullable) |
-| `total_tokens` |  |  | req | `integer` |
+| 1st level              | 2nd level | 3rd level | Req | Notes                                           |
+| ---------------------- | --------- | --------- | --- | ----------------------------------------------- |
+| `actual_cost_evidence` |           |           | opt | `string` (nullable)                             |
+| `actual_cost_provider` |           |           | opt | `string` (nullable)                             |
+| `actual_cost_source`   |           |           | req | `string` (enum: [provider_actual, unavailable]) |
+| `actual_cost_usd`      |           |           | req | `number` (nullable)                             |
+| `call_count`           |           |           | req | `integer`                                       |
+| `completion_tokens`    |           |           | req | `integer`                                       |
+| `model`                |           |           | req | `string`                                        |
+| `prompt_tokens`        |           |           | req | `integer`                                       |
+| `provider`             |           |           | req | `string`                                        |
+| `reasoning_tokens`     |           |           | req | `integer` (nullable)                            |
+| `total_tokens`         |           |           | req | `integer`                                       |
 
 <details>
 <summary>JSON schema</summary>
@@ -2804,10 +2780,7 @@ Body: [StatusResponse](#model-statusresponse)
       "title": "Actual Cost Provider"
     },
     "actual_cost_source": {
-      "enum": [
-        "provider_actual",
-        "unavailable"
-      ],
+      "enum": ["provider_actual", "unavailable"],
       "title": "Actual Cost Source",
       "type": "string"
     },
@@ -2877,28 +2850,29 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-judgeusagesummary"></a>
+
 ### Model: JudgeUsageSummary
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost_usd` |  |  | req | `number` (nullable) |
-| `call_count` |  |  | req | `integer` |
-| `completion_tokens` |  |  | req | `integer` |
-| `models` |  |  | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  | `actual_cost_evidence` |  | opt | `string` (nullable) |
-|  | `actual_cost_provider` |  | opt | `string` (nullable) |
-|  | `actual_cost_source` |  | req | `string` (enum: [provider_actual, unavailable]) |
-|  | `actual_cost_usd` |  | req | `number` (nullable) |
-|  | `call_count` |  | req | `integer` |
-|  | `completion_tokens` |  | req | `integer` |
-|  | `model` |  | req | `string` |
-|  | `prompt_tokens` |  | req | `integer` |
-|  | `provider` |  | req | `string` |
-|  | `reasoning_tokens` |  | req | `integer` (nullable) |
-|  | `total_tokens` |  | req | `integer` |
-| `prompt_tokens` |  |  | req | `integer` |
-| `reasoning_tokens` |  |  | req | `integer` |
-| `total_tokens` |  |  | req | `integer` |
+| 1st level           | 2nd level              | 3rd level | Req | Notes                                            |
+| ------------------- | ---------------------- | --------- | --- | ------------------------------------------------ |
+| `actual_cost_usd`   |                        |           | req | `number` (nullable)                              |
+| `call_count`        |                        |           | req | `integer`                                        |
+| `completion_tokens` |                        |           | req | `integer`                                        |
+| `models`            |                        |           | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
+|                     | `actual_cost_evidence` |           | opt | `string` (nullable)                              |
+|                     | `actual_cost_provider` |           | opt | `string` (nullable)                              |
+|                     | `actual_cost_source`   |           | req | `string` (enum: [provider_actual, unavailable])  |
+|                     | `actual_cost_usd`      |           | req | `number` (nullable)                              |
+|                     | `call_count`           |           | req | `integer`                                        |
+|                     | `completion_tokens`    |           | req | `integer`                                        |
+|                     | `model`                |           | req | `string`                                         |
+|                     | `prompt_tokens`        |           | req | `integer`                                        |
+|                     | `provider`             |           | req | `string`                                         |
+|                     | `reasoning_tokens`     |           | req | `integer` (nullable)                             |
+|                     | `total_tokens`         |           | req | `integer`                                        |
+| `prompt_tokens`     |                        |           | req | `integer`                                        |
+| `reasoning_tokens`  |                        |           | req | `integer`                                        |
+| `total_tokens`      |                        |           | req | `integer`                                        |
 
 <details>
 <summary>JSON schema</summary>
@@ -2962,19 +2936,20 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-llmmodelusagecost"></a>
+
 ### Model: LlmModelUsageCost
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost` |  |  | opt | `number` (nullable) |
-| `cost` |  |  | opt | `number` (default: 0.0) |
-| `reference_cost` |  |  | opt | `number` (default: 0.0) |
-| `usage` |  |  | opt | [LlmUsageTotals](#model-llmusagetotals) |
-|  | `call_count` |  | opt | `integer` (default: 0) |
-|  | `completion_tokens` |  | opt | `integer` (default: 0) |
-|  | `prompt_tokens` |  | opt | `integer` (default: 0) |
-|  | `reasoning_tokens` |  | opt | `integer` (default: 0) |
-|  | `total_tokens` |  | opt | `integer` (default: 0) |
+| 1st level        | 2nd level           | 3rd level | Req | Notes                                   |
+| ---------------- | ------------------- | --------- | --- | --------------------------------------- |
+| `actual_cost`    |                     |           | opt | `number` (nullable)                     |
+| `cost`           |                     |           | opt | `number` (default: 0.0)                 |
+| `reference_cost` |                     |           | opt | `number` (default: 0.0)                 |
+| `usage`          |                     |           | opt | [LlmUsageTotals](#model-llmusagetotals) |
+|                  | `call_count`        |           | opt | `integer` (default: 0)                  |
+|                  | `completion_tokens` |           | opt | `integer` (default: 0)                  |
+|                  | `prompt_tokens`     |           | opt | `integer` (default: 0)                  |
+|                  | `reasoning_tokens`  |           | opt | `integer` (default: 0)                  |
+|                  | `total_tokens`      |           | opt | `integer` (default: 0)                  |
 
 <details>
 <summary>JSON schema</summary>
@@ -3015,19 +2990,20 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-llmusagesummary"></a>
+
 ### Model: LlmUsageSummary
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost` |  |  | opt | `number` (nullable) |
-| `call_count` |  |  | opt | `integer` (default: 0) |
-| `completion_tokens` |  |  | opt | `integer` (default: 0) |
-| `cost` |  |  | opt | `number` (default: 0.0) |
-| `prompt_tokens` |  |  | opt | `integer` (default: 0) |
-| `providers` |  |  | opt | `object` |
-| `reasoning_tokens` |  |  | opt | `integer` (default: 0) |
-| `reference_cost` |  |  | opt | `number` (default: 0.0) |
-| `total_tokens` |  |  | opt | `integer` (default: 0) |
+| 1st level           | 2nd level | 3rd level | Req | Notes                   |
+| ------------------- | --------- | --------- | --- | ----------------------- |
+| `actual_cost`       |           |           | opt | `number` (nullable)     |
+| `call_count`        |           |           | opt | `integer` (default: 0)  |
+| `completion_tokens` |           |           | opt | `integer` (default: 0)  |
+| `cost`              |           |           | opt | `number` (default: 0.0) |
+| `prompt_tokens`     |           |           | opt | `integer` (default: 0)  |
+| `providers`         |           |           | opt | `object`                |
+| `reasoning_tokens`  |           |           | opt | `integer` (default: 0)  |
+| `reference_cost`    |           |           | opt | `number` (default: 0.0) |
+| `total_tokens`      |           |           | opt | `integer` (default: 0)  |
 
 <details>
 <summary>JSON schema</summary>
@@ -3100,15 +3076,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-llmusagetotals"></a>
+
 ### Model: LlmUsageTotals
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `call_count` |  |  | opt | `integer` (default: 0) |
-| `completion_tokens` |  |  | opt | `integer` (default: 0) |
-| `prompt_tokens` |  |  | opt | `integer` (default: 0) |
-| `reasoning_tokens` |  |  | opt | `integer` (default: 0) |
-| `total_tokens` |  |  | opt | `integer` (default: 0) |
+| 1st level           | 2nd level | 3rd level | Req | Notes                  |
+| ------------------- | --------- | --------- | --- | ---------------------- |
+| `call_count`        |           |           | opt | `integer` (default: 0) |
+| `completion_tokens` |           |           | opt | `integer` (default: 0) |
+| `prompt_tokens`     |           |           | opt | `integer` (default: 0) |
+| `reasoning_tokens`  |           |           | opt | `integer` (default: 0) |
+| `total_tokens`      |           |           | opt | `integer` (default: 0) |
 
 <details>
 <summary>JSON schema</summary>
@@ -3151,11 +3128,12 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minerconfigdeleterequest"></a>
+
 ### Model: MinerConfigDeleteRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `key` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `key`     |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -3169,9 +3147,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "key"
-  ],
+  "required": ["key"],
   "title": "MinerConfigDeleteRequest",
   "type": "object"
 }
@@ -3180,12 +3156,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minerconfigputrequest"></a>
+
 ### Model: MinerConfigPutRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `key` |  |  | req | `string` |
-| `value` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `key`     |           |           | req | `string` |
+| `value`   |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -3203,10 +3180,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "key",
-    "value"
-  ],
+  "required": ["key", "value"],
   "title": "MinerConfigPutRequest",
   "type": "object"
 }
@@ -3215,14 +3189,15 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minerconfigresponse"></a>
+
 ### Model: MinerConfigResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `provider_credentials` |  |  | req | `object` |
-| `task_retry_count` |  |  | req | `integer` |
-| `uid` |  |  | req | `integer` (nullable) |
+| 1st level              | 2nd level | 3rd level | Req | Notes                |
+| ---------------------- | --------- | --------- | --- | -------------------- |
+| `miner_hotkey_ss58`    |           |           | req | `string`             |
+| `provider_credentials` |           |           | req | `object`             |
+| `task_retry_count`     |           |           | req | `integer`            |
+| `uid`                  |           |           | req | `integer` (nullable) |
 
 <details>
 <summary>JSON schema</summary>
@@ -3272,14 +3247,15 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minerprovidercredentialstatusmodel"></a>
+
 ### Model: MinerProviderCredentialStatusModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `created_at` |  |  | req | `string` (format: date-time; nullable) |
-| `exists` |  |  | req | `boolean` |
-| `provider` |  |  | req | `string` |
-| `updated_at` |  |  | req | `string` (format: date-time; nullable) |
+| 1st level    | 2nd level | 3rd level | Req | Notes                                  |
+| ------------ | --------- | --------- | --- | -------------------------------------- |
+| `created_at` |           |           | req | `string` (format: date-time; nullable) |
+| `exists`     |           |           | req | `boolean`                              |
+| `provider`   |           |           | req | `string`                               |
+| `updated_at` |           |           | req | `string` (format: date-time; nullable) |
 
 <details>
 <summary>JSON schema</summary>
@@ -3321,12 +3297,7 @@ Body: [StatusResponse](#model-statusresponse)
       "title": "Updated At"
     }
   },
-  "required": [
-    "provider",
-    "exists",
-    "created_at",
-    "updated_at"
-  ],
+  "required": ["provider", "exists", "created_at", "updated_at"],
   "title": "MinerProviderCredentialStatusModel",
   "type": "object"
 }
@@ -3335,21 +3306,22 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertask"></a>
+
 ### Model: MinerTask
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `budget_usd` |  |  | opt | `number` (default: 0.5) |
-| `query` |  |  | req | [Query](#model-query) |
-|  | `output_schema` |  | opt | [JsonObject-Input](#model-jsonobject-input) (nullable) |
-|  | `text` |  | req | `string` |
-| `reference_answer` |  |  | req | [ReferenceAnswer](#model-referenceanswer) |
-|  | `citations` |  | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `note` | opt | `string` (nullable) |
-|  |  | `title` | opt | `string` (nullable) |
-|  |  | `url` | req | `string` |
-|  | `text` |  | req | `string` |
-| `task_id` |  |  | req | `string` (format: uuid) |
+| 1st level          | 2nd level       | 3rd level | Req | Notes                                                     |
+| ------------------ | --------------- | --------- | --- | --------------------------------------------------------- |
+| `budget_usd`       |                 |           | opt | `number` (default: 0.5)                                   |
+| `query`            |                 |           | req | [Query](#model-query)                                     |
+|                    | `output_schema` |           | opt | [JsonObject-Input](#model-jsonobject-input) (nullable)    |
+|                    | `text`          |           | req | `string`                                                  |
+| `reference_answer` |                 |           | req | [ReferenceAnswer](#model-referenceanswer)                 |
+|                    | `citations`     |           | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
+|                    |                 | `note`    | opt | `string` (nullable)                                       |
+|                    |                 | `title`   | opt | `string` (nullable)                                       |
+|                    |                 | `url`     | req | `string`                                                  |
+|                    | `text`          |           | req | `string`                                                  |
+| `task_id`          |                 |           | req | `string` (format: uuid)                                   |
 
 <details>
 <summary>JSON schema</summary>
@@ -3376,11 +3348,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "task_id",
-    "query",
-    "reference_answer"
-  ],
+  "required": ["task_id", "query", "reference_answer"],
   "title": "MinerTask",
   "type": "object"
 }
@@ -3389,79 +3357,80 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskattemptauditpayload"></a>
+
 ### Model: MinerTaskAttemptAuditPayload
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `delivery_failure_detail` |  |  | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable) |
-|  | `artifact_id` |  | opt | `string` (format: uuid; nullable) |
-|  | `error_code` |  | req | `string` |
-|  | `error_message` |  | req | `string` |
-|  | `exception_type` |  | opt | `string` (nullable) |
-|  | `occurred_at` |  | req | `string` (format: date-time) |
-|  | `sandbox_diagnostics` |  | opt | [SandboxFailureDiagnostics](#model-sandboxfailurediagnostics) (nullable) |
-|  |  | `container_id` | opt | `string` (nullable) |
-|  |  | `container_name` | opt | `string` (nullable) |
-|  |  | `docker_inspect_error_tail` | opt | `string` (nullable) |
-|  |  | `docker_logs_error_tail` | opt | `string` (nullable) |
-|  |  | `docker_logs_tail` | opt | `string` (nullable) |
-|  |  | `error_text` | opt | `string` (nullable) |
-|  |  | `exit_code` | opt | `integer` (nullable) |
-|  |  | `image` | opt | `string` (nullable) |
-|  |  | `oom_killed` | opt | `boolean` (nullable) |
-|  |  | `pull_policy` | opt | `string` (nullable) |
-|  |  | `pull_returncode` | opt | `integer` (nullable) |
-|  |  | `pull_stderr_tail` | opt | `string` (nullable) |
-|  |  | `pull_stdout_tail` | opt | `string` (nullable) |
-|  |  | `run_returncode` | opt | `integer` (nullable) |
-|  |  | `run_stderr_tail` | opt | `string` (nullable) |
-|  |  | `run_stdout_tail` | opt | `string` (nullable) |
-|  |  | `state_error` | opt | `string` (nullable) |
-|  |  | `status` | opt | `string` (nullable) |
-|  | `task_id` |  | opt | `string` (format: uuid; nullable) |
-|  | `traceback` |  | opt | `string` (nullable) |
-|  | `uid` |  | opt | `integer` (nullable) |
-| `diagnostics` |  |  | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable) |
-|  | `elapsed_ms` |  | opt | `number` (nullable) |
-|  | `failure_owner` |  | opt | `string` (nullable) |
-|  | `phase` |  | req | `string` |
-|  | `platform_tool_activity_observed` |  | opt | `boolean` (default: False) |
-|  | `timeout_owner` |  | opt | `string` (nullable) |
-| `error_code` |  |  | opt | `string` (nullable) |
-| `error_summary_code` |  |  | opt | `string` (nullable) |
-| `execution_log` |  |  | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  | `details` |  | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_usd` | opt | `number` (nullable) |
-|  |  | `cost_usd` | opt | `number` (nullable) |
-|  |  | `execution` | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable) |
-|  |  | `extra` | opt | `object` (nullable) |
-|  |  | `reference_cost_usd` | opt | `number` (nullable) |
-|  |  | `request_hash` | req | `string` |
-|  |  | `request_payload` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `response_hash` | opt | `string` (nullable) |
-|  |  | `response_payload` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `result_policy` | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only) |
-|  |  | `results` | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: []) |
-|  | `issued_at` |  | req | `string` (format: date-time) |
-|  | `outcome` |  | req | [ToolCallOutcome](#model-toolcalloutcome) |
-|  | `receipt_id` |  | req | `string` |
-|  | `session_id` |  | req | `string` (format: uuid) |
-|  | `tool` |  | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-|  | `uid` |  | req | `integer` |
-| `finished_at` |  |  | req | `string` (format: date-time) |
-| `max_attempts` |  |  | req | `integer` |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `retry_decision` |  |  | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision) |
-| `started_at` |  |  | req | `string` (format: date-time) |
-| `status` |  |  | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus) |
-| `task_id` |  |  | req | `string` (format: uuid) |
-| `terminal_effect` |  |  | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable) |
-| `uid` |  |  | req | `integer` |
-| `validator_session_id` |  |  | req | `string` (format: uuid) |
+| 1st level                 | 2nd level                         | 3rd level                   | Req | Notes                                                                                               |
+| ------------------------- | --------------------------------- | --------------------------- | --- | --------------------------------------------------------------------------------------------------- |
+| `artifact_id`             |                                   |                             | req | `string` (format: uuid)                                                                             |
+| `attempt_number`          |                                   |                             | req | `integer`                                                                                           |
+| `batch_id`                |                                   |                             | req | `string` (format: uuid)                                                                             |
+| `delivery_failure_detail` |                                   |                             | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable)                                      |
+|                           | `artifact_id`                     |                             | opt | `string` (format: uuid; nullable)                                                                   |
+|                           | `error_code`                      |                             | req | `string`                                                                                            |
+|                           | `error_message`                   |                             | req | `string`                                                                                            |
+|                           | `exception_type`                  |                             | opt | `string` (nullable)                                                                                 |
+|                           | `occurred_at`                     |                             | req | `string` (format: date-time)                                                                        |
+|                           | `sandbox_diagnostics`             |                             | opt | [SandboxFailureDiagnostics](#model-sandboxfailurediagnostics) (nullable)                            |
+|                           |                                   | `container_id`              | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `container_name`            | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `docker_inspect_error_tail` | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `docker_logs_error_tail`    | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `docker_logs_tail`          | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `error_text`                | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `exit_code`                 | opt | `integer` (nullable)                                                                                |
+|                           |                                   | `image`                     | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `oom_killed`                | opt | `boolean` (nullable)                                                                                |
+|                           |                                   | `pull_policy`               | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `pull_returncode`           | opt | `integer` (nullable)                                                                                |
+|                           |                                   | `pull_stderr_tail`          | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `pull_stdout_tail`          | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `run_returncode`            | opt | `integer` (nullable)                                                                                |
+|                           |                                   | `run_stderr_tail`           | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `run_stdout_tail`           | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `state_error`               | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `status`                    | opt | `string` (nullable)                                                                                 |
+|                           | `task_id`                         |                             | opt | `string` (format: uuid; nullable)                                                                   |
+|                           | `traceback`                       |                             | opt | `string` (nullable)                                                                                 |
+|                           | `uid`                             |                             | opt | `integer` (nullable)                                                                                |
+| `diagnostics`             |                                   |                             | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable)          |
+|                           | `elapsed_ms`                      |                             | opt | `number` (nullable)                                                                                 |
+|                           | `failure_owner`                   |                             | opt | `string` (nullable)                                                                                 |
+|                           | `phase`                           |                             | req | `string`                                                                                            |
+|                           | `platform_tool_activity_observed` |                             | opt | `boolean` (default: False)                                                                          |
+|                           | `timeout_owner`                   |                             | opt | `string` (nullable)                                                                                 |
+| `error_code`              |                                   |                             | opt | `string` (nullable)                                                                                 |
+| `error_summary_code`      |                                   |                             | opt | `string` (nullable)                                                                                 |
+| `execution_log`           |                                   |                             | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                                        |
+|                           | `details`                         |                             | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|                           |                                   | `actual_cost_provider`      | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `actual_cost_usd`           | opt | `number` (nullable)                                                                                 |
+|                           |                                   | `cost_usd`                  | opt | `number` (nullable)                                                                                 |
+|                           |                                   | `execution`                 | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable)                                          |
+|                           |                                   | `extra`                     | opt | `object` (nullable)                                                                                 |
+|                           |                                   | `reference_cost_usd`        | opt | `number` (nullable)                                                                                 |
+|                           |                                   | `request_hash`              | req | `string`                                                                                            |
+|                           |                                   | `request_payload`           | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                           |                                   | `response_hash`             | opt | `string` (nullable)                                                                                 |
+|                           |                                   | `response_payload`          | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                           |                                   | `result_policy`             | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only)                                     |
+|                           |                                   | `results`                   | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: [])                                    |
+|                           | `issued_at`                       |                             | req | `string` (format: date-time)                                                                        |
+|                           | `outcome`                         |                             | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+|                           | `receipt_id`                      |                             | req | `string`                                                                                            |
+|                           | `session_id`                      |                             | req | `string` (format: uuid)                                                                             |
+|                           | `tool`                            |                             | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+|                           | `uid`                             |                             | req | `integer`                                                                                           |
+| `finished_at`             |                                   |                             | req | `string` (format: date-time)                                                                        |
+| `max_attempts`            |                                   |                             | req | `integer`                                                                                           |
+| `miner_hotkey_ss58`       |                                   |                             | req | `string`                                                                                            |
+| `retry_decision`          |                                   |                             | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision)                               |
+| `started_at`              |                                   |                             | req | `string` (format: date-time)                                                                        |
+| `status`                  |                                   |                             | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus)                                             |
+| `task_id`                 |                                   |                             | req | `string` (format: uuid)                                                                             |
+| `terminal_effect`         |                                   |                             | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable)                  |
+| `uid`                     |                                   |                             | req | `integer`                                                                                           |
+| `validator_session_id`    |                                   |                             | req | `string` (format: uuid)                                                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -3612,15 +3581,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskattemptdiagnosticspayload"></a>
+
 ### Model: MinerTaskAttemptDiagnosticsPayload
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `elapsed_ms` |  |  | opt | `number` (nullable) |
-| `failure_owner` |  |  | opt | `string` (nullable) |
-| `phase` |  |  | req | `string` |
-| `platform_tool_activity_observed` |  |  | opt | `boolean` (default: False) |
-| `timeout_owner` |  |  | opt | `string` (nullable) |
+| 1st level                         | 2nd level | 3rd level | Req | Notes                      |
+| --------------------------------- | --------- | --------- | --- | -------------------------- |
+| `elapsed_ms`                      |           |           | opt | `number` (nullable)        |
+| `failure_owner`                   |           |           | opt | `string` (nullable)        |
+| `phase`                           |           |           | req | `string`                   |
+| `platform_tool_activity_observed` |           |           | opt | `boolean` (default: False) |
+| `timeout_owner`                   |           |           | opt | `string` (nullable)        |
 
 <details>
 <summary>JSON schema</summary>
@@ -3677,9 +3647,7 @@ Body: [StatusResponse](#model-statusresponse)
       "title": "Timeout Owner"
     }
   },
-  "required": [
-    "phase"
-  ],
+  "required": ["phase"],
   "title": "MinerTaskAttemptDiagnosticsPayload",
   "type": "object"
 }
@@ -3688,15 +3656,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskattemptidentitypayload"></a>
+
 ### Model: MinerTaskAttemptIdentityPayload
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `task_id` |  |  | req | `string` (format: uuid) |
-| `validator_session_id` |  |  | opt | `string` (format: uuid; nullable) |
+| 1st level              | 2nd level | 3rd level | Req | Notes                             |
+| ---------------------- | --------- | --------- | --- | --------------------------------- |
+| `artifact_id`          |           |           | req | `string` (format: uuid)           |
+| `attempt_number`       |           |           | req | `integer`                         |
+| `batch_id`             |           |           | req | `string` (format: uuid)           |
+| `task_id`              |           |           | req | `string` (format: uuid)           |
+| `validator_session_id` |           |           | opt | `string` (format: uuid; nullable) |
 
 <details>
 <summary>JSON schema</summary>
@@ -3738,12 +3707,7 @@ Body: [StatusResponse](#model-statusresponse)
       "title": "Validator Session Id"
     }
   },
-  "required": [
-    "batch_id",
-    "artifact_id",
-    "task_id",
-    "attempt_number"
-  ],
+  "required": ["batch_id", "artifact_id", "task_id", "attempt_number"],
   "title": "MinerTaskAttemptIdentityPayload",
   "type": "object"
 }
@@ -3752,6 +3716,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskattemptretrydecision"></a>
+
 ### Model: MinerTaskAttemptRetryDecision
 
 (no documented fields)
@@ -3761,10 +3726,7 @@ Body: [StatusResponse](#model-statusresponse)
 
 ```json
 {
-  "enum": [
-    "will_retry",
-    "will_not_retry"
-  ],
+  "enum": ["will_retry", "will_not_retry"],
   "title": "MinerTaskAttemptRetryDecision",
   "type": "string"
 }
@@ -3773,6 +3735,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskattemptstatus"></a>
+
 ### Model: MinerTaskAttemptStatus
 
 (no documented fields)
@@ -3782,10 +3745,7 @@ Body: [StatusResponse](#model-statusresponse)
 
 ```json
 {
-  "enum": [
-    "succeeded",
-    "failed"
-  ],
+  "enum": ["succeeded", "failed"],
   "title": "MinerTaskAttemptStatus",
   "type": "string"
 }
@@ -3794,6 +3754,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskattemptterminaleffect"></a>
+
 ### Model: MinerTaskAttemptTerminalEffect
 
 (no documented fields)
@@ -3803,11 +3764,7 @@ Body: [StatusResponse](#model-statusresponse)
 
 ```json
 {
-  "enum": [
-    "task_result",
-    "delivery_failure",
-    "attempt_failure"
-  ],
+  "enum": ["task_result", "delivery_failure", "attempt_failure"],
   "title": "MinerTaskAttemptTerminalEffect",
   "type": "string"
 }
@@ -3816,17 +3773,18 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskbatchartifactmodel"></a>
+
 ### Model: MinerTaskBatchArtifactModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `content_hash` |  |  | req | `string` |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `size_bytes` |  |  | req | `integer` |
-| `submitted_at` |  |  | req | `string` (format: date-time) |
-| `task_retry_count` |  |  | req | `integer` |
-| `uid` |  |  | req | `integer` |
+| 1st level           | 2nd level | 3rd level | Req | Notes                        |
+| ------------------- | --------- | --------- | --- | ---------------------------- |
+| `artifact_id`       |           |           | req | `string` (format: uuid)      |
+| `content_hash`      |           |           | req | `string`                     |
+| `miner_hotkey_ss58` |           |           | req | `string`                     |
+| `size_bytes`        |           |           | req | `integer`                    |
+| `submitted_at`      |           |           | req | `string` (format: date-time) |
+| `task_retry_count`  |           |           | req | `integer`                    |
+| `uid`               |           |           | req | `integer`                    |
 
 <details>
 <summary>JSON schema</summary>
@@ -3882,33 +3840,34 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskbatchmodel"></a>
+
 ### Model: MinerTaskBatchModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifacts` |  |  | req | array[[MinerTaskBatchArtifactModel](#model-minertaskbatchartifactmodel)] |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `content_hash` |  | req | `string` |
-|  | `miner_hotkey_ss58` |  | req | `string` |
-|  | `size_bytes` |  | req | `integer` |
-|  | `submitted_at` |  | req | `string` (format: date-time) |
-|  | `task_retry_count` |  | req | `integer` |
-|  | `uid` |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `champion_artifact_id` |  |  | req | `string` (format: uuid; nullable) |
-| `completed_at` |  |  | opt | `string` (format: date-time; nullable) |
-| `created_at` |  |  | req | `string` (format: date-time) |
-| `cutoff_at` |  |  | req | `string` (format: date-time) |
-| `failed_at` |  |  | opt | `string` (format: date-time; nullable) |
-| `tasks` |  |  | req | array[[MinerTask](#model-minertask)] |
-|  | `budget_usd` |  | opt | `number` (default: 0.5) |
-|  | `query` |  | req | [Query](#model-query) |
-|  |  | `output_schema` | opt | [JsonObject-Input](#model-jsonobject-input) (nullable) |
-|  |  | `text` | req | `string` |
-|  | `reference_answer` |  | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `text` | req | `string` |
-|  | `task_id` |  | req | `string` (format: uuid) |
+| 1st level              | 2nd level           | 3rd level       | Req | Notes                                                                    |
+| ---------------------- | ------------------- | --------------- | --- | ------------------------------------------------------------------------ |
+| `artifacts`            |                     |                 | req | array[[MinerTaskBatchArtifactModel](#model-minertaskbatchartifactmodel)] |
+|                        | `artifact_id`       |                 | req | `string` (format: uuid)                                                  |
+|                        | `content_hash`      |                 | req | `string`                                                                 |
+|                        | `miner_hotkey_ss58` |                 | req | `string`                                                                 |
+|                        | `size_bytes`        |                 | req | `integer`                                                                |
+|                        | `submitted_at`      |                 | req | `string` (format: date-time)                                             |
+|                        | `task_retry_count`  |                 | req | `integer`                                                                |
+|                        | `uid`               |                 | req | `integer`                                                                |
+| `batch_id`             |                     |                 | req | `string` (format: uuid)                                                  |
+| `champion_artifact_id` |                     |                 | req | `string` (format: uuid; nullable)                                        |
+| `completed_at`         |                     |                 | opt | `string` (format: date-time; nullable)                                   |
+| `created_at`           |                     |                 | req | `string` (format: date-time)                                             |
+| `cutoff_at`            |                     |                 | req | `string` (format: date-time)                                             |
+| `failed_at`            |                     |                 | opt | `string` (format: date-time; nullable)                                   |
+| `tasks`                |                     |                 | req | array[[MinerTask](#model-minertask)]                                     |
+|                        | `budget_usd`        |                 | opt | `number` (default: 0.5)                                                  |
+|                        | `query`             |                 | req | [Query](#model-query)                                                    |
+|                        |                     | `output_schema` | opt | [JsonObject-Input](#model-jsonobject-input) (nullable)                   |
+|                        |                     | `text`          | req | `string`                                                                 |
+|                        | `reference_answer`  |                 | req | [ReferenceAnswer](#model-referenceanswer)                                |
+|                        |                     | `citations`     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                |
+|                        |                     | `text`          | req | `string`                                                                 |
+|                        | `task_id`           |                 | req | `string` (format: uuid)                                                  |
 
 <details>
 <summary>JSON schema</summary>
@@ -3998,6 +3957,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskerrorcode"></a>
+
 ### Model: MinerTaskErrorCode
 
 (no documented fields)
@@ -4042,6 +4002,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskresultoutcome"></a>
+
 ### Model: MinerTaskResultOutcome
 
 (no documented fields)
@@ -4051,10 +4012,7 @@ Body: [StatusResponse](#model-statusresponse)
 
 ```json
 {
-  "enum": [
-    "accepted",
-    "rejected"
-  ],
+  "enum": ["accepted", "rejected"],
   "title": "MinerTaskResultOutcome",
   "type": "string"
 }
@@ -4063,6 +4021,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskresultreasoncode"></a>
+
 ### Model: MinerTaskResultReasonCode
 
 (no documented fields)
@@ -4087,91 +4046,92 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskrunrequest"></a>
+
 ### Model: MinerTaskRunRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `execution_log` |  |  | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  | `details` |  | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_usd` | opt | `number` (nullable) |
-|  |  | `cost_usd` | opt | `number` (nullable) |
-|  |  | `execution` | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable) |
-|  |  | `extra` | opt | `object` (nullable) |
-|  |  | `reference_cost_usd` | opt | `number` (nullable) |
-|  |  | `request_hash` | req | `string` |
-|  |  | `request_payload` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `response_hash` | opt | `string` (nullable) |
-|  |  | `response_payload` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `result_policy` | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only) |
-|  |  | `results` | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: []) |
-|  | `issued_at` |  | req | `string` (format: date-time) |
-|  | `outcome` |  | req | [ToolCallOutcome](#model-toolcalloutcome) |
-|  | `receipt_id` |  | req | `string` |
-|  | `session_id` |  | req | `string` (format: uuid) |
-|  | `tool` |  | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-|  | `uid` |  | req | `integer` |
-| `run` |  |  | req | [MinerTaskRunSection](#model-minertaskrunsection) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `completed_at` |  | opt | `string` (format: date-time; nullable) |
-|  | `response` |  | opt | [Response](#model-response) (nullable) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `output` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `text` | opt | `string` (nullable) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-| `score` |  |  | opt | `number` (nullable) |
-| `session` |  |  | req | [SessionModel](#model-sessionmodel) |
-|  | `expires_at` |  | req | `string` |
-|  | `issued_at` |  | req | `string` |
-|  | `session_id` |  | req | `string` (format: uuid) |
-|  | `status` |  | req | `string` |
-|  | `uid` |  | req | `integer` |
-| `specifics` |  |  | req | [EvaluationDetails](#model-evaluationdetails) |
-|  | `elapsed_ms` |  | opt | `number` (nullable) |
-|  | `error` |  | opt | [EvaluationError](#model-evaluationerror) (nullable) |
-|  |  | `code` | req | [MinerTaskErrorCode](#model-minertaskerrorcode) |
-|  |  | `message` | req | `string` |
-|  | `score_breakdown` |  | opt | [ScoreBreakdown](#model-scorebreakdown) (nullable) |
-|  |  | `comparison_score` | req | `number` |
-|  |  | `reasoning` | opt | [ScorerReasoning](#model-scorerreasoning) (nullable) |
-|  |  | `scoring_version` | req | `string` |
-|  |  | `total_score` | req | `number` |
-|  | `scoring_judge_usage` |  | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
-|  |  | `actual_cost_usd` | req | `number` (nullable) |
-|  |  | `call_count` | req | `integer` |
-|  |  | `completion_tokens` | req | `integer` |
-|  |  | `models` | req | array[[JudgeModelUsage](#model-judgemodelusage)] |
-|  |  | `prompt_tokens` | req | `integer` |
-|  |  | `reasoning_tokens` | req | `integer` |
-|  |  | `total_tokens` | req | `integer` |
-|  | `total_tool_usage` |  | opt | [ToolUsageSummary](#model-toolusagesummary) |
-|  |  | `actual_cost_by_provider` | opt | `object` |
-|  |  | `actual_total_cost_usd` | opt | `number` (nullable) |
-|  |  | `embedding` | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `embedding_cost` | opt | `number` (default: 0.0) |
-|  |  | `llm` | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `llm_cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost_by_provider` | opt | `object` |
-|  |  | `reference_total_cost_usd` | opt | `number` (default: 0.0) |
-|  |  | `search_tool` | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `search_tool_cost` | opt | `number` (default: 0.0) |
-|  | `trace` |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  |  | `entrypoint_invocation_ms` | opt | `number` (nullable) |
-|  |  | `orchestration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_attempt_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_duration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_retry_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_retry_reasons` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_selected_routes` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_status` | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  |  | `scoring_ms` | opt | `number` (nullable) |
-| `usage` |  |  | req | [UsageModel](#model-usagemodel) |
-|  | `by_provider` |  | opt | `object` |
-|  | `call_count` |  | req | `integer` |
-|  | `total_completion_tokens` |  | req | `integer` |
-|  | `total_prompt_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
+| 1st level       | 2nd level                 | 3rd level                       | Req | Notes                                                                                               |
+| --------------- | ------------------------- | ------------------------------- | --- | --------------------------------------------------------------------------------------------------- |
+| `batch_id`      |                           |                                 | req | `string` (format: uuid)                                                                             |
+| `execution_log` |                           |                                 | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                                        |
+|                 | `details`                 |                                 | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|                 |                           | `actual_cost_provider`          | opt | `string` (nullable)                                                                                 |
+|                 |                           | `actual_cost_usd`               | opt | `number` (nullable)                                                                                 |
+|                 |                           | `cost_usd`                      | opt | `number` (nullable)                                                                                 |
+|                 |                           | `execution`                     | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable)                                          |
+|                 |                           | `extra`                         | opt | `object` (nullable)                                                                                 |
+|                 |                           | `reference_cost_usd`            | opt | `number` (nullable)                                                                                 |
+|                 |                           | `request_hash`                  | req | `string`                                                                                            |
+|                 |                           | `request_payload`               | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                 |                           | `response_hash`                 | opt | `string` (nullable)                                                                                 |
+|                 |                           | `response_payload`              | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                 |                           | `result_policy`                 | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only)                                     |
+|                 |                           | `results`                       | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: [])                                    |
+|                 | `issued_at`               |                                 | req | `string` (format: date-time)                                                                        |
+|                 | `outcome`                 |                                 | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+|                 | `receipt_id`              |                                 | req | `string`                                                                                            |
+|                 | `session_id`              |                                 | req | `string` (format: uuid)                                                                             |
+|                 | `tool`                    |                                 | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+|                 | `uid`                     |                                 | req | `integer`                                                                                           |
+| `run`           |                           |                                 | req | [MinerTaskRunSection](#model-minertaskrunsection)                                                   |
+|                 | `artifact_id`             |                                 | req | `string` (format: uuid)                                                                             |
+|                 | `completed_at`            |                                 | opt | `string` (format: date-time; nullable)                                                              |
+|                 | `response`                |                                 | opt | [Response](#model-response) (nullable)                                                              |
+|                 |                           | `citations`                     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                                           |
+|                 |                           | `output`                        | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                 |                           | `text`                          | opt | `string` (nullable)                                                                                 |
+|                 | `task_id`                 |                                 | req | `string` (format: uuid)                                                                             |
+| `score`         |                           |                                 | opt | `number` (nullable)                                                                                 |
+| `session`       |                           |                                 | req | [SessionModel](#model-sessionmodel)                                                                 |
+|                 | `expires_at`              |                                 | req | `string`                                                                                            |
+|                 | `issued_at`               |                                 | req | `string`                                                                                            |
+|                 | `session_id`              |                                 | req | `string` (format: uuid)                                                                             |
+|                 | `status`                  |                                 | req | `string`                                                                                            |
+|                 | `uid`                     |                                 | req | `integer`                                                                                           |
+| `specifics`     |                           |                                 | req | [EvaluationDetails](#model-evaluationdetails)                                                       |
+|                 | `elapsed_ms`              |                                 | opt | `number` (nullable)                                                                                 |
+|                 | `error`                   |                                 | opt | [EvaluationError](#model-evaluationerror) (nullable)                                                |
+|                 |                           | `code`                          | req | [MinerTaskErrorCode](#model-minertaskerrorcode)                                                     |
+|                 |                           | `message`                       | req | `string`                                                                                            |
+|                 | `score_breakdown`         |                                 | opt | [ScoreBreakdown](#model-scorebreakdown) (nullable)                                                  |
+|                 |                           | `comparison_score`              | req | `number`                                                                                            |
+|                 |                           | `reasoning`                     | opt | [ScorerReasoning](#model-scorerreasoning) (nullable)                                                |
+|                 |                           | `scoring_version`               | req | `string`                                                                                            |
+|                 |                           | `total_score`                   | req | `number`                                                                                            |
+|                 | `scoring_judge_usage`     |                                 | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable)                                            |
+|                 |                           | `actual_cost_usd`               | req | `number` (nullable)                                                                                 |
+|                 |                           | `call_count`                    | req | `integer`                                                                                           |
+|                 |                           | `completion_tokens`             | req | `integer`                                                                                           |
+|                 |                           | `models`                        | req | array[[JudgeModelUsage](#model-judgemodelusage)]                                                    |
+|                 |                           | `prompt_tokens`                 | req | `integer`                                                                                           |
+|                 |                           | `reasoning_tokens`              | req | `integer`                                                                                           |
+|                 |                           | `total_tokens`                  | req | `integer`                                                                                           |
+|                 | `total_tool_usage`        |                                 | opt | [ToolUsageSummary](#model-toolusagesummary)                                                         |
+|                 |                           | `actual_cost_by_provider`       | opt | `object`                                                                                            |
+|                 |                           | `actual_total_cost_usd`         | opt | `number` (nullable)                                                                                 |
+|                 |                           | `embedding`                     | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary)                                       |
+|                 |                           | `embedding_cost`                | opt | `number` (default: 0.0)                                                                             |
+|                 |                           | `llm`                           | opt | [LlmUsageSummary](#model-llmusagesummary)                                                           |
+|                 |                           | `llm_cost`                      | opt | `number` (default: 0.0)                                                                             |
+|                 |                           | `reference_cost_by_provider`    | opt | `object`                                                                                            |
+|                 |                           | `reference_total_cost_usd`      | opt | `number` (default: 0.0)                                                                             |
+|                 |                           | `search_tool`                   | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)                                             |
+|                 |                           | `search_tool_cost`              | opt | `number` (default: 0.0)                                                                             |
+|                 | `trace`                   |                                 | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                                                |
+|                 |                           | `entrypoint_invocation_ms`      | opt | `number` (nullable)                                                                                 |
+|                 |                           | `orchestration_ms`              | opt | `number` (nullable)                                                                                 |
+|                 |                           | `scoring_judge_attempt_count`   | opt | `integer` (nullable)                                                                                |
+|                 |                           | `scoring_judge_duration_ms`     | opt | `number` (nullable)                                                                                 |
+|                 |                           | `scoring_judge_retry_count`     | opt | `integer` (nullable)                                                                                |
+|                 |                           | `scoring_judge_retry_reasons`   | opt | array[`string`] (default: [])                                                                       |
+|                 |                           | `scoring_judge_selected_routes` | opt | array[`string`] (default: [])                                                                       |
+|                 |                           | `scoring_judge_status`          | opt | `string` (enum: [ok, exhausted, failed]; nullable)                                                  |
+|                 |                           | `scoring_ms`                    | opt | `number` (nullable)                                                                                 |
+| `usage`         |                           |                                 | req | [UsageModel](#model-usagemodel)                                                                     |
+|                 | `by_provider`             |                                 | opt | `object`                                                                                            |
+|                 | `call_count`              |                                 | req | `integer`                                                                                           |
+|                 | `total_completion_tokens` |                                 | req | `integer`                                                                                           |
+|                 | `total_prompt_tokens`     |                                 | req | `integer`                                                                                           |
+|                 | `total_tokens`            |                                 | req | `integer`                                                                                           |
 
 <details>
 <summary>JSON schema</summary>
@@ -4219,13 +4179,7 @@ Body: [StatusResponse](#model-statusresponse)
       "$ref": "#/components/schemas/UsageModel"
     }
   },
-  "required": [
-    "batch_id",
-    "run",
-    "usage",
-    "session",
-    "specifics"
-  ],
+  "required": ["batch_id", "run", "usage", "session", "specifics"],
   "title": "MinerTaskRunRequest",
   "type": "object"
 }
@@ -4234,20 +4188,21 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskrunsection"></a>
+
 ### Model: MinerTaskRunSection
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `completed_at` |  |  | opt | `string` (format: date-time; nullable) |
-| `response` |  |  | opt | [Response](#model-response) (nullable) |
-|  | `citations` |  | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `note` | opt | `string` (nullable) |
-|  |  | `title` | opt | `string` (nullable) |
-|  |  | `url` | req | `string` |
-|  | `output` |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  | `text` |  | opt | `string` (nullable) |
-| `task_id` |  |  | req | `string` (format: uuid) |
+| 1st level      | 2nd level   | 3rd level | Req | Notes                                                     |
+| -------------- | ----------- | --------- | --- | --------------------------------------------------------- |
+| `artifact_id`  |             |           | req | `string` (format: uuid)                                   |
+| `completed_at` |             |           | opt | `string` (format: date-time; nullable)                    |
+| `response`     |             |           | opt | [Response](#model-response) (nullable)                    |
+|                | `citations` |           | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
+|                |             | `note`    | opt | `string` (nullable)                                       |
+|                |             | `title`   | opt | `string` (nullable)                                       |
+|                |             | `url`     | req | `string`                                                  |
+|                | `output`    |           | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)      |
+|                | `text`      |           | opt | `string` (nullable)                                       |
+| `task_id`      |             |           | req | `string` (format: uuid)                                   |
 
 <details>
 <summary>JSON schema</summary>
@@ -4288,10 +4243,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "artifact_id",
-    "task_id"
-  ],
+  "required": ["artifact_id", "task_id"],
   "title": "MinerTaskRunSection",
   "type": "object"
 }
@@ -4300,15 +4252,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkartifactpayload"></a>
+
 ### Model: MinerTaskWorkArtifactPayload
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `content_hash` |  |  | req | `string` |
-| `miner_hotkey_ss58` |  |  | opt | `string` (nullable) |
-| `size_bytes` |  |  | req | `integer` |
-| `uid` |  |  | req | `integer` |
+| 1st level           | 2nd level | 3rd level | Req | Notes                   |
+| ------------------- | --------- | --------- | --- | ----------------------- |
+| `artifact_id`       |           |           | req | `string` (format: uuid) |
+| `content_hash`      |           |           | req | `string`                |
+| `miner_hotkey_ss58` |           |           | opt | `string` (nullable)     |
+| `size_bytes`        |           |           | req | `integer`               |
+| `uid`               |           |           | req | `integer`               |
 
 <details>
 <summary>JSON schema</summary>
@@ -4349,12 +4302,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "integer"
     }
   },
-  "required": [
-    "artifact_id",
-    "uid",
-    "content_hash",
-    "size_bytes"
-  ],
+  "required": ["artifact_id", "uid", "content_hash", "size_bytes"],
   "title": "MinerTaskWorkArtifactPayload",
   "type": "object"
 }
@@ -4363,29 +4311,30 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkassignmentpayload"></a>
+
 ### Model: MinerTaskWorkAssignmentPayload
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact` |  |  | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `content_hash` |  | req | `string` |
-|  | `miner_hotkey_ss58` |  | opt | `string` (nullable) |
-|  | `size_bytes` |  | req | `integer` |
-|  | `uid` |  | req | `integer` |
-| `assignment_token` |  |  | req | `string` |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `max_attempts` |  |  | req | `integer` |
-| `task` |  |  | req | [MinerTask](#model-minertask) |
-|  | `budget_usd` |  | opt | `number` (default: 0.5) |
-|  | `query` |  | req | [Query](#model-query) |
-|  |  | `output_schema` | opt | [JsonObject-Input](#model-jsonobject-input) (nullable) |
-|  |  | `text` | req | `string` |
-|  | `reference_answer` |  | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `text` | req | `string` |
-|  | `task_id` |  | req | `string` (format: uuid) |
+| 1st level          | 2nd level           | 3rd level       | Req | Notes                                                               |
+| ------------------ | ------------------- | --------------- | --- | ------------------------------------------------------------------- |
+| `artifact`         |                     |                 | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
+|                    | `artifact_id`       |                 | req | `string` (format: uuid)                                             |
+|                    | `content_hash`      |                 | req | `string`                                                            |
+|                    | `miner_hotkey_ss58` |                 | opt | `string` (nullable)                                                 |
+|                    | `size_bytes`        |                 | req | `integer`                                                           |
+|                    | `uid`               |                 | req | `integer`                                                           |
+| `assignment_token` |                     |                 | req | `string`                                                            |
+| `attempt_number`   |                     |                 | req | `integer`                                                           |
+| `batch_id`         |                     |                 | req | `string` (format: uuid)                                             |
+| `max_attempts`     |                     |                 | req | `integer`                                                           |
+| `task`             |                     |                 | req | [MinerTask](#model-minertask)                                       |
+|                    | `budget_usd`        |                 | opt | `number` (default: 0.5)                                             |
+|                    | `query`             |                 | req | [Query](#model-query)                                               |
+|                    |                     | `output_schema` | opt | [JsonObject-Input](#model-jsonobject-input) (nullable)              |
+|                    |                     | `text`          | req | `string`                                                            |
+|                    | `reference_answer`  |                 | req | [ReferenceAnswer](#model-referenceanswer)                           |
+|                    |                     | `citations`     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)           |
+|                    |                     | `text`          | req | `string`                                                            |
+|                    | `task_id`           |                 | req | `string` (format: uuid)                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -4437,96 +4386,97 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkexecutionenvelope"></a>
+
 ### Model: MinerTaskWorkExecutionEnvelope
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `execution_completed_at` |  |  | req | `string` (format: date-time) |
-| `execution_log` |  |  | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  | `details` |  | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  |  | `actual_cost_provider` | opt | `string` (nullable) |
-|  |  | `actual_cost_usd` | opt | `number` (nullable) |
-|  |  | `cost_usd` | opt | `number` (nullable) |
-|  |  | `execution` | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable) |
-|  |  | `extra` | opt | `object` (nullable) |
-|  |  | `reference_cost_usd` | opt | `number` (nullable) |
-|  |  | `request_hash` | req | `string` |
-|  |  | `request_payload` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `response_hash` | opt | `string` (nullable) |
-|  |  | `response_payload` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `result_policy` | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only) |
-|  |  | `results` | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: []) |
-|  | `issued_at` |  | req | `string` (format: date-time) |
-|  | `outcome` |  | req | [ToolCallOutcome](#model-toolcalloutcome) |
-|  | `receipt_id` |  | req | `string` |
-|  | `session_id` |  | req | `string` (format: uuid) |
-|  | `tool` |  | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-|  | `uid` |  | req | `integer` |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `response` |  |  | req | [Response](#model-response) |
-|  | `citations` |  | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `note` | opt | `string` (nullable) |
-|  |  | `title` | opt | `string` (nullable) |
-|  |  | `url` | req | `string` |
-|  | `output` |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  | `text` |  | opt | `string` (nullable) |
-| `session` |  |  | req | [SessionModel](#model-sessionmodel) |
-|  | `expires_at` |  | req | `string` |
-|  | `issued_at` |  | req | `string` |
-|  | `session_id` |  | req | `string` (format: uuid) |
-|  | `status` |  | req | `string` |
-|  | `uid` |  | req | `integer` |
-| `started_at` |  |  | req | `string` (format: date-time) |
-| `task_id` |  |  | req | `string` (format: uuid) |
-| `total_tool_usage` |  |  | req | [ToolUsageSummary](#model-toolusagesummary) |
-|  | `actual_cost_by_provider` |  | opt | `object` |
-|  | `actual_total_cost_usd` |  | opt | `number` (nullable) |
-|  | `embedding` |  | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  | `embedding_cost` |  | opt | `number` (default: 0.0) |
-|  | `llm` |  | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `completion_tokens` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `prompt_tokens` | opt | `integer` (default: 0) |
-|  |  | `providers` | opt | `object` |
-|  |  | `reasoning_tokens` | opt | `integer` (default: 0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  |  | `total_tokens` | opt | `integer` (default: 0) |
-|  | `llm_cost` |  | opt | `number` (default: 0.0) |
-|  | `reference_cost_by_provider` |  | opt | `object` |
-|  | `reference_total_cost_usd` |  | opt | `number` (default: 0.0) |
-|  | `search_tool` |  | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  | `search_tool_cost` |  | opt | `number` (default: 0.0) |
-| `trace` |  |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  | `entrypoint_invocation_ms` |  | opt | `number` (nullable) |
-|  | `orchestration_ms` |  | opt | `number` (nullable) |
-|  | `scoring_judge_attempt_count` |  | opt | `integer` (nullable) |
-|  | `scoring_judge_duration_ms` |  | opt | `number` (nullable) |
-|  | `scoring_judge_retry_count` |  | opt | `integer` (nullable) |
-|  | `scoring_judge_retry_reasons` |  | opt | array[`string`] (default: []) |
-|  | `scoring_judge_selected_routes` |  | opt | array[`string`] (default: []) |
-|  | `scoring_judge_status` |  | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  | `scoring_ms` |  | opt | `number` (nullable) |
-| `uid` |  |  | req | `integer` |
-| `usage` |  |  | req | [UsageModel](#model-usagemodel) |
-|  | `by_provider` |  | opt | `object` |
-|  | `call_count` |  | req | `integer` |
-|  | `total_completion_tokens` |  | req | `integer` |
-|  | `total_prompt_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
-| `validator_session_id` |  |  | req | `string` (format: uuid) |
+| 1st level                | 2nd level                       | 3rd level              | Req | Notes                                                                                               |
+| ------------------------ | ------------------------------- | ---------------------- | --- | --------------------------------------------------------------------------------------------------- |
+| `artifact_id`            |                                 |                        | req | `string` (format: uuid)                                                                             |
+| `attempt_number`         |                                 |                        | req | `integer`                                                                                           |
+| `batch_id`               |                                 |                        | req | `string` (format: uuid)                                                                             |
+| `execution_completed_at` |                                 |                        | req | `string` (format: date-time)                                                                        |
+| `execution_log`          |                                 |                        | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                                        |
+|                          | `details`                       |                        | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|                          |                                 | `actual_cost_provider` | opt | `string` (nullable)                                                                                 |
+|                          |                                 | `actual_cost_usd`      | opt | `number` (nullable)                                                                                 |
+|                          |                                 | `cost_usd`             | opt | `number` (nullable)                                                                                 |
+|                          |                                 | `execution`            | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable)                                          |
+|                          |                                 | `extra`                | opt | `object` (nullable)                                                                                 |
+|                          |                                 | `reference_cost_usd`   | opt | `number` (nullable)                                                                                 |
+|                          |                                 | `request_hash`         | req | `string`                                                                                            |
+|                          |                                 | `request_payload`      | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                          |                                 | `response_hash`        | opt | `string` (nullable)                                                                                 |
+|                          |                                 | `response_payload`     | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                          |                                 | `result_policy`        | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only)                                     |
+|                          |                                 | `results`              | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: [])                                    |
+|                          | `issued_at`                     |                        | req | `string` (format: date-time)                                                                        |
+|                          | `outcome`                       |                        | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+|                          | `receipt_id`                    |                        | req | `string`                                                                                            |
+|                          | `session_id`                    |                        | req | `string` (format: uuid)                                                                             |
+|                          | `tool`                          |                        | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+|                          | `uid`                           |                        | req | `integer`                                                                                           |
+| `miner_hotkey_ss58`      |                                 |                        | req | `string`                                                                                            |
+| `response`               |                                 |                        | req | [Response](#model-response)                                                                         |
+|                          | `citations`                     |                        | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                                           |
+|                          |                                 | `note`                 | opt | `string` (nullable)                                                                                 |
+|                          |                                 | `title`                | opt | `string` (nullable)                                                                                 |
+|                          |                                 | `url`                  | req | `string`                                                                                            |
+|                          | `output`                        |                        | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|                          | `text`                          |                        | opt | `string` (nullable)                                                                                 |
+| `session`                |                                 |                        | req | [SessionModel](#model-sessionmodel)                                                                 |
+|                          | `expires_at`                    |                        | req | `string`                                                                                            |
+|                          | `issued_at`                     |                        | req | `string`                                                                                            |
+|                          | `session_id`                    |                        | req | `string` (format: uuid)                                                                             |
+|                          | `status`                        |                        | req | `string`                                                                                            |
+|                          | `uid`                           |                        | req | `integer`                                                                                           |
+| `started_at`             |                                 |                        | req | `string` (format: date-time)                                                                        |
+| `task_id`                |                                 |                        | req | `string` (format: uuid)                                                                             |
+| `total_tool_usage`       |                                 |                        | req | [ToolUsageSummary](#model-toolusagesummary)                                                         |
+|                          | `actual_cost_by_provider`       |                        | opt | `object`                                                                                            |
+|                          | `actual_total_cost_usd`         |                        | opt | `number` (nullable)                                                                                 |
+|                          | `embedding`                     |                        | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary)                                       |
+|                          |                                 | `actual_cost`          | opt | `number` (nullable)                                                                                 |
+|                          |                                 | `call_count`           | opt | `integer` (default: 0)                                                                              |
+|                          |                                 | `cost`                 | opt | `number` (default: 0.0)                                                                             |
+|                          |                                 | `reference_cost`       | opt | `number` (default: 0.0)                                                                             |
+|                          | `embedding_cost`                |                        | opt | `number` (default: 0.0)                                                                             |
+|                          | `llm`                           |                        | opt | [LlmUsageSummary](#model-llmusagesummary)                                                           |
+|                          |                                 | `actual_cost`          | opt | `number` (nullable)                                                                                 |
+|                          |                                 | `call_count`           | opt | `integer` (default: 0)                                                                              |
+|                          |                                 | `completion_tokens`    | opt | `integer` (default: 0)                                                                              |
+|                          |                                 | `cost`                 | opt | `number` (default: 0.0)                                                                             |
+|                          |                                 | `prompt_tokens`        | opt | `integer` (default: 0)                                                                              |
+|                          |                                 | `providers`            | opt | `object`                                                                                            |
+|                          |                                 | `reasoning_tokens`     | opt | `integer` (default: 0)                                                                              |
+|                          |                                 | `reference_cost`       | opt | `number` (default: 0.0)                                                                             |
+|                          |                                 | `total_tokens`         | opt | `integer` (default: 0)                                                                              |
+|                          | `llm_cost`                      |                        | opt | `number` (default: 0.0)                                                                             |
+|                          | `reference_cost_by_provider`    |                        | opt | `object`                                                                                            |
+|                          | `reference_total_cost_usd`      |                        | opt | `number` (default: 0.0)                                                                             |
+|                          | `search_tool`                   |                        | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)                                             |
+|                          |                                 | `actual_cost`          | opt | `number` (nullable)                                                                                 |
+|                          |                                 | `call_count`           | opt | `integer` (default: 0)                                                                              |
+|                          |                                 | `cost`                 | opt | `number` (default: 0.0)                                                                             |
+|                          |                                 | `reference_cost`       | opt | `number` (default: 0.0)                                                                             |
+|                          | `search_tool_cost`              |                        | opt | `number` (default: 0.0)                                                                             |
+| `trace`                  |                                 |                        | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                                                |
+|                          | `entrypoint_invocation_ms`      |                        | opt | `number` (nullable)                                                                                 |
+|                          | `orchestration_ms`              |                        | opt | `number` (nullable)                                                                                 |
+|                          | `scoring_judge_attempt_count`   |                        | opt | `integer` (nullable)                                                                                |
+|                          | `scoring_judge_duration_ms`     |                        | opt | `number` (nullable)                                                                                 |
+|                          | `scoring_judge_retry_count`     |                        | opt | `integer` (nullable)                                                                                |
+|                          | `scoring_judge_retry_reasons`   |                        | opt | array[`string`] (default: [])                                                                       |
+|                          | `scoring_judge_selected_routes` |                        | opt | array[`string`] (default: [])                                                                       |
+|                          | `scoring_judge_status`          |                        | opt | `string` (enum: [ok, exhausted, failed]; nullable)                                                  |
+|                          | `scoring_ms`                    |                        | opt | `number` (nullable)                                                                                 |
+| `uid`                    |                                 |                        | req | `integer`                                                                                           |
+| `usage`                  |                                 |                        | req | [UsageModel](#model-usagemodel)                                                                     |
+|                          | `by_provider`                   |                        | opt | `object`                                                                                            |
+|                          | `call_count`                    |                        | req | `integer`                                                                                           |
+|                          | `total_completion_tokens`       |                        | req | `integer`                                                                                           |
+|                          | `total_prompt_tokens`           |                        | req | `integer`                                                                                           |
+|                          | `total_tokens`                  |                        | req | `integer`                                                                                           |
+| `validator_session_id`   |                                 |                        | req | `string` (format: uuid)                                                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -4634,18 +4584,19 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkexecutionitemresponse"></a>
+
 ### Model: MinerTaskWorkExecutionItemResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `canonical` |  |  | req | `boolean` |
-| `outcome` |  |  | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome) |
-| `reason` |  |  | opt | `string` (nullable) |
-| `reason_code` |  |  | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
-| `task_id` |  |  | req | `string` (format: uuid) |
+| 1st level        | 2nd level | 3rd level | Req | Notes                                                                    |
+| ---------------- | --------- | --------- | --- | ------------------------------------------------------------------------ |
+| `artifact_id`    |           |           | req | `string` (format: uuid)                                                  |
+| `attempt_number` |           |           | req | `integer`                                                                |
+| `batch_id`       |           |           | req | `string` (format: uuid)                                                  |
+| `canonical`      |           |           | req | `boolean`                                                                |
+| `outcome`        |           |           | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome)                  |
+| `reason`         |           |           | opt | `string` (nullable)                                                      |
+| `reason_code`    |           |           | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
+| `task_id`        |           |           | req | `string` (format: uuid)                                                  |
 
 <details>
 <summary>JSON schema</summary>
@@ -4719,65 +4670,66 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkexecutionsrequest"></a>
+
 ### Model: MinerTaskWorkExecutionsRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `executions` |  |  | opt | array[[MinerTaskWorkExecutionEnvelope](#model-minertaskworkexecutionenvelope)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `execution_completed_at` |  | req | `string` (format: date-time) |
-|  | `execution_log` |  | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `details` | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  |  | `issued_at` | req | `string` (format: date-time) |
-|  |  | `outcome` | req | [ToolCallOutcome](#model-toolcalloutcome) |
-|  |  | `receipt_id` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `tool` | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-|  |  | `uid` | req | `integer` |
-|  | `miner_hotkey_ss58` |  | req | `string` |
-|  | `response` |  | req | [Response](#model-response) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `output` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `text` | opt | `string` (nullable) |
-|  | `session` |  | req | [SessionModel](#model-sessionmodel) |
-|  |  | `expires_at` | req | `string` |
-|  |  | `issued_at` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `status` | req | `string` |
-|  |  | `uid` | req | `integer` |
-|  | `started_at` |  | req | `string` (format: date-time) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `total_tool_usage` |  | req | [ToolUsageSummary](#model-toolusagesummary) |
-|  |  | `actual_cost_by_provider` | opt | `object` |
-|  |  | `actual_total_cost_usd` | opt | `number` (nullable) |
-|  |  | `embedding` | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `embedding_cost` | opt | `number` (default: 0.0) |
-|  |  | `llm` | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `llm_cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost_by_provider` | opt | `object` |
-|  |  | `reference_total_cost_usd` | opt | `number` (default: 0.0) |
-|  |  | `search_tool` | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `search_tool_cost` | opt | `number` (default: 0.0) |
-|  | `trace` |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  |  | `entrypoint_invocation_ms` | opt | `number` (nullable) |
-|  |  | `orchestration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_attempt_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_duration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_retry_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_retry_reasons` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_selected_routes` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_status` | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  |  | `scoring_ms` | opt | `number` (nullable) |
-|  | `uid` |  | req | `integer` |
-|  | `usage` |  | req | [UsageModel](#model-usagemodel) |
-|  |  | `by_provider` | opt | `object` |
-|  |  | `call_count` | req | `integer` |
-|  |  | `total_completion_tokens` | req | `integer` |
-|  |  | `total_prompt_tokens` | req | `integer` |
-|  |  | `total_tokens` | req | `integer` |
-|  | `validator_session_id` |  | req | `string` (format: uuid) |
+| 1st level    | 2nd level                | 3rd level                       | Req | Notes                                                                                               |
+| ------------ | ------------------------ | ------------------------------- | --- | --------------------------------------------------------------------------------------------------- |
+| `executions` |                          |                                 | opt | array[[MinerTaskWorkExecutionEnvelope](#model-minertaskworkexecutionenvelope)] (default: [])        |
+|              | `artifact_id`            |                                 | req | `string` (format: uuid)                                                                             |
+|              | `attempt_number`         |                                 | req | `integer`                                                                                           |
+|              | `batch_id`               |                                 | req | `string` (format: uuid)                                                                             |
+|              | `execution_completed_at` |                                 | req | `string` (format: date-time)                                                                        |
+|              | `execution_log`          |                                 | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                                        |
+|              |                          | `details`                       | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|              |                          | `issued_at`                     | req | `string` (format: date-time)                                                                        |
+|              |                          | `outcome`                       | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+|              |                          | `receipt_id`                    | req | `string`                                                                                            |
+|              |                          | `session_id`                    | req | `string` (format: uuid)                                                                             |
+|              |                          | `tool`                          | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+|              |                          | `uid`                           | req | `integer`                                                                                           |
+|              | `miner_hotkey_ss58`      |                                 | req | `string`                                                                                            |
+|              | `response`               |                                 | req | [Response](#model-response)                                                                         |
+|              |                          | `citations`                     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                                           |
+|              |                          | `output`                        | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|              |                          | `text`                          | opt | `string` (nullable)                                                                                 |
+|              | `session`                |                                 | req | [SessionModel](#model-sessionmodel)                                                                 |
+|              |                          | `expires_at`                    | req | `string`                                                                                            |
+|              |                          | `issued_at`                     | req | `string`                                                                                            |
+|              |                          | `session_id`                    | req | `string` (format: uuid)                                                                             |
+|              |                          | `status`                        | req | `string`                                                                                            |
+|              |                          | `uid`                           | req | `integer`                                                                                           |
+|              | `started_at`             |                                 | req | `string` (format: date-time)                                                                        |
+|              | `task_id`                |                                 | req | `string` (format: uuid)                                                                             |
+|              | `total_tool_usage`       |                                 | req | [ToolUsageSummary](#model-toolusagesummary)                                                         |
+|              |                          | `actual_cost_by_provider`       | opt | `object`                                                                                            |
+|              |                          | `actual_total_cost_usd`         | opt | `number` (nullable)                                                                                 |
+|              |                          | `embedding`                     | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary)                                       |
+|              |                          | `embedding_cost`                | opt | `number` (default: 0.0)                                                                             |
+|              |                          | `llm`                           | opt | [LlmUsageSummary](#model-llmusagesummary)                                                           |
+|              |                          | `llm_cost`                      | opt | `number` (default: 0.0)                                                                             |
+|              |                          | `reference_cost_by_provider`    | opt | `object`                                                                                            |
+|              |                          | `reference_total_cost_usd`      | opt | `number` (default: 0.0)                                                                             |
+|              |                          | `search_tool`                   | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)                                             |
+|              |                          | `search_tool_cost`              | opt | `number` (default: 0.0)                                                                             |
+|              | `trace`                  |                                 | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                                                |
+|              |                          | `entrypoint_invocation_ms`      | opt | `number` (nullable)                                                                                 |
+|              |                          | `orchestration_ms`              | opt | `number` (nullable)                                                                                 |
+|              |                          | `scoring_judge_attempt_count`   | opt | `integer` (nullable)                                                                                |
+|              |                          | `scoring_judge_duration_ms`     | opt | `number` (nullable)                                                                                 |
+|              |                          | `scoring_judge_retry_count`     | opt | `integer` (nullable)                                                                                |
+|              |                          | `scoring_judge_retry_reasons`   | opt | array[`string`] (default: [])                                                                       |
+|              |                          | `scoring_judge_selected_routes` | opt | array[`string`] (default: [])                                                                       |
+|              |                          | `scoring_judge_status`          | opt | `string` (enum: [ok, exhausted, failed]; nullable)                                                  |
+|              |                          | `scoring_ms`                    | opt | `number` (nullable)                                                                                 |
+|              | `uid`                    |                                 | req | `integer`                                                                                           |
+|              | `usage`                  |                                 | req | [UsageModel](#model-usagemodel)                                                                     |
+|              |                          | `by_provider`                   | opt | `object`                                                                                            |
+|              |                          | `call_count`                    | req | `integer`                                                                                           |
+|              |                          | `total_completion_tokens`       | req | `integer`                                                                                           |
+|              |                          | `total_prompt_tokens`           | req | `integer`                                                                                           |
+|              |                          | `total_tokens`                  | req | `integer`                                                                                           |
+|              | `validator_session_id`   |                                 | req | `string` (format: uuid)                                                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -4803,20 +4755,21 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkexecutionsresponse"></a>
+
 ### Model: MinerTaskWorkExecutionsResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `executions` |  |  | opt | array[[MinerTaskWorkExecutionItemResponse](#model-minertaskworkexecutionitemresponse)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `canonical` |  | req | `boolean` |
-|  | `outcome` |  | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome) |
-|  | `reason` |  | opt | `string` (nullable) |
-|  | `reason_code` |  | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-| `server_time` |  |  | req | `string` (format: date-time) |
+| 1st level     | 2nd level        | 3rd level | Req | Notes                                                                                                |
+| ------------- | ---------------- | --------- | --- | ---------------------------------------------------------------------------------------------------- |
+| `executions`  |                  |           | opt | array[[MinerTaskWorkExecutionItemResponse](#model-minertaskworkexecutionitemresponse)] (default: []) |
+|               | `artifact_id`    |           | req | `string` (format: uuid)                                                                              |
+|               | `attempt_number` |           | req | `integer`                                                                                            |
+|               | `batch_id`       |           | req | `string` (format: uuid)                                                                              |
+|               | `canonical`      |           | req | `boolean`                                                                                            |
+|               | `outcome`        |           | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome)                                              |
+|               | `reason`         |           | opt | `string` (nullable)                                                                                  |
+|               | `reason_code`    |           | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable)                             |
+|               | `task_id`        |           | req | `string` (format: uuid)                                                                              |
+| `server_time` |                  |           | req | `string` (format: date-time)                                                                         |
 
 <details>
 <summary>JSON schema</summary>
@@ -4839,9 +4792,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "server_time"
-  ],
+  "required": ["server_time"],
   "title": "MinerTaskWorkExecutionsResponse",
   "type": "object"
 }
@@ -4850,89 +4801,90 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkresultenvelope"></a>
+
 ### Model: MinerTaskWorkResultEnvelope
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `result` |  |  | opt | [MinerTaskRunRequest](#model-minertaskrunrequest) (nullable) |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `execution_log` |  | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `details` | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  |  | `issued_at` | req | `string` (format: date-time) |
-|  |  | `outcome` | req | [ToolCallOutcome](#model-toolcalloutcome) |
-|  |  | `receipt_id` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `tool` | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-|  |  | `uid` | req | `integer` |
-|  | `run` |  | req | [MinerTaskRunSection](#model-minertaskrunsection) |
-|  |  | `artifact_id` | req | `string` (format: uuid) |
-|  |  | `completed_at` | opt | `string` (format: date-time; nullable) |
-|  |  | `response` | opt | [Response](#model-response) (nullable) |
-|  |  | `task_id` | req | `string` (format: uuid) |
-|  | `score` |  | opt | `number` (nullable) |
-|  | `session` |  | req | [SessionModel](#model-sessionmodel) |
-|  |  | `expires_at` | req | `string` |
-|  |  | `issued_at` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `status` | req | `string` |
-|  |  | `uid` | req | `integer` |
-|  | `specifics` |  | req | [EvaluationDetails](#model-evaluationdetails) |
-|  |  | `elapsed_ms` | opt | `number` (nullable) |
-|  |  | `error` | opt | [EvaluationError](#model-evaluationerror) (nullable) |
-|  |  | `score_breakdown` | opt | [ScoreBreakdown](#model-scorebreakdown) (nullable) |
-|  |  | `scoring_judge_usage` | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable) |
-|  |  | `total_tool_usage` | opt | [ToolUsageSummary](#model-toolusagesummary) |
-|  |  | `trace` | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  | `usage` |  | req | [UsageModel](#model-usagemodel) |
-|  |  | `by_provider` | opt | `object` |
-|  |  | `call_count` | req | `integer` |
-|  |  | `total_completion_tokens` | req | `integer` |
-|  |  | `total_prompt_tokens` | req | `integer` |
-|  |  | `total_tokens` | req | `integer` |
-| `task_id` |  |  | req | `string` (format: uuid) |
-| `terminal_attempt` |  |  | req | [MinerTaskAttemptAuditPayload](#model-minertaskattemptauditpayload) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `delivery_failure_detail` |  | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable) |
-|  |  | `artifact_id` | opt | `string` (format: uuid; nullable) |
-|  |  | `error_code` | req | `string` |
-|  |  | `error_message` | req | `string` |
-|  |  | `exception_type` | opt | `string` (nullable) |
-|  |  | `occurred_at` | req | `string` (format: date-time) |
-|  |  | `sandbox_diagnostics` | opt | [SandboxFailureDiagnostics](#model-sandboxfailurediagnostics) (nullable) |
-|  |  | `task_id` | opt | `string` (format: uuid; nullable) |
-|  |  | `traceback` | opt | `string` (nullable) |
-|  |  | `uid` | opt | `integer` (nullable) |
-|  | `diagnostics` |  | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable) |
-|  |  | `elapsed_ms` | opt | `number` (nullable) |
-|  |  | `failure_owner` | opt | `string` (nullable) |
-|  |  | `phase` | req | `string` |
-|  |  | `platform_tool_activity_observed` | opt | `boolean` (default: False) |
-|  |  | `timeout_owner` | opt | `string` (nullable) |
-|  | `error_code` |  | opt | `string` (nullable) |
-|  | `error_summary_code` |  | opt | `string` (nullable) |
-|  | `execution_log` |  | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `details` | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  |  | `issued_at` | req | `string` (format: date-time) |
-|  |  | `outcome` | req | [ToolCallOutcome](#model-toolcalloutcome) |
-|  |  | `receipt_id` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `tool` | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-|  |  | `uid` | req | `integer` |
-|  | `finished_at` |  | req | `string` (format: date-time) |
-|  | `max_attempts` |  | req | `integer` |
-|  | `miner_hotkey_ss58` |  | req | `string` |
-|  | `retry_decision` |  | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision) |
-|  | `started_at` |  | req | `string` (format: date-time) |
-|  | `status` |  | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `terminal_effect` |  | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable) |
-|  | `uid` |  | req | `integer` |
-|  | `validator_session_id` |  | req | `string` (format: uuid) |
+| 1st level          | 2nd level                 | 3rd level                         | Req | Notes                                                                                               |
+| ------------------ | ------------------------- | --------------------------------- | --- | --------------------------------------------------------------------------------------------------- |
+| `artifact_id`      |                           |                                   | req | `string` (format: uuid)                                                                             |
+| `attempt_number`   |                           |                                   | req | `integer`                                                                                           |
+| `batch_id`         |                           |                                   | req | `string` (format: uuid)                                                                             |
+| `result`           |                           |                                   | opt | [MinerTaskRunRequest](#model-minertaskrunrequest) (nullable)                                        |
+|                    | `batch_id`                |                                   | req | `string` (format: uuid)                                                                             |
+|                    | `execution_log`           |                                   | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                                        |
+|                    |                           | `details`                         | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|                    |                           | `issued_at`                       | req | `string` (format: date-time)                                                                        |
+|                    |                           | `outcome`                         | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+|                    |                           | `receipt_id`                      | req | `string`                                                                                            |
+|                    |                           | `session_id`                      | req | `string` (format: uuid)                                                                             |
+|                    |                           | `tool`                            | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+|                    |                           | `uid`                             | req | `integer`                                                                                           |
+|                    | `run`                     |                                   | req | [MinerTaskRunSection](#model-minertaskrunsection)                                                   |
+|                    |                           | `artifact_id`                     | req | `string` (format: uuid)                                                                             |
+|                    |                           | `completed_at`                    | opt | `string` (format: date-time; nullable)                                                              |
+|                    |                           | `response`                        | opt | [Response](#model-response) (nullable)                                                              |
+|                    |                           | `task_id`                         | req | `string` (format: uuid)                                                                             |
+|                    | `score`                   |                                   | opt | `number` (nullable)                                                                                 |
+|                    | `session`                 |                                   | req | [SessionModel](#model-sessionmodel)                                                                 |
+|                    |                           | `expires_at`                      | req | `string`                                                                                            |
+|                    |                           | `issued_at`                       | req | `string`                                                                                            |
+|                    |                           | `session_id`                      | req | `string` (format: uuid)                                                                             |
+|                    |                           | `status`                          | req | `string`                                                                                            |
+|                    |                           | `uid`                             | req | `integer`                                                                                           |
+|                    | `specifics`               |                                   | req | [EvaluationDetails](#model-evaluationdetails)                                                       |
+|                    |                           | `elapsed_ms`                      | opt | `number` (nullable)                                                                                 |
+|                    |                           | `error`                           | opt | [EvaluationError](#model-evaluationerror) (nullable)                                                |
+|                    |                           | `score_breakdown`                 | opt | [ScoreBreakdown](#model-scorebreakdown) (nullable)                                                  |
+|                    |                           | `scoring_judge_usage`             | opt | [JudgeUsageSummary](#model-judgeusagesummary) (nullable)                                            |
+|                    |                           | `total_tool_usage`                | opt | [ToolUsageSummary](#model-toolusagesummary)                                                         |
+|                    |                           | `trace`                           | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                                                |
+|                    | `usage`                   |                                   | req | [UsageModel](#model-usagemodel)                                                                     |
+|                    |                           | `by_provider`                     | opt | `object`                                                                                            |
+|                    |                           | `call_count`                      | req | `integer`                                                                                           |
+|                    |                           | `total_completion_tokens`         | req | `integer`                                                                                           |
+|                    |                           | `total_prompt_tokens`             | req | `integer`                                                                                           |
+|                    |                           | `total_tokens`                    | req | `integer`                                                                                           |
+| `task_id`          |                           |                                   | req | `string` (format: uuid)                                                                             |
+| `terminal_attempt` |                           |                                   | req | [MinerTaskAttemptAuditPayload](#model-minertaskattemptauditpayload)                                 |
+|                    | `artifact_id`             |                                   | req | `string` (format: uuid)                                                                             |
+|                    | `attempt_number`          |                                   | req | `integer`                                                                                           |
+|                    | `batch_id`                |                                   | req | `string` (format: uuid)                                                                             |
+|                    | `delivery_failure_detail` |                                   | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable)                                      |
+|                    |                           | `artifact_id`                     | opt | `string` (format: uuid; nullable)                                                                   |
+|                    |                           | `error_code`                      | req | `string`                                                                                            |
+|                    |                           | `error_message`                   | req | `string`                                                                                            |
+|                    |                           | `exception_type`                  | opt | `string` (nullable)                                                                                 |
+|                    |                           | `occurred_at`                     | req | `string` (format: date-time)                                                                        |
+|                    |                           | `sandbox_diagnostics`             | opt | [SandboxFailureDiagnostics](#model-sandboxfailurediagnostics) (nullable)                            |
+|                    |                           | `task_id`                         | opt | `string` (format: uuid; nullable)                                                                   |
+|                    |                           | `traceback`                       | opt | `string` (nullable)                                                                                 |
+|                    |                           | `uid`                             | opt | `integer` (nullable)                                                                                |
+|                    | `diagnostics`             |                                   | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable)          |
+|                    |                           | `elapsed_ms`                      | opt | `number` (nullable)                                                                                 |
+|                    |                           | `failure_owner`                   | opt | `string` (nullable)                                                                                 |
+|                    |                           | `phase`                           | req | `string`                                                                                            |
+|                    |                           | `platform_tool_activity_observed` | opt | `boolean` (default: False)                                                                          |
+|                    |                           | `timeout_owner`                   | opt | `string` (nullable)                                                                                 |
+|                    | `error_code`              |                                   | opt | `string` (nullable)                                                                                 |
+|                    | `error_summary_code`      |                                   | opt | `string` (nullable)                                                                                 |
+|                    | `execution_log`           |                                   | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                                        |
+|                    |                           | `details`                         | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|                    |                           | `issued_at`                       | req | `string` (format: date-time)                                                                        |
+|                    |                           | `outcome`                         | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+|                    |                           | `receipt_id`                      | req | `string`                                                                                            |
+|                    |                           | `session_id`                      | req | `string` (format: uuid)                                                                             |
+|                    |                           | `tool`                            | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+|                    |                           | `uid`                             | req | `integer`                                                                                           |
+|                    | `finished_at`             |                                   | req | `string` (format: date-time)                                                                        |
+|                    | `max_attempts`            |                                   | req | `integer`                                                                                           |
+|                    | `miner_hotkey_ss58`       |                                   | req | `string`                                                                                            |
+|                    | `retry_decision`          |                                   | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision)                               |
+|                    | `started_at`              |                                   | req | `string` (format: date-time)                                                                        |
+|                    | `status`                  |                                   | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus)                                             |
+|                    | `task_id`                 |                                   | req | `string` (format: uuid)                                                                             |
+|                    | `terminal_effect`         |                                   | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable)                  |
+|                    | `uid`                     |                                   | req | `integer`                                                                                           |
+|                    | `validator_session_id`    |                                   | req | `string` (format: uuid)                                                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -4990,18 +4942,19 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkresultitemresponse"></a>
+
 ### Model: MinerTaskWorkResultItemResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `canonical` |  |  | req | `boolean` |
-| `outcome` |  |  | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome) |
-| `reason` |  |  | opt | `string` (nullable) |
-| `reason_code` |  |  | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
-| `task_id` |  |  | req | `string` (format: uuid) |
+| 1st level        | 2nd level | 3rd level | Req | Notes                                                                    |
+| ---------------- | --------- | --------- | --- | ------------------------------------------------------------------------ |
+| `artifact_id`    |           |           | req | `string` (format: uuid)                                                  |
+| `attempt_number` |           |           | req | `integer`                                                                |
+| `batch_id`       |           |           | req | `string` (format: uuid)                                                  |
+| `canonical`      |           |           | req | `boolean`                                                                |
+| `outcome`        |           |           | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome)                  |
+| `reason`         |           |           | opt | `string` (nullable)                                                      |
+| `reason_code`    |           |           | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
+| `task_id`        |           |           | req | `string` (format: uuid)                                                  |
 
 <details>
 <summary>JSON schema</summary>
@@ -5075,42 +5028,43 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkresultsrequest"></a>
+
 ### Model: MinerTaskWorkResultsRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `results` |  |  | opt | array[[MinerTaskWorkResultEnvelope](#model-minertaskworkresultenvelope)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `result` |  | opt | [MinerTaskRunRequest](#model-minertaskrunrequest) (nullable) |
-|  |  | `batch_id` | req | `string` (format: uuid) |
-|  |  | `execution_log` | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `run` | req | [MinerTaskRunSection](#model-minertaskrunsection) |
-|  |  | `score` | opt | `number` (nullable) |
-|  |  | `session` | req | [SessionModel](#model-sessionmodel) |
-|  |  | `specifics` | req | [EvaluationDetails](#model-evaluationdetails) |
-|  |  | `usage` | req | [UsageModel](#model-usagemodel) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `terminal_attempt` |  | req | [MinerTaskAttemptAuditPayload](#model-minertaskattemptauditpayload) |
-|  |  | `artifact_id` | req | `string` (format: uuid) |
-|  |  | `attempt_number` | req | `integer` |
-|  |  | `batch_id` | req | `string` (format: uuid) |
-|  |  | `delivery_failure_detail` | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable) |
-|  |  | `diagnostics` | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable) |
-|  |  | `error_code` | opt | `string` (nullable) |
-|  |  | `error_summary_code` | opt | `string` (nullable) |
-|  |  | `execution_log` | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: []) |
-|  |  | `finished_at` | req | `string` (format: date-time) |
-|  |  | `max_attempts` | req | `integer` |
-|  |  | `miner_hotkey_ss58` | req | `string` |
-|  |  | `retry_decision` | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision) |
-|  |  | `started_at` | req | `string` (format: date-time) |
-|  |  | `status` | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus) |
-|  |  | `task_id` | req | `string` (format: uuid) |
-|  |  | `terminal_effect` | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable) |
-|  |  | `uid` | req | `integer` |
-|  |  | `validator_session_id` | req | `string` (format: uuid) |
+| 1st level | 2nd level          | 3rd level                 | Req | Notes                                                                                      |
+| --------- | ------------------ | ------------------------- | --- | ------------------------------------------------------------------------------------------ |
+| `results` |                    |                           | opt | array[[MinerTaskWorkResultEnvelope](#model-minertaskworkresultenvelope)] (default: [])     |
+|           | `artifact_id`      |                           | req | `string` (format: uuid)                                                                    |
+|           | `attempt_number`   |                           | req | `integer`                                                                                  |
+|           | `batch_id`         |                           | req | `string` (format: uuid)                                                                    |
+|           | `result`           |                           | opt | [MinerTaskRunRequest](#model-minertaskrunrequest) (nullable)                               |
+|           |                    | `batch_id`                | req | `string` (format: uuid)                                                                    |
+|           |                    | `execution_log`           | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                               |
+|           |                    | `run`                     | req | [MinerTaskRunSection](#model-minertaskrunsection)                                          |
+|           |                    | `score`                   | opt | `number` (nullable)                                                                        |
+|           |                    | `session`                 | req | [SessionModel](#model-sessionmodel)                                                        |
+|           |                    | `specifics`               | req | [EvaluationDetails](#model-evaluationdetails)                                              |
+|           |                    | `usage`                   | req | [UsageModel](#model-usagemodel)                                                            |
+|           | `task_id`          |                           | req | `string` (format: uuid)                                                                    |
+|           | `terminal_attempt` |                           | req | [MinerTaskAttemptAuditPayload](#model-minertaskattemptauditpayload)                        |
+|           |                    | `artifact_id`             | req | `string` (format: uuid)                                                                    |
+|           |                    | `attempt_number`          | req | `integer`                                                                                  |
+|           |                    | `batch_id`                | req | `string` (format: uuid)                                                                    |
+|           |                    | `delivery_failure_detail` | opt | [FailureDetailPayload](#model-failuredetailpayload) (nullable)                             |
+|           |                    | `diagnostics`             | opt | [MinerTaskAttemptDiagnosticsPayload](#model-minertaskattemptdiagnosticspayload) (nullable) |
+|           |                    | `error_code`              | opt | `string` (nullable)                                                                        |
+|           |                    | `error_summary_code`      | opt | `string` (nullable)                                                                        |
+|           |                    | `execution_log`           | opt | array[[ToolCall-Input](#model-toolcall-input)] (default: [])                               |
+|           |                    | `finished_at`             | req | `string` (format: date-time)                                                               |
+|           |                    | `max_attempts`            | req | `integer`                                                                                  |
+|           |                    | `miner_hotkey_ss58`       | req | `string`                                                                                   |
+|           |                    | `retry_decision`          | req | [MinerTaskAttemptRetryDecision](#model-minertaskattemptretrydecision)                      |
+|           |                    | `started_at`              | req | `string` (format: date-time)                                                               |
+|           |                    | `status`                  | req | [MinerTaskAttemptStatus](#model-minertaskattemptstatus)                                    |
+|           |                    | `task_id`                 | req | `string` (format: uuid)                                                                    |
+|           |                    | `terminal_effect`         | req | [MinerTaskAttemptTerminalEffect](#model-minertaskattemptterminaleffect) (nullable)         |
+|           |                    | `uid`                     | req | `integer`                                                                                  |
+|           |                    | `validator_session_id`    | req | `string` (format: uuid)                                                                    |
 
 <details>
 <summary>JSON schema</summary>
@@ -5136,20 +5090,21 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkresultsresponse"></a>
+
 ### Model: MinerTaskWorkResultsResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `results` |  |  | opt | array[[MinerTaskWorkResultItemResponse](#model-minertaskworkresultitemresponse)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `canonical` |  | req | `boolean` |
-|  | `outcome` |  | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome) |
-|  | `reason` |  | opt | `string` (nullable) |
-|  | `reason_code` |  | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-| `server_time` |  |  | req | `string` (format: date-time) |
+| 1st level     | 2nd level        | 3rd level | Req | Notes                                                                                          |
+| ------------- | ---------------- | --------- | --- | ---------------------------------------------------------------------------------------------- |
+| `results`     |                  |           | opt | array[[MinerTaskWorkResultItemResponse](#model-minertaskworkresultitemresponse)] (default: []) |
+|               | `artifact_id`    |           | req | `string` (format: uuid)                                                                        |
+|               | `attempt_number` |           | req | `integer`                                                                                      |
+|               | `batch_id`       |           | req | `string` (format: uuid)                                                                        |
+|               | `canonical`      |           | req | `boolean`                                                                                      |
+|               | `outcome`        |           | req | [MinerTaskResultOutcome](#model-minertaskresultoutcome)                                        |
+|               | `reason`         |           | opt | `string` (nullable)                                                                            |
+|               | `reason_code`    |           | opt | [MinerTaskResultReasonCode](#model-minertaskresultreasoncode) (nullable)                       |
+|               | `task_id`        |           | req | `string` (format: uuid)                                                                        |
+| `server_time` |                  |           | req | `string` (format: date-time)                                                                   |
 
 <details>
 <summary>JSON schema</summary>
@@ -5172,9 +5127,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "server_time"
-  ],
+  "required": ["server_time"],
   "title": "MinerTaskWorkResultsResponse",
   "type": "object"
 }
@@ -5183,90 +5136,91 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkscoreableexecutionpayload"></a>
+
 ### Model: MinerTaskWorkScoreableExecutionPayload
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact` |  |  | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `content_hash` |  | req | `string` |
-|  | `miner_hotkey_ss58` |  | opt | `string` (nullable) |
-|  | `size_bytes` |  | req | `integer` |
-|  | `uid` |  | req | `integer` |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `execution_completed_at` |  |  | req | `string` (format: date-time) |
-| `max_attempts` |  |  | req | `integer` |
-| `miner_hotkey_ss58` |  |  | req | `string` |
-| `response` |  |  | req | [Response](#model-response) (nullable) |
-|  | `citations` |  | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `note` | opt | `string` (nullable) |
-|  |  | `title` | opt | `string` (nullable) |
-|  |  | `url` | req | `string` |
-|  | `output` |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  | `text` |  | opt | `string` (nullable) |
-| `session` |  |  | req | [SessionModel](#model-sessionmodel) |
-|  | `expires_at` |  | req | `string` |
-|  | `issued_at` |  | req | `string` |
-|  | `session_id` |  | req | `string` (format: uuid) |
-|  | `status` |  | req | `string` |
-|  | `uid` |  | req | `integer` |
-| `started_at` |  |  | req | `string` (format: date-time) |
-| `task` |  |  | req | [MinerTask](#model-minertask) |
-|  | `budget_usd` |  | opt | `number` (default: 0.5) |
-|  | `query` |  | req | [Query](#model-query) |
-|  |  | `output_schema` | opt | [JsonObject-Input](#model-jsonobject-input) (nullable) |
-|  |  | `text` | req | `string` |
-|  | `reference_answer` |  | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `text` | req | `string` |
-|  | `task_id` |  | req | `string` (format: uuid) |
-| `total_tool_usage` |  |  | req | [ToolUsageSummary](#model-toolusagesummary) |
-|  | `actual_cost_by_provider` |  | opt | `object` |
-|  | `actual_total_cost_usd` |  | opt | `number` (nullable) |
-|  | `embedding` |  | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  | `embedding_cost` |  | opt | `number` (default: 0.0) |
-|  | `llm` |  | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `completion_tokens` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `prompt_tokens` | opt | `integer` (default: 0) |
-|  |  | `providers` | opt | `object` |
-|  |  | `reasoning_tokens` | opt | `integer` (default: 0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  |  | `total_tokens` | opt | `integer` (default: 0) |
-|  | `llm_cost` |  | opt | `number` (default: 0.0) |
-|  | `reference_cost_by_provider` |  | opt | `object` |
-|  | `reference_total_cost_usd` |  | opt | `number` (default: 0.0) |
-|  | `search_tool` |  | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `actual_cost` | opt | `number` (nullable) |
-|  |  | `call_count` | opt | `integer` (default: 0) |
-|  |  | `cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost` | opt | `number` (default: 0.0) |
-|  | `search_tool_cost` |  | opt | `number` (default: 0.0) |
-| `trace` |  |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  | `entrypoint_invocation_ms` |  | opt | `number` (nullable) |
-|  | `orchestration_ms` |  | opt | `number` (nullable) |
-|  | `scoring_judge_attempt_count` |  | opt | `integer` (nullable) |
-|  | `scoring_judge_duration_ms` |  | opt | `number` (nullable) |
-|  | `scoring_judge_retry_count` |  | opt | `integer` (nullable) |
-|  | `scoring_judge_retry_reasons` |  | opt | array[`string`] (default: []) |
-|  | `scoring_judge_selected_routes` |  | opt | array[`string`] (default: []) |
-|  | `scoring_judge_status` |  | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  | `scoring_ms` |  | opt | `number` (nullable) |
-| `uid` |  |  | req | `integer` |
-| `usage` |  |  | req | [UsageModel](#model-usagemodel) |
-|  | `by_provider` |  | opt | `object` |
-|  | `call_count` |  | req | `integer` |
-|  | `total_completion_tokens` |  | req | `integer` |
-|  | `total_prompt_tokens` |  | req | `integer` |
-|  | `total_tokens` |  | req | `integer` |
-| `validator_session_id` |  |  | req | `string` (format: uuid) |
+| 1st level                | 2nd level                       | 3rd level           | Req | Notes                                                               |
+| ------------------------ | ------------------------------- | ------------------- | --- | ------------------------------------------------------------------- |
+| `artifact`               |                                 |                     | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
+|                          | `artifact_id`                   |                     | req | `string` (format: uuid)                                             |
+|                          | `content_hash`                  |                     | req | `string`                                                            |
+|                          | `miner_hotkey_ss58`             |                     | opt | `string` (nullable)                                                 |
+|                          | `size_bytes`                    |                     | req | `integer`                                                           |
+|                          | `uid`                           |                     | req | `integer`                                                           |
+| `attempt_number`         |                                 |                     | req | `integer`                                                           |
+| `batch_id`               |                                 |                     | req | `string` (format: uuid)                                             |
+| `execution_completed_at` |                                 |                     | req | `string` (format: date-time)                                        |
+| `max_attempts`           |                                 |                     | req | `integer`                                                           |
+| `miner_hotkey_ss58`      |                                 |                     | req | `string`                                                            |
+| `response`               |                                 |                     | req | [Response](#model-response) (nullable)                              |
+|                          | `citations`                     |                     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)           |
+|                          |                                 | `note`              | opt | `string` (nullable)                                                 |
+|                          |                                 | `title`             | opt | `string` (nullable)                                                 |
+|                          |                                 | `url`               | req | `string`                                                            |
+|                          | `output`                        |                     | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                |
+|                          | `text`                          |                     | opt | `string` (nullable)                                                 |
+| `session`                |                                 |                     | req | [SessionModel](#model-sessionmodel)                                 |
+|                          | `expires_at`                    |                     | req | `string`                                                            |
+|                          | `issued_at`                     |                     | req | `string`                                                            |
+|                          | `session_id`                    |                     | req | `string` (format: uuid)                                             |
+|                          | `status`                        |                     | req | `string`                                                            |
+|                          | `uid`                           |                     | req | `integer`                                                           |
+| `started_at`             |                                 |                     | req | `string` (format: date-time)                                        |
+| `task`                   |                                 |                     | req | [MinerTask](#model-minertask)                                       |
+|                          | `budget_usd`                    |                     | opt | `number` (default: 0.5)                                             |
+|                          | `query`                         |                     | req | [Query](#model-query)                                               |
+|                          |                                 | `output_schema`     | opt | [JsonObject-Input](#model-jsonobject-input) (nullable)              |
+|                          |                                 | `text`              | req | `string`                                                            |
+|                          | `reference_answer`              |                     | req | [ReferenceAnswer](#model-referenceanswer)                           |
+|                          |                                 | `citations`         | opt | array[[AnswerCitation](#model-answercitation)] (nullable)           |
+|                          |                                 | `text`              | req | `string`                                                            |
+|                          | `task_id`                       |                     | req | `string` (format: uuid)                                             |
+| `total_tool_usage`       |                                 |                     | req | [ToolUsageSummary](#model-toolusagesummary)                         |
+|                          | `actual_cost_by_provider`       |                     | opt | `object`                                                            |
+|                          | `actual_total_cost_usd`         |                     | opt | `number` (nullable)                                                 |
+|                          | `embedding`                     |                     | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary)       |
+|                          |                                 | `actual_cost`       | opt | `number` (nullable)                                                 |
+|                          |                                 | `call_count`        | opt | `integer` (default: 0)                                              |
+|                          |                                 | `cost`              | opt | `number` (default: 0.0)                                             |
+|                          |                                 | `reference_cost`    | opt | `number` (default: 0.0)                                             |
+|                          | `embedding_cost`                |                     | opt | `number` (default: 0.0)                                             |
+|                          | `llm`                           |                     | opt | [LlmUsageSummary](#model-llmusagesummary)                           |
+|                          |                                 | `actual_cost`       | opt | `number` (nullable)                                                 |
+|                          |                                 | `call_count`        | opt | `integer` (default: 0)                                              |
+|                          |                                 | `completion_tokens` | opt | `integer` (default: 0)                                              |
+|                          |                                 | `cost`              | opt | `number` (default: 0.0)                                             |
+|                          |                                 | `prompt_tokens`     | opt | `integer` (default: 0)                                              |
+|                          |                                 | `providers`         | opt | `object`                                                            |
+|                          |                                 | `reasoning_tokens`  | opt | `integer` (default: 0)                                              |
+|                          |                                 | `reference_cost`    | opt | `number` (default: 0.0)                                             |
+|                          |                                 | `total_tokens`      | opt | `integer` (default: 0)                                              |
+|                          | `llm_cost`                      |                     | opt | `number` (default: 0.0)                                             |
+|                          | `reference_cost_by_provider`    |                     | opt | `object`                                                            |
+|                          | `reference_total_cost_usd`      |                     | opt | `number` (default: 0.0)                                             |
+|                          | `search_tool`                   |                     | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)             |
+|                          |                                 | `actual_cost`       | opt | `number` (nullable)                                                 |
+|                          |                                 | `call_count`        | opt | `integer` (default: 0)                                              |
+|                          |                                 | `cost`              | opt | `number` (default: 0.0)                                             |
+|                          |                                 | `reference_cost`    | opt | `number` (default: 0.0)                                             |
+|                          | `search_tool_cost`              |                     | opt | `number` (default: 0.0)                                             |
+| `trace`                  |                                 |                     | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                |
+|                          | `entrypoint_invocation_ms`      |                     | opt | `number` (nullable)                                                 |
+|                          | `orchestration_ms`              |                     | opt | `number` (nullable)                                                 |
+|                          | `scoring_judge_attempt_count`   |                     | opt | `integer` (nullable)                                                |
+|                          | `scoring_judge_duration_ms`     |                     | opt | `number` (nullable)                                                 |
+|                          | `scoring_judge_retry_count`     |                     | opt | `integer` (nullable)                                                |
+|                          | `scoring_judge_retry_reasons`   |                     | opt | array[`string`] (default: [])                                       |
+|                          | `scoring_judge_selected_routes` |                     | opt | array[`string`] (default: [])                                       |
+|                          | `scoring_judge_status`          |                     | opt | `string` (enum: [ok, exhausted, failed]; nullable)                  |
+|                          | `scoring_ms`                    |                     | opt | `number` (nullable)                                                 |
+| `uid`                    |                                 |                     | req | `integer`                                                           |
+| `usage`                  |                                 |                     | req | [UsageModel](#model-usagemodel)                                     |
+|                          | `by_provider`                   |                     | opt | `object`                                                            |
+|                          | `call_count`                    |                     | req | `integer`                                                           |
+|                          | `total_completion_tokens`       |                     | req | `integer`                                                           |
+|                          | `total_prompt_tokens`           |                     | req | `integer`                                                           |
+|                          | `total_tokens`                  |                     | req | `integer`                                                           |
+| `validator_session_id`   |                                 |                     | req | `string` (format: uuid)                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -5375,17 +5329,18 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkscoreableexecutionsrequest"></a>
+
 ### Model: MinerTaskWorkScoreableExecutionsRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `active_scoring` |  |  | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `validator_session_id` |  | opt | `string` (format: uuid; nullable) |
-| `limit` |  |  | req | `integer` |
+| 1st level        | 2nd level              | 3rd level | Req | Notes                                                                                          |
+| ---------------- | ---------------------- | --------- | --- | ---------------------------------------------------------------------------------------------- |
+| `active_scoring` |                        |           | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
+|                  | `artifact_id`          |           | req | `string` (format: uuid)                                                                        |
+|                  | `attempt_number`       |           | req | `integer`                                                                                      |
+|                  | `batch_id`             |           | req | `string` (format: uuid)                                                                        |
+|                  | `task_id`              |           | req | `string` (format: uuid)                                                                        |
+|                  | `validator_session_id` |           | opt | `string` (format: uuid; nullable)                                                              |
+| `limit`          |                        |           | req | `integer`                                                                                      |
 
 <details>
 <summary>JSON schema</summary>
@@ -5409,9 +5364,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "integer"
     }
   },
-  "required": [
-    "limit"
-  ],
+  "required": ["limit"],
   "title": "MinerTaskWorkScoreableExecutionsRequest",
   "type": "object"
 }
@@ -5420,68 +5373,69 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworkscoreableexecutionsresponse"></a>
+
 ### Model: MinerTaskWorkScoreableExecutionsResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `executions` |  |  | opt | array[[MinerTaskWorkScoreableExecutionPayload](#model-minertaskworkscoreableexecutionpayload)] (default: []) |
-|  | `artifact` |  | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
-|  |  | `artifact_id` | req | `string` (format: uuid) |
-|  |  | `content_hash` | req | `string` |
-|  |  | `miner_hotkey_ss58` | opt | `string` (nullable) |
-|  |  | `size_bytes` | req | `integer` |
-|  |  | `uid` | req | `integer` |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `execution_completed_at` |  | req | `string` (format: date-time) |
-|  | `max_attempts` |  | req | `integer` |
-|  | `miner_hotkey_ss58` |  | req | `string` |
-|  | `response` |  | req | [Response](#model-response) (nullable) |
-|  |  | `citations` | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  |  | `output` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `text` | opt | `string` (nullable) |
-|  | `session` |  | req | [SessionModel](#model-sessionmodel) |
-|  |  | `expires_at` | req | `string` |
-|  |  | `issued_at` | req | `string` |
-|  |  | `session_id` | req | `string` (format: uuid) |
-|  |  | `status` | req | `string` |
-|  |  | `uid` | req | `integer` |
-|  | `started_at` |  | req | `string` (format: date-time) |
-|  | `task` |  | req | [MinerTask](#model-minertask) |
-|  |  | `budget_usd` | opt | `number` (default: 0.5) |
-|  |  | `query` | req | [Query](#model-query) |
-|  |  | `reference_answer` | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `task_id` | req | `string` (format: uuid) |
-|  | `total_tool_usage` |  | req | [ToolUsageSummary](#model-toolusagesummary) |
-|  |  | `actual_cost_by_provider` | opt | `object` |
-|  |  | `actual_total_cost_usd` | opt | `number` (nullable) |
-|  |  | `embedding` | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  |  | `embedding_cost` | opt | `number` (default: 0.0) |
-|  |  | `llm` | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  |  | `llm_cost` | opt | `number` (default: 0.0) |
-|  |  | `reference_cost_by_provider` | opt | `object` |
-|  |  | `reference_total_cost_usd` | opt | `number` (default: 0.0) |
-|  |  | `search_tool` | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  |  | `search_tool_cost` | opt | `number` (default: 0.0) |
-|  | `trace` |  | opt | [EvaluationTrace](#model-evaluationtrace) (nullable) |
-|  |  | `entrypoint_invocation_ms` | opt | `number` (nullable) |
-|  |  | `orchestration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_attempt_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_duration_ms` | opt | `number` (nullable) |
-|  |  | `scoring_judge_retry_count` | opt | `integer` (nullable) |
-|  |  | `scoring_judge_retry_reasons` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_selected_routes` | opt | array[`string`] (default: []) |
-|  |  | `scoring_judge_status` | opt | `string` (enum: [ok, exhausted, failed]; nullable) |
-|  |  | `scoring_ms` | opt | `number` (nullable) |
-|  | `uid` |  | req | `integer` |
-|  | `usage` |  | req | [UsageModel](#model-usagemodel) |
-|  |  | `by_provider` | opt | `object` |
-|  |  | `call_count` | req | `integer` |
-|  |  | `total_completion_tokens` | req | `integer` |
-|  |  | `total_prompt_tokens` | req | `integer` |
-|  |  | `total_tokens` | req | `integer` |
-|  | `validator_session_id` |  | req | `string` (format: uuid) |
-| `server_time` |  |  | req | `string` (format: date-time) |
+| 1st level     | 2nd level                | 3rd level                       | Req | Notes                                                                                                        |
+| ------------- | ------------------------ | ------------------------------- | --- | ------------------------------------------------------------------------------------------------------------ |
+| `executions`  |                          |                                 | opt | array[[MinerTaskWorkScoreableExecutionPayload](#model-minertaskworkscoreableexecutionpayload)] (default: []) |
+|               | `artifact`               |                                 | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload)                                          |
+|               |                          | `artifact_id`                   | req | `string` (format: uuid)                                                                                      |
+|               |                          | `content_hash`                  | req | `string`                                                                                                     |
+|               |                          | `miner_hotkey_ss58`             | opt | `string` (nullable)                                                                                          |
+|               |                          | `size_bytes`                    | req | `integer`                                                                                                    |
+|               |                          | `uid`                           | req | `integer`                                                                                                    |
+|               | `attempt_number`         |                                 | req | `integer`                                                                                                    |
+|               | `batch_id`               |                                 | req | `string` (format: uuid)                                                                                      |
+|               | `execution_completed_at` |                                 | req | `string` (format: date-time)                                                                                 |
+|               | `max_attempts`           |                                 | req | `integer`                                                                                                    |
+|               | `miner_hotkey_ss58`      |                                 | req | `string`                                                                                                     |
+|               | `response`               |                                 | req | [Response](#model-response) (nullable)                                                                       |
+|               |                          | `citations`                     | opt | array[[AnswerCitation](#model-answercitation)] (nullable)                                                    |
+|               |                          | `output`                        | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                         |
+|               |                          | `text`                          | opt | `string` (nullable)                                                                                          |
+|               | `session`                |                                 | req | [SessionModel](#model-sessionmodel)                                                                          |
+|               |                          | `expires_at`                    | req | `string`                                                                                                     |
+|               |                          | `issued_at`                     | req | `string`                                                                                                     |
+|               |                          | `session_id`                    | req | `string` (format: uuid)                                                                                      |
+|               |                          | `status`                        | req | `string`                                                                                                     |
+|               |                          | `uid`                           | req | `integer`                                                                                                    |
+|               | `started_at`             |                                 | req | `string` (format: date-time)                                                                                 |
+|               | `task`                   |                                 | req | [MinerTask](#model-minertask)                                                                                |
+|               |                          | `budget_usd`                    | opt | `number` (default: 0.5)                                                                                      |
+|               |                          | `query`                         | req | [Query](#model-query)                                                                                        |
+|               |                          | `reference_answer`              | req | [ReferenceAnswer](#model-referenceanswer)                                                                    |
+|               |                          | `task_id`                       | req | `string` (format: uuid)                                                                                      |
+|               | `total_tool_usage`       |                                 | req | [ToolUsageSummary](#model-toolusagesummary)                                                                  |
+|               |                          | `actual_cost_by_provider`       | opt | `object`                                                                                                     |
+|               |                          | `actual_total_cost_usd`         | opt | `number` (nullable)                                                                                          |
+|               |                          | `embedding`                     | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary)                                                |
+|               |                          | `embedding_cost`                | opt | `number` (default: 0.0)                                                                                      |
+|               |                          | `llm`                           | opt | [LlmUsageSummary](#model-llmusagesummary)                                                                    |
+|               |                          | `llm_cost`                      | opt | `number` (default: 0.0)                                                                                      |
+|               |                          | `reference_cost_by_provider`    | opt | `object`                                                                                                     |
+|               |                          | `reference_total_cost_usd`      | opt | `number` (default: 0.0)                                                                                      |
+|               |                          | `search_tool`                   | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)                                                      |
+|               |                          | `search_tool_cost`              | opt | `number` (default: 0.0)                                                                                      |
+|               | `trace`                  |                                 | opt | [EvaluationTrace](#model-evaluationtrace) (nullable)                                                         |
+|               |                          | `entrypoint_invocation_ms`      | opt | `number` (nullable)                                                                                          |
+|               |                          | `orchestration_ms`              | opt | `number` (nullable)                                                                                          |
+|               |                          | `scoring_judge_attempt_count`   | opt | `integer` (nullable)                                                                                         |
+|               |                          | `scoring_judge_duration_ms`     | opt | `number` (nullable)                                                                                          |
+|               |                          | `scoring_judge_retry_count`     | opt | `integer` (nullable)                                                                                         |
+|               |                          | `scoring_judge_retry_reasons`   | opt | array[`string`] (default: [])                                                                                |
+|               |                          | `scoring_judge_selected_routes` | opt | array[`string`] (default: [])                                                                                |
+|               |                          | `scoring_judge_status`          | opt | `string` (enum: [ok, exhausted, failed]; nullable)                                                           |
+|               |                          | `scoring_ms`                    | opt | `number` (nullable)                                                                                          |
+|               | `uid`                    |                                 | req | `integer`                                                                                                    |
+|               | `usage`                  |                                 | req | [UsageModel](#model-usagemodel)                                                                              |
+|               |                          | `by_provider`                   | opt | `object`                                                                                                     |
+|               |                          | `call_count`                    | req | `integer`                                                                                                    |
+|               |                          | `total_completion_tokens`       | req | `integer`                                                                                                    |
+|               |                          | `total_prompt_tokens`           | req | `integer`                                                                                                    |
+|               |                          | `total_tokens`                  | req | `integer`                                                                                                    |
+|               | `validator_session_id`   |                                 | req | `string` (format: uuid)                                                                                      |
+| `server_time` |                          |                                 | req | `string` (format: date-time)                                                                                 |
 
 <details>
 <summary>JSON schema</summary>
@@ -5504,9 +5458,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "server_time"
-  ],
+  "required": ["server_time"],
   "title": "MinerTaskWorkScoreableExecutionsResponse",
   "type": "object"
 }
@@ -5515,18 +5467,19 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworktasksrequest"></a>
+
 ### Model: MinerTaskWorkTasksRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `active_attempts` |  |  | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
-|  | `artifact_id` |  | req | `string` (format: uuid) |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `task_id` |  | req | `string` (format: uuid) |
-|  | `validator_session_id` |  | opt | `string` (format: uuid; nullable) |
-| `max_active_artifacts` |  |  | req | `integer` |
-| `target_concurrency` |  |  | req | `integer` |
+| 1st level              | 2nd level              | 3rd level | Req | Notes                                                                                          |
+| ---------------------- | ---------------------- | --------- | --- | ---------------------------------------------------------------------------------------------- |
+| `active_attempts`      |                        |           | opt | array[[MinerTaskAttemptIdentityPayload](#model-minertaskattemptidentitypayload)] (default: []) |
+|                        | `artifact_id`          |           | req | `string` (format: uuid)                                                                        |
+|                        | `attempt_number`       |           | req | `integer`                                                                                      |
+|                        | `batch_id`             |           | req | `string` (format: uuid)                                                                        |
+|                        | `task_id`              |           | req | `string` (format: uuid)                                                                        |
+|                        | `validator_session_id` |           | opt | `string` (format: uuid; nullable)                                                              |
+| `max_active_artifacts` |                        |           | req | `integer`                                                                                      |
+| `target_concurrency`   |                        |           | req | `integer`                                                                                      |
 
 <details>
 <summary>JSON schema</summary>
@@ -5556,10 +5509,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "integer"
     }
   },
-  "required": [
-    "target_concurrency",
-    "max_active_artifacts"
-  ],
+  "required": ["target_concurrency", "max_active_artifacts"],
   "title": "MinerTaskWorkTasksRequest",
   "type": "object"
 }
@@ -5568,27 +5518,28 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-minertaskworktasksresponse"></a>
+
 ### Model: MinerTaskWorkTasksResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `server_time` |  |  | req | `string` (format: date-time) |
-| `tasks` |  |  | opt | array[[MinerTaskWorkAssignmentPayload](#model-minertaskworkassignmentpayload)] (default: []) |
-|  | `artifact` |  | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload) |
-|  |  | `artifact_id` | req | `string` (format: uuid) |
-|  |  | `content_hash` | req | `string` |
-|  |  | `miner_hotkey_ss58` | opt | `string` (nullable) |
-|  |  | `size_bytes` | req | `integer` |
-|  |  | `uid` | req | `integer` |
-|  | `assignment_token` |  | req | `string` |
-|  | `attempt_number` |  | req | `integer` |
-|  | `batch_id` |  | req | `string` (format: uuid) |
-|  | `max_attempts` |  | req | `integer` |
-|  | `task` |  | req | [MinerTask](#model-minertask) |
-|  |  | `budget_usd` | opt | `number` (default: 0.5) |
-|  |  | `query` | req | [Query](#model-query) |
-|  |  | `reference_answer` | req | [ReferenceAnswer](#model-referenceanswer) |
-|  |  | `task_id` | req | `string` (format: uuid) |
+| 1st level     | 2nd level          | 3rd level           | Req | Notes                                                                                        |
+| ------------- | ------------------ | ------------------- | --- | -------------------------------------------------------------------------------------------- |
+| `server_time` |                    |                     | req | `string` (format: date-time)                                                                 |
+| `tasks`       |                    |                     | opt | array[[MinerTaskWorkAssignmentPayload](#model-minertaskworkassignmentpayload)] (default: []) |
+|               | `artifact`         |                     | req | [MinerTaskWorkArtifactPayload](#model-minertaskworkartifactpayload)                          |
+|               |                    | `artifact_id`       | req | `string` (format: uuid)                                                                      |
+|               |                    | `content_hash`      | req | `string`                                                                                     |
+|               |                    | `miner_hotkey_ss58` | opt | `string` (nullable)                                                                          |
+|               |                    | `size_bytes`        | req | `integer`                                                                                    |
+|               |                    | `uid`               | req | `integer`                                                                                    |
+|               | `assignment_token` |                     | req | `string`                                                                                     |
+|               | `attempt_number`   |                     | req | `integer`                                                                                    |
+|               | `batch_id`         |                     | req | `string` (format: uuid)                                                                      |
+|               | `max_attempts`     |                     | req | `integer`                                                                                    |
+|               | `task`             |                     | req | [MinerTask](#model-minertask)                                                                |
+|               |                    | `budget_usd`        | opt | `number` (default: 0.5)                                                                      |
+|               |                    | `query`             | req | [Query](#model-query)                                                                        |
+|               |                    | `reference_answer`  | req | [ReferenceAnswer](#model-referenceanswer)                                                    |
+|               |                    | `task_id`           | req | `string` (format: uuid)                                                                      |
 
 <details>
 <summary>JSON schema</summary>
@@ -5611,9 +5562,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "array"
     }
   },
-  "required": [
-    "server_time"
-  ],
+  "required": ["server_time"],
   "title": "MinerTaskWorkTasksResponse",
   "type": "object"
 }
@@ -5622,16 +5571,17 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-platformtoolproxygrantrequest"></a>
+
 ### Model: PlatformToolProxyGrantRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `assignment_token` |  |  | req | `string` |
-| `attempt_number` |  |  | req | `integer` |
-| `batch_id` |  |  | req | `string` (format: uuid) |
-| `task_id` |  |  | req | `string` (format: uuid) |
-| `validator_session_id` |  |  | req | `string` (format: uuid) |
+| 1st level              | 2nd level | 3rd level | Req | Notes                   |
+| ---------------------- | --------- | --------- | --- | ----------------------- |
+| `artifact_id`          |           |           | req | `string` (format: uuid) |
+| `assignment_token`     |           |           | req | `string`                |
+| `attempt_number`       |           |           | req | `integer`               |
+| `batch_id`             |           |           | req | `string` (format: uuid) |
+| `task_id`              |           |           | req | `string` (format: uuid) |
+| `validator_session_id` |           |           | req | `string` (format: uuid) |
 
 <details>
 <summary>JSON schema</summary>
@@ -5687,12 +5637,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-platformtoolproxygrantresponse"></a>
+
 ### Model: PlatformToolProxyGrantResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `expires_at` |  |  | req | `string` (format: date-time) |
-| `token` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes                        |
+| ------------ | --------- | --------- | --- | ---------------------------- |
+| `expires_at` |           |           | req | `string` (format: date-time) |
+| `token`      |           |           | req | `string`                     |
 
 <details>
 <summary>JSON schema</summary>
@@ -5711,10 +5662,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "token",
-    "expires_at"
-  ],
+  "required": ["token", "expires_at"],
   "title": "PlatformToolProxyGrantResponse",
   "type": "object"
 }
@@ -5723,12 +5671,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-query"></a>
+
 ### Model: Query
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `output_schema` |  |  | opt | [JsonObject-Input](#model-jsonobject-input) (nullable) |
-| `text` |  |  | req | `string` |
+| 1st level       | 2nd level | 3rd level | Req | Notes                                                  |
+| --------------- | --------- | --------- | --- | ------------------------------------------------------ |
+| `output_schema` |           |           | opt | [JsonObject-Input](#model-jsonobject-input) (nullable) |
+| `text`          |           |           | req | `string`                                               |
 
 <details>
 <summary>JSON schema</summary>
@@ -5753,9 +5702,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "text"
-  ],
+  "required": ["text"],
   "title": "Query",
   "type": "object"
 }
@@ -5764,15 +5711,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-referenceanswer"></a>
+
 ### Model: ReferenceAnswer
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `citations` |  |  | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  | `note` |  | opt | `string` (nullable) |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | req | `string` |
-| `text` |  |  | req | `string` |
+| 1st level   | 2nd level | 3rd level | Req | Notes                                                     |
+| ----------- | --------- | --------- | --- | --------------------------------------------------------- |
+| `citations` |           |           | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
+|             | `note`    |           | opt | `string` (nullable)                                       |
+|             | `title`   |           | opt | `string` (nullable)                                       |
+|             | `url`     |           | req | `string`                                                  |
+| `text`      |           |           | req | `string`                                                  |
 
 <details>
 <summary>JSON schema</summary>
@@ -5809,9 +5757,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "text"
-  ],
+  "required": ["text"],
   "title": "ReferenceAnswer",
   "type": "object"
 }
@@ -5820,15 +5766,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-registervalidatorrequest"></a>
+
 ### Model: RegisterValidatorRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `base_url` |  |  | req | `string` |
-| `local_image_id` |  |  | opt | `string` (nullable) |
-| `registry_digest` |  |  | opt | `string` (nullable) |
-| `source_revision` |  |  | opt | `string` (nullable) |
-| `validator_version` |  |  | opt | `string` (nullable) |
+| 1st level           | 2nd level | 3rd level | Req | Notes               |
+| ------------------- | --------- | --------- | --- | ------------------- |
+| `base_url`          |           |           | req | `string`            |
+| `local_image_id`    |           |           | opt | `string` (nullable) |
+| `registry_digest`   |           |           | opt | `string` (nullable) |
+| `source_revision`   |           |           | opt | `string` (nullable) |
+| `validator_version` |           |           | opt | `string` (nullable) |
 
 <details>
 <summary>JSON schema</summary>
@@ -5891,9 +5838,7 @@ Body: [StatusResponse](#model-statusresponse)
       "title": "Validator Version"
     }
   },
-  "required": [
-    "base_url"
-  ],
+  "required": ["base_url"],
   "title": "RegisterValidatorRequest",
   "type": "object"
 }
@@ -5902,12 +5847,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-reposearchensureindexrequestmodel"></a>
+
 ### Model: RepoSearchEnsureIndexRequestModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `commit_sha` |  |  | req | `string` |
-| `repo_url` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes    |
+| ------------ | --------- | --------- | --- | -------- |
+| `commit_sha` |           |           | req | `string` |
+| `repo_url`   |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -5926,10 +5872,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "repo_url",
-    "commit_sha"
-  ],
+  "required": ["repo_url", "commit_sha"],
   "title": "RepoSearchEnsureIndexRequestModel",
   "type": "object"
 }
@@ -5938,16 +5881,17 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-response"></a>
+
 ### Model: Response
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `citations` |  |  | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
-|  | `note` |  | opt | `string` (nullable) |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | req | `string` |
-| `output` |  |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-| `text` |  |  | opt | `string` (nullable) |
+| 1st level   | 2nd level | 3rd level | Req | Notes                                                     |
+| ----------- | --------- | --------- | --- | --------------------------------------------------------- |
+| `citations` |           |           | opt | array[[AnswerCitation](#model-answercitation)] (nullable) |
+|             | `note`    |           | opt | `string` (nullable)                                       |
+|             | `title`   |           | opt | `string` (nullable)                                       |
+|             | `url`     |           | req | `string`                                                  |
+| `output`    |           |           | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)      |
+| `text`      |           |           | opt | `string` (nullable)                                       |
 
 <details>
 <summary>JSON schema</summary>
@@ -6009,28 +5953,29 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-sandboxfailurediagnostics"></a>
+
 ### Model: SandboxFailureDiagnostics
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `container_id` |  |  | opt | `string` (nullable) |
-| `container_name` |  |  | opt | `string` (nullable) |
-| `docker_inspect_error_tail` |  |  | opt | `string` (nullable) |
-| `docker_logs_error_tail` |  |  | opt | `string` (nullable) |
-| `docker_logs_tail` |  |  | opt | `string` (nullable) |
-| `error_text` |  |  | opt | `string` (nullable) |
-| `exit_code` |  |  | opt | `integer` (nullable) |
-| `image` |  |  | opt | `string` (nullable) |
-| `oom_killed` |  |  | opt | `boolean` (nullable) |
-| `pull_policy` |  |  | opt | `string` (nullable) |
-| `pull_returncode` |  |  | opt | `integer` (nullable) |
-| `pull_stderr_tail` |  |  | opt | `string` (nullable) |
-| `pull_stdout_tail` |  |  | opt | `string` (nullable) |
-| `run_returncode` |  |  | opt | `integer` (nullable) |
-| `run_stderr_tail` |  |  | opt | `string` (nullable) |
-| `run_stdout_tail` |  |  | opt | `string` (nullable) |
-| `state_error` |  |  | opt | `string` (nullable) |
-| `status` |  |  | opt | `string` (nullable) |
+| 1st level                   | 2nd level | 3rd level | Req | Notes                |
+| --------------------------- | --------- | --------- | --- | -------------------- |
+| `container_id`              |           |           | opt | `string` (nullable)  |
+| `container_name`            |           |           | opt | `string` (nullable)  |
+| `docker_inspect_error_tail` |           |           | opt | `string` (nullable)  |
+| `docker_logs_error_tail`    |           |           | opt | `string` (nullable)  |
+| `docker_logs_tail`          |           |           | opt | `string` (nullable)  |
+| `error_text`                |           |           | opt | `string` (nullable)  |
+| `exit_code`                 |           |           | opt | `integer` (nullable) |
+| `image`                     |           |           | opt | `string` (nullable)  |
+| `oom_killed`                |           |           | opt | `boolean` (nullable) |
+| `pull_policy`               |           |           | opt | `string` (nullable)  |
+| `pull_returncode`           |           |           | opt | `integer` (nullable) |
+| `pull_stderr_tail`          |           |           | opt | `string` (nullable)  |
+| `pull_stdout_tail`          |           |           | opt | `string` (nullable)  |
+| `run_returncode`            |           |           | opt | `integer` (nullable) |
+| `run_stderr_tail`           |           |           | opt | `string` (nullable)  |
+| `run_stdout_tail`           |           |           | opt | `string` (nullable)  |
+| `state_error`               |           |           | opt | `string` (nullable)  |
+| `status`                    |           |           | opt | `string` (nullable)  |
 
 <details>
 <summary>JSON schema</summary>
@@ -6260,16 +6205,17 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-scorebreakdown"></a>
+
 ### Model: ScoreBreakdown
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `comparison_score` |  |  | req | `number` |
-| `reasoning` |  |  | opt | [ScorerReasoning](#model-scorerreasoning) (nullable) |
-|  | `reasoning_tokens` |  | opt | `integer` (nullable) |
-|  | `text` |  | opt | `string` (nullable) |
-| `scoring_version` |  |  | req | `string` |
-| `total_score` |  |  | req | `number` |
+| 1st level          | 2nd level          | 3rd level | Req | Notes                                                |
+| ------------------ | ------------------ | --------- | --- | ---------------------------------------------------- |
+| `comparison_score` |                    |           | req | `number`                                             |
+| `reasoning`        |                    |           | opt | [ScorerReasoning](#model-scorerreasoning) (nullable) |
+|                    | `reasoning_tokens` |           | opt | `integer` (nullable)                                 |
+|                    | `text`             |           | opt | `string` (nullable)                                  |
+| `scoring_version`  |                    |           | req | `string`                                             |
+| `total_score`      |                    |           | req | `number`                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -6306,11 +6252,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "number"
     }
   },
-  "required": [
-    "comparison_score",
-    "total_score",
-    "scoring_version"
-  ],
+  "required": ["comparison_score", "total_score", "scoring_version"],
   "title": "ScoreBreakdown",
   "type": "object"
 }
@@ -6319,12 +6261,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-scorerreasoning"></a>
+
 ### Model: ScorerReasoning
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `reasoning_tokens` |  |  | opt | `integer` (nullable) |
-| `text` |  |  | opt | `string` (nullable) |
+| 1st level          | 2nd level | 3rd level | Req | Notes                |
+| ------------------ | --------- | --------- | --- | -------------------- |
+| `reasoning_tokens` |           |           | opt | `integer` (nullable) |
+| `text`             |           |           | opt | `string` (nullable)  |
 
 <details>
 <summary>JSON schema</summary>
@@ -6366,15 +6309,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-scriptartifactmodel"></a>
+
 ### Model: ScriptArtifactModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `artifact_id` |  |  | req | `string` (format: uuid) |
-| `content_hash` |  |  | req | `string` |
-| `size_bytes` |  |  | req | `integer` |
-| `submitted_at` |  |  | req | `string` (format: date-time) |
-| `uid` |  |  | req | `integer` |
+| 1st level      | 2nd level | 3rd level | Req | Notes                        |
+| -------------- | --------- | --------- | --- | ---------------------------- |
+| `artifact_id`  |           |           | req | `string` (format: uuid)      |
+| `content_hash` |           |           | req | `string`                     |
+| `size_bytes`   |           |           | req | `integer`                    |
+| `submitted_at` |           |           | req | `string` (format: date-time) |
+| `uid`          |           |           | req | `integer`                    |
 
 <details>
 <summary>JSON schema</summary>
@@ -6420,15 +6364,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-searchreporesult"></a>
+
 ### Model: SearchRepoResult
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `bm25` |  |  | opt | `number` (nullable) |
-| `excerpt` |  |  | opt | `string` (nullable) |
-| `path` |  |  | req | `string` |
-| `title` |  |  | opt | `string` (nullable) |
-| `url` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes               |
+| --------- | --------- | --------- | --- | ------------------- |
+| `bm25`    |           |           | opt | `number` (nullable) |
+| `excerpt` |           |           | opt | `string` (nullable) |
+| `path`    |           |           | req | `string`            |
+| `title`   |           |           | opt | `string` (nullable) |
+| `url`     |           |           | req | `string`            |
 
 <details>
 <summary>JSON schema</summary>
@@ -6479,10 +6424,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "path",
-    "url"
-  ],
+  "required": ["path", "url"],
   "title": "SearchRepoResult",
   "type": "object"
 }
@@ -6491,15 +6433,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-searchreposearchrequest"></a>
+
 ### Model: SearchRepoSearchRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `commit_sha` |  |  | req | `string` |
-| `limit` |  |  | opt | `integer` (default: 10) |
-| `path_glob` |  |  | opt | `string` (nullable) |
-| `query` |  |  | req | `string` |
-| `repo_url` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes                   |
+| ------------ | --------- | --------- | --- | ----------------------- |
+| `commit_sha` |           |           | req | `string`                |
+| `limit`      |           |           | opt | `integer` (default: 10) |
+| `path_glob`  |           |           | opt | `string` (nullable)     |
+| `query`      |           |           | req | `string`                |
+| `repo_url`   |           |           | req | `string`                |
 
 <details>
 <summary>JSON schema</summary>
@@ -6541,11 +6484,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "repo_url",
-    "commit_sha",
-    "query"
-  ],
+  "required": ["repo_url", "commit_sha", "query"],
   "title": "SearchRepoSearchRequest",
   "type": "object"
 }
@@ -6554,16 +6493,17 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-searchreposearchresponse"></a>
+
 ### Model: SearchRepoSearchResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `data` |  |  | opt | array[[SearchRepoResult](#model-searchreporesult)] |
-|  | `bm25` |  | opt | `number` (nullable) |
-|  | `excerpt` |  | opt | `string` (nullable) |
-|  | `path` |  | req | `string` |
-|  | `title` |  | opt | `string` (nullable) |
-|  | `url` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                              |
+| --------- | --------- | --------- | --- | -------------------------------------------------- |
+| `data`    |           |           | opt | array[[SearchRepoResult](#model-searchreporesult)] |
+|           | `bm25`    |           | opt | `number` (nullable)                                |
+|           | `excerpt` |           | opt | `string` (nullable)                                |
+|           | `path`    |           | req | `string`                                           |
+|           | `title`   |           | opt | `string` (nullable)                                |
+|           | `url`     |           | req | `string`                                           |
 
 <details>
 <summary>JSON schema</summary>
@@ -6588,14 +6528,15 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-searchtoolusagesummary"></a>
+
 ### Model: SearchToolUsageSummary
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost` |  |  | opt | `number` (nullable) |
-| `call_count` |  |  | opt | `integer` (default: 0) |
-| `cost` |  |  | opt | `number` (default: 0.0) |
-| `reference_cost` |  |  | opt | `number` (default: 0.0) |
+| 1st level        | 2nd level | 3rd level | Req | Notes                   |
+| ---------------- | --------- | --------- | --- | ----------------------- |
+| `actual_cost`    |           |           | opt | `number` (nullable)     |
+| `call_count`     |           |           | opt | `integer` (default: 0)  |
+| `cost`           |           |           | opt | `number` (default: 0.0) |
+| `reference_cost` |           |           | opt | `number` (default: 0.0) |
 
 <details>
 <summary>JSON schema</summary>
@@ -6638,15 +6579,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-sessionmodel"></a>
+
 ### Model: SessionModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `expires_at` |  |  | req | `string` |
-| `issued_at` |  |  | req | `string` |
-| `session_id` |  |  | req | `string` (format: uuid) |
-| `status` |  |  | req | `string` |
-| `uid` |  |  | req | `integer` |
+| 1st level    | 2nd level | 3rd level | Req | Notes                   |
+| ------------ | --------- | --------- | --- | ----------------------- |
+| `expires_at` |           |           | req | `string`                |
+| `issued_at`  |           |           | req | `string`                |
+| `session_id` |           |           | req | `string` (format: uuid) |
+| `status`     |           |           | req | `string`                |
+| `uid`        |           |           | req | `integer`               |
 
 <details>
 <summary>JSON schema</summary>
@@ -6680,13 +6622,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "integer"
     }
   },
-  "required": [
-    "session_id",
-    "uid",
-    "status",
-    "issued_at",
-    "expires_at"
-  ],
+  "required": ["session_id", "uid", "status", "issued_at", "expires_at"],
   "title": "SessionModel",
   "type": "object"
 }
@@ -6695,13 +6631,14 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-spanmodel"></a>
+
 ### Model: SpanModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `end` |  |  | req | `integer` |
-| `excerpt` |  |  | req | `string` |
-| `start` |  |  | req | `integer` |
+| 1st level | 2nd level | 3rd level | Req | Notes     |
+| --------- | --------- | --------- | --- | --------- |
+| `end`     |           |           | req | `integer` |
+| `excerpt` |           |           | req | `string`  |
+| `start`   |           |           | req | `integer` |
 
 <details>
 <summary>JSON schema</summary>
@@ -6722,11 +6659,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "integer"
     }
   },
-  "required": [
-    "excerpt",
-    "start",
-    "end"
-  ],
+  "required": ["excerpt", "start", "end"],
   "title": "SpanModel",
   "type": "object"
 }
@@ -6735,11 +6668,12 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-statusresponse"></a>
+
 ### Model: StatusResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `status` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes    |
+| --------- | --------- | --------- | --- | -------- |
+| `status`  |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -6752,9 +6686,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "status"
-  ],
+  "required": ["status"],
   "title": "StatusResponse",
   "type": "object"
 }
@@ -6763,36 +6695,37 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-toolcall-input"></a>
+
 ### Model: ToolCall-Input
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `details` |  |  | req | [ToolCallDetails-Input](#model-toolcalldetails-input) |
-|  | `actual_cost_provider` |  | opt | `string` (nullable) |
-|  | `actual_cost_usd` |  | opt | `number` (nullable) |
-|  | `cost_usd` |  | opt | `number` (nullable) |
-|  | `execution` |  | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable) |
-|  |  | `elapsed_ms` | opt | `number` (nullable) |
-|  |  | `finished_at` | opt | `string` (format: date-time; nullable) |
-|  |  | `started_at` | opt | `string` (format: date-time; nullable) |
-|  |  | `ttft_ms` | opt | `number` (nullable) |
-|  | `extra` |  | opt | `object` (nullable) |
-|  | `reference_cost_usd` |  | opt | `number` (nullable) |
-|  | `request_hash` |  | req | `string` |
-|  | `request_payload` |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  | `response_hash` |  | opt | `string` (nullable) |
-|  | `response_payload` |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  | `result_policy` |  | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only) |
-|  | `results` |  | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: []) |
-|  |  | `index` | req | `integer` |
-|  |  | `raw` | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  |  | `result_id` | req | `string` |
-| `issued_at` |  |  | req | `string` (format: date-time) |
-| `outcome` |  |  | req | [ToolCallOutcome](#model-toolcalloutcome) |
-| `receipt_id` |  |  | req | `string` |
-| `session_id` |  |  | req | `string` (format: uuid) |
-| `tool` |  |  | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
-| `uid` |  |  | req | `integer` |
+| 1st level    | 2nd level              | 3rd level     | Req | Notes                                                                                               |
+| ------------ | ---------------------- | ------------- | --- | --------------------------------------------------------------------------------------------------- |
+| `details`    |                        |               | req | [ToolCallDetails-Input](#model-toolcalldetails-input)                                               |
+|              | `actual_cost_provider` |               | opt | `string` (nullable)                                                                                 |
+|              | `actual_cost_usd`      |               | opt | `number` (nullable)                                                                                 |
+|              | `cost_usd`             |               | opt | `number` (nullable)                                                                                 |
+|              | `execution`            |               | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable)                                          |
+|              |                        | `elapsed_ms`  | opt | `number` (nullable)                                                                                 |
+|              |                        | `finished_at` | opt | `string` (format: date-time; nullable)                                                              |
+|              |                        | `started_at`  | opt | `string` (format: date-time; nullable)                                                              |
+|              |                        | `ttft_ms`     | opt | `number` (nullable)                                                                                 |
+|              | `extra`                |               | opt | `object` (nullable)                                                                                 |
+|              | `reference_cost_usd`   |               | opt | `number` (nullable)                                                                                 |
+|              | `request_hash`         |               | req | `string`                                                                                            |
+|              | `request_payload`      |               | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|              | `response_hash`        |               | opt | `string` (nullable)                                                                                 |
+|              | `response_payload`     |               | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|              | `result_policy`        |               | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only)                                     |
+|              | `results`              |               | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: [])                                    |
+|              |                        | `index`       | req | `integer`                                                                                           |
+|              |                        | `raw`         | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)                                                |
+|              |                        | `result_id`   | req | `string`                                                                                            |
+| `issued_at`  |                        |               | req | `string` (format: date-time)                                                                        |
+| `outcome`    |                        |               | req | [ToolCallOutcome](#model-toolcalloutcome)                                                           |
+| `receipt_id` |                        |               | req | `string`                                                                                            |
+| `session_id` |                        |               | req | `string` (format: uuid)                                                                             |
+| `tool`       |                        |               | req | `string` (enum: [search_web, search_ai, fetch_page, embed_text, llm_chat, test_tool, tooling_info]) |
+| `uid`        |                        |               | req | `integer`                                                                                           |
 
 <details>
 <summary>JSON schema</summary>
@@ -6856,29 +6789,30 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-toolcalldetails-input"></a>
+
 ### Model: ToolCallDetails-Input
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost_provider` |  |  | opt | `string` (nullable) |
-| `actual_cost_usd` |  |  | opt | `number` (nullable) |
-| `cost_usd` |  |  | opt | `number` (nullable) |
-| `execution` |  |  | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable) |
-|  | `elapsed_ms` |  | opt | `number` (nullable) |
-|  | `finished_at` |  | opt | `string` (format: date-time; nullable) |
-|  | `started_at` |  | opt | `string` (format: date-time; nullable) |
-|  | `ttft_ms` |  | opt | `number` (nullable) |
-| `extra` |  |  | opt | `object` (nullable) |
-| `reference_cost_usd` |  |  | opt | `number` (nullable) |
-| `request_hash` |  |  | req | `string` |
-| `request_payload` |  |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-| `response_hash` |  |  | opt | `string` (nullable) |
-| `response_payload` |  |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-| `result_policy` |  |  | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only) |
-| `results` |  |  | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: []) |
-|  | `index` |  | req | `integer` |
-|  | `raw` |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-|  | `result_id` |  | req | `string` |
+| 1st level              | 2nd level     | 3rd level | Req | Notes                                                            |
+| ---------------------- | ------------- | --------- | --- | ---------------------------------------------------------------- |
+| `actual_cost_provider` |               |           | opt | `string` (nullable)                                              |
+| `actual_cost_usd`      |               |           | opt | `number` (nullable)                                              |
+| `cost_usd`             |               |           | opt | `number` (nullable)                                              |
+| `execution`            |               |           | opt | [ToolExecutionFacts](#model-toolexecutionfacts) (nullable)       |
+|                        | `elapsed_ms`  |           | opt | `number` (nullable)                                              |
+|                        | `finished_at` |           | opt | `string` (format: date-time; nullable)                           |
+|                        | `started_at`  |           | opt | `string` (format: date-time; nullable)                           |
+|                        | `ttft_ms`     |           | opt | `number` (nullable)                                              |
+| `extra`                |               |           | opt | `object` (nullable)                                              |
+| `reference_cost_usd`   |               |           | opt | `number` (nullable)                                              |
+| `request_hash`         |               |           | req | `string`                                                         |
+| `request_payload`      |               |           | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)             |
+| `response_hash`        |               |           | opt | `string` (nullable)                                              |
+| `response_payload`     |               |           | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)             |
+| `result_policy`        |               |           | opt | [ToolResultPolicy](#model-toolresultpolicy) (default: log_only)  |
+| `results`              |               |           | opt | array[[ToolResult-Input](#model-toolresult-input)] (default: []) |
+|                        | `index`       |           | req | `integer`                                                        |
+|                        | `raw`         |           | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable)             |
+|                        | `result_id`   |           | req | `string`                                                         |
 
 <details>
 <summary>JSON schema</summary>
@@ -7003,9 +6937,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "array"
     }
   },
-  "required": [
-    "request_hash"
-  ],
+  "required": ["request_hash"],
   "title": "ToolCallDetails",
   "type": "object"
 }
@@ -7014,6 +6946,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-toolcalloutcome"></a>
+
 ### Model: ToolCallOutcome
 
 (no documented fields)
@@ -7039,14 +6972,15 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-toolexecutionfacts"></a>
+
 ### Model: ToolExecutionFacts
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `elapsed_ms` |  |  | opt | `number` (nullable) |
-| `finished_at` |  |  | opt | `string` (format: date-time; nullable) |
-| `started_at` |  |  | opt | `string` (format: date-time; nullable) |
-| `ttft_ms` |  |  | opt | `number` (nullable) |
+| 1st level     | 2nd level | 3rd level | Req | Notes                                  |
+| ------------- | --------- | --------- | --- | -------------------------------------- |
+| `elapsed_ms`  |           |           | opt | `number` (nullable)                    |
+| `finished_at` |           |           | opt | `string` (format: date-time; nullable) |
+| `started_at`  |           |           | opt | `string` (format: date-time; nullable) |
+| `ttft_ms`     |           |           | opt | `number` (nullable)                    |
 
 <details>
 <summary>JSON schema</summary>
@@ -7110,13 +7044,14 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-toolresult-input"></a>
+
 ### Model: ToolResult-Input
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `index` |  |  | req | `integer` |
-| `raw` |  |  | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
-| `result_id` |  |  | req | `string` |
+| 1st level   | 2nd level | 3rd level | Req | Notes                                                |
+| ----------- | --------- | --------- | --- | ---------------------------------------------------- |
+| `index`     |           |           | req | `integer`                                            |
+| `raw`       |           |           | opt | [JsonValue-Input](#model-jsonvalue-input) (nullable) |
+| `result_id` |           |           | req | `string`                                             |
 
 <details>
 <summary>JSON schema</summary>
@@ -7144,10 +7079,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "index",
-    "result_id"
-  ],
+  "required": ["index", "result_id"],
   "title": "ToolResult",
   "type": "object"
 }
@@ -7156,6 +7088,7 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-toolresultpolicy"></a>
+
 ### Model: ToolResultPolicy
 
 (no documented fields)
@@ -7166,10 +7099,7 @@ Body: [StatusResponse](#model-statusresponse)
 ```json
 {
   "description": "Indicates whether tool results can be cited.",
-  "enum": [
-    "referenceable",
-    "log_only"
-  ],
+  "enum": ["referenceable", "log_only"],
   "title": "ToolResultPolicy",
   "type": "string"
 }
@@ -7178,37 +7108,38 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-toolusagesummary"></a>
+
 ### Model: ToolUsageSummary
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `actual_cost_by_provider` |  |  | opt | `object` |
-| `actual_total_cost_usd` |  |  | opt | `number` (nullable) |
-| `embedding` |  |  | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
-|  | `actual_cost` |  | opt | `number` (nullable) |
-|  | `call_count` |  | opt | `integer` (default: 0) |
-|  | `cost` |  | opt | `number` (default: 0.0) |
-|  | `reference_cost` |  | opt | `number` (default: 0.0) |
-| `embedding_cost` |  |  | opt | `number` (default: 0.0) |
-| `llm` |  |  | opt | [LlmUsageSummary](#model-llmusagesummary) |
-|  | `actual_cost` |  | opt | `number` (nullable) |
-|  | `call_count` |  | opt | `integer` (default: 0) |
-|  | `completion_tokens` |  | opt | `integer` (default: 0) |
-|  | `cost` |  | opt | `number` (default: 0.0) |
-|  | `prompt_tokens` |  | opt | `integer` (default: 0) |
-|  | `providers` |  | opt | `object` |
-|  | `reasoning_tokens` |  | opt | `integer` (default: 0) |
-|  | `reference_cost` |  | opt | `number` (default: 0.0) |
-|  | `total_tokens` |  | opt | `integer` (default: 0) |
-| `llm_cost` |  |  | opt | `number` (default: 0.0) |
-| `reference_cost_by_provider` |  |  | opt | `object` |
-| `reference_total_cost_usd` |  |  | opt | `number` (default: 0.0) |
-| `search_tool` |  |  | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary) |
-|  | `actual_cost` |  | opt | `number` (nullable) |
-|  | `call_count` |  | opt | `integer` (default: 0) |
-|  | `cost` |  | opt | `number` (default: 0.0) |
-|  | `reference_cost` |  | opt | `number` (default: 0.0) |
-| `search_tool_cost` |  |  | opt | `number` (default: 0.0) |
+| 1st level                    | 2nd level           | 3rd level | Req | Notes                                                         |
+| ---------------------------- | ------------------- | --------- | --- | ------------------------------------------------------------- |
+| `actual_cost_by_provider`    |                     |           | opt | `object`                                                      |
+| `actual_total_cost_usd`      |                     |           | opt | `number` (nullable)                                           |
+| `embedding`                  |                     |           | opt | [EmbeddingToolUsageSummary](#model-embeddingtoolusagesummary) |
+|                              | `actual_cost`       |           | opt | `number` (nullable)                                           |
+|                              | `call_count`        |           | opt | `integer` (default: 0)                                        |
+|                              | `cost`              |           | opt | `number` (default: 0.0)                                       |
+|                              | `reference_cost`    |           | opt | `number` (default: 0.0)                                       |
+| `embedding_cost`             |                     |           | opt | `number` (default: 0.0)                                       |
+| `llm`                        |                     |           | opt | [LlmUsageSummary](#model-llmusagesummary)                     |
+|                              | `actual_cost`       |           | opt | `number` (nullable)                                           |
+|                              | `call_count`        |           | opt | `integer` (default: 0)                                        |
+|                              | `completion_tokens` |           | opt | `integer` (default: 0)                                        |
+|                              | `cost`              |           | opt | `number` (default: 0.0)                                       |
+|                              | `prompt_tokens`     |           | opt | `integer` (default: 0)                                        |
+|                              | `providers`         |           | opt | `object`                                                      |
+|                              | `reasoning_tokens`  |           | opt | `integer` (default: 0)                                        |
+|                              | `reference_cost`    |           | opt | `number` (default: 0.0)                                       |
+|                              | `total_tokens`      |           | opt | `integer` (default: 0)                                        |
+| `llm_cost`                   |                     |           | opt | `number` (default: 0.0)                                       |
+| `reference_cost_by_provider` |                     |           | opt | `object`                                                      |
+| `reference_total_cost_usd`   |                     |           | opt | `number` (default: 0.0)                                       |
+| `search_tool`                |                     |           | opt | [SearchToolUsageSummary](#model-searchtoolusagesummary)       |
+|                              | `actual_cost`       |           | opt | `number` (nullable)                                           |
+|                              | `call_count`        |           | opt | `integer` (default: 0)                                        |
+|                              | `cost`              |           | opt | `number` (default: 0.0)                                       |
+|                              | `reference_cost`    |           | opt | `number` (default: 0.0)                                       |
+| `search_tool_cost`           |                     |           | opt | `number` (default: 0.0)                                       |
 
 <details>
 <summary>JSON schema</summary>
@@ -7279,23 +7210,24 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-topicgatemodel"></a>
+
 ### Model: TopicGateModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `criteria` |  |  | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
-|  | `aggregate_score` |  | req | `number` |
-|  | `criterion_evaluations` |  | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)] |
-|  |  | `citations` | opt | array[[CitationModel](#model-citationmodel)] (default: []) |
-|  |  | `internal_metadata` | opt | `object` (nullable) |
-|  |  | `justification` | req | `string` |
-|  |  | `spans` | opt | array[[SpanModel](#model-spanmodel)] (default: []) |
-|  |  | `verdict` | req | `integer` |
-|  | `criterion_id` |  | req | `string` |
-|  | `verdict_options` |  | req | array[[VerdictOptionModel](#model-verdictoptionmodel)] |
-|  |  | `description` | req | `string` |
-|  |  | `value` | req | `integer` |
-| `score` |  |  | opt | `number` (nullable) |
+| 1st level  | 2nd level               | 3rd level           | Req | Notes                                                                            |
+| ---------- | ----------------------- | ------------------- | --- | -------------------------------------------------------------------------------- |
+| `criteria` |                         |                     | opt | array[[CriterionAssessmentModel](#model-criterionassessmentmodel)] (default: []) |
+|            | `aggregate_score`       |                     | req | `number`                                                                         |
+|            | `criterion_evaluations` |                     | req | array[[CriterionEvaluationModel](#model-criterionevaluationmodel)]               |
+|            |                         | `citations`         | opt | array[[CitationModel](#model-citationmodel)] (default: [])                       |
+|            |                         | `internal_metadata` | opt | `object` (nullable)                                                              |
+|            |                         | `justification`     | req | `string`                                                                         |
+|            |                         | `spans`             | opt | array[[SpanModel](#model-spanmodel)] (default: [])                               |
+|            |                         | `verdict`           | req | `integer`                                                                        |
+|            | `criterion_id`          |                     | req | `string`                                                                         |
+|            | `verdict_options`       |                     | req | array[[VerdictOptionModel](#model-verdictoptionmodel)]                           |
+|            |                         | `description`       | req | `string`                                                                         |
+|            |                         | `value`             | req | `integer`                                                                        |
+| `score`    |                         |                     | opt | `number` (nullable)                                                              |
 
 <details>
 <summary>JSON schema</summary>
@@ -7331,12 +7263,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-uploadscriptrequest"></a>
+
 ### Model: UploadScriptRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `script_b64` |  |  | req | `string` |
-| `sha256` |  |  | req | `string` |
+| 1st level    | 2nd level | 3rd level | Req | Notes    |
+| ------------ | --------- | --------- | --- | -------- |
+| `script_b64` |           |           | req | `string` |
+| `sha256`     |           |           | req | `string` |
 
 <details>
 <summary>JSON schema</summary>
@@ -7353,10 +7286,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "script_b64",
-    "sha256"
-  ],
+  "required": ["script_b64", "sha256"],
   "title": "UploadScriptRequest",
   "type": "object"
 }
@@ -7365,15 +7295,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-usagemodel"></a>
+
 ### Model: UsageModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `by_provider` |  |  | opt | `object` |
-| `call_count` |  |  | req | `integer` |
-| `total_completion_tokens` |  |  | req | `integer` |
-| `total_prompt_tokens` |  |  | req | `integer` |
-| `total_tokens` |  |  | req | `integer` |
+| 1st level                 | 2nd level | 3rd level | Req | Notes     |
+| ------------------------- | --------- | --------- | --- | --------- |
+| `by_provider`             |           |           | opt | `object`  |
+| `call_count`              |           |           | req | `integer` |
+| `total_completion_tokens` |           |           | req | `integer` |
+| `total_prompt_tokens`     |           |           | req | `integer` |
+| `total_tokens`            |           |           | req | `integer` |
 
 <details>
 <summary>JSON schema</summary>
@@ -7426,14 +7357,15 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-usagemodelentry"></a>
+
 ### Model: UsageModelEntry
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `call_count` |  |  | req | `integer` |
-| `completion_tokens` |  |  | req | `integer` |
-| `prompt_tokens` |  |  | req | `integer` |
-| `total_tokens` |  |  | req | `integer` |
+| 1st level           | 2nd level | 3rd level | Req | Notes     |
+| ------------------- | --------- | --------- | --- | --------- |
+| `call_count`        |           |           | req | `integer` |
+| `completion_tokens` |           |           | req | `integer` |
+| `prompt_tokens`     |           |           | req | `integer` |
+| `total_tokens`      |           |           | req | `integer` |
 
 <details>
 <summary>JSON schema</summary>
@@ -7476,15 +7408,16 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-validationerror"></a>
+
 ### Model: ValidationError
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `ctx` |  |  | opt | `object` |
-| `input` |  |  | opt | `object` |
-| `loc` |  |  | req | array[anyOf: `string` OR `integer`] |
-| `msg` |  |  | req | `string` |
-| `type` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                               |
+| --------- | --------- | --------- | --- | ----------------------------------- |
+| `ctx`     |           |           | opt | `object`                            |
+| `input`   |           |           | opt | `object`                            |
+| `loc`     |           |           | req | array[anyOf: `string` OR `integer`] |
+| `msg`     |           |           | req | `string`                            |
+| `type`    |           |           | req | `string`                            |
 
 <details>
 <summary>JSON schema</summary>
@@ -7522,11 +7455,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "string"
     }
   },
-  "required": [
-    "loc",
-    "msg",
-    "type"
-  ],
+  "required": ["loc", "msg", "type"],
   "title": "ValidationError",
   "type": "object"
 }
@@ -7535,12 +7464,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-verdictoptionmodel"></a>
+
 ### Model: VerdictOptionModel
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `description` |  |  | req | `string` |
-| `value` |  |  | req | `integer` |
+| 1st level     | 2nd level | 3rd level | Req | Notes     |
+| ------------- | --------- | --------- | --- | --------- |
+| `description` |           |           | req | `string`  |
+| `value`       |           |           | req | `integer` |
 
 <details>
 <summary>JSON schema</summary>
@@ -7557,10 +7487,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "integer"
     }
   },
-  "required": [
-    "value",
-    "description"
-  ],
+  "required": ["value", "description"],
   "title": "VerdictOptionModel",
   "type": "object"
 }
@@ -7569,12 +7496,13 @@ Body: [StatusResponse](#model-statusresponse)
 </details>
 
 <a id="model-weightsresponse"></a>
+
 ### Model: WeightsResponse
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `champion_uid` |  |  | opt | `integer` (nullable) |
-| `weights` |  |  | req | `object` |
+| 1st level      | 2nd level | 3rd level | Req | Notes                |
+| -------------- | --------- | --------- | --- | -------------------- |
+| `champion_uid` |           |           | opt | `integer` (nullable) |
+| `weights`      |           |           | req | `object`             |
 
 <details>
 <summary>JSON schema</summary>
@@ -7601,9 +7529,7 @@ Body: [StatusResponse](#model-statusresponse)
       "type": "object"
     }
   },
-  "required": [
-    "weights"
-  ],
+  "required": ["weights"],
   "title": "WeightsResponse",
   "type": "object"
 }

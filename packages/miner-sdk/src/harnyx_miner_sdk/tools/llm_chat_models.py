@@ -126,7 +126,9 @@ class LlmChatSystemMessage(_StrictModel):
         return value
 
     def to_message(self) -> LlmMessage:
-        return LlmMessage(role=self.role, content=(LlmInputTextPart(text=self.content),))
+        return LlmMessage(
+            role=self.role, content=(LlmInputTextPart(text=self.content),)
+        )
 
 
 class LlmChatUserMessage(_StrictModel):
@@ -141,7 +143,9 @@ class LlmChatUserMessage(_StrictModel):
         return value
 
     def to_message(self) -> LlmMessage:
-        return LlmMessage(role=self.role, content=(LlmInputTextPart(text=self.content),))
+        return LlmMessage(
+            role=self.role, content=(LlmInputTextPart(text=self.content),)
+        )
 
 
 class LlmChatAssistantMessage(_StrictModel):
@@ -154,21 +158,31 @@ class LlmChatAssistantMessage(_StrictModel):
     def _validate_output(self) -> LlmChatAssistantMessage:
         if self.content is None and not self.tool_calls:
             raise ValueError("assistant messages require content or tool_calls")
-        if self.content is not None and not self.content.strip() and not self.tool_calls:
-            raise ValueError("assistant message content must be non-empty when no tool_calls are present")
+        if (
+            self.content is not None
+            and not self.content.strip()
+            and not self.tool_calls
+        ):
+            raise ValueError(
+                "assistant message content must be non-empty when no tool_calls are present"
+            )
         return self
 
     @model_serializer
     def _serialize(self) -> dict[str, object]:
         payload: dict[str, object] = {"role": self.role, "content": self.content}
         if self.tool_calls is not None:
-            payload["tool_calls"] = [tool_call.model_dump(mode="json") for tool_call in self.tool_calls]
+            payload["tool_calls"] = [
+                tool_call.model_dump(mode="json") for tool_call in self.tool_calls
+            ]
         if self.reasoning_details is not None:
             payload["reasoning_details"] = list(self.reasoning_details)
         return payload
 
     def to_message(self) -> LlmMessage:
-        content = (LlmInputTextPart(text=self.content),) if self.content is not None else ()
+        content = (
+            (LlmInputTextPart(text=self.content),) if self.content is not None else ()
+        )
         return LlmMessage(
             role=self.role,
             content=content,
@@ -208,7 +222,10 @@ class LlmChatToolResultMessage(_StrictModel):
 
 
 LlmChatMessage: TypeAlias = Annotated[
-    LlmChatSystemMessage | LlmChatUserMessage | LlmChatAssistantMessage | LlmChatToolResultMessage,
+    LlmChatSystemMessage
+    | LlmChatUserMessage
+    | LlmChatAssistantMessage
+    | LlmChatToolResultMessage,
     Field(discriminator="role"),
 ]
 LlmChatToolChoice: TypeAlias = LlmChatToolChoiceName | LlmChatNamedToolChoice
@@ -229,11 +246,15 @@ class LlmChatThinking(_StrictModel):
     @model_validator(mode="after")
     def _validate_single_tuning_knob(self) -> LlmChatThinking:
         if self.budget is not None and self.effort is not None:
-            raise ValueError("thinking.budget and thinking.effort are mutually exclusive")
+            raise ValueError(
+                "thinking.budget and thinking.effort are mutually exclusive"
+            )
         return self
 
     def to_thinking_config(self) -> LlmThinkingConfig:
-        return LlmThinkingConfig(enabled=self.enabled, budget=self.budget, effort=self.effort)
+        return LlmThinkingConfig(
+            enabled=self.enabled, budget=self.budget, effort=self.effort
+        )
 
 
 class LlmChatRequest(_StrictModel):
@@ -259,7 +280,10 @@ class LlmChatRequest(_StrictModel):
         data = cast(Mapping[str, object], value)
         if "max_tokens" not in data:
             return value
-        if data.get("max_output_tokens") is not None and data.get("max_tokens") is not None:
+        if (
+            data.get("max_output_tokens") is not None
+            and data.get("max_tokens") is not None
+        ):
             raise ValueError("max_tokens and max_output_tokens are mutually exclusive")
         normalized = dict(data)
         max_tokens = normalized.pop("max_tokens")
@@ -285,7 +309,9 @@ class LlmChatRequest(_StrictModel):
         provider = data.get("provider")
         if not isinstance(provider, str):
             return value
-        parsed = validate_provider_extra(provider=provider, provider_extra=data.get("provider_extra"))
+        parsed = validate_provider_extra(
+            provider=provider, provider_extra=data.get("provider_extra")
+        )
         normalized = dict(data)
         normalized["provider_extra"] = parsed
         return normalized
@@ -306,23 +332,34 @@ class LlmChatRequest(_StrictModel):
         for message in self.messages:
             if pending:
                 if not isinstance(message, LlmChatToolResultMessage):
-                    raise ValueError("pending tool calls must be resolved before the next non-tool message")
+                    raise ValueError(
+                        "pending tool calls must be resolved before the next non-tool message"
+                    )
                 if message.tool_call_id not in pending:
-                    raise ValueError("tool result must reference one pending tool call exactly once")
+                    raise ValueError(
+                        "tool result must reference one pending tool call exactly once"
+                    )
                 pending.remove(message.tool_call_id)
                 continue
 
             if isinstance(message, LlmChatToolResultMessage):
                 raise ValueError("tool result must reference a pending tool call")
-            if not isinstance(message, LlmChatAssistantMessage) or not message.tool_calls:
+            if (
+                not isinstance(message, LlmChatAssistantMessage)
+                or not message.tool_calls
+            ):
                 continue
             call_ids = [tool_call.id for tool_call in message.tool_calls]
             if len(call_ids) != len(set(call_ids)):
-                raise ValueError("assistant tool call IDs must be unique within each pending block")
+                raise ValueError(
+                    "assistant tool call IDs must be unique within each pending block"
+                )
             pending = set(call_ids)
 
         if pending:
-            raise ValueError("all pending tool calls require one contiguous tool result")
+            raise ValueError(
+                "all pending tool calls require one contiguous tool result"
+            )
 
     def to_tool_request(self) -> ToolLlmRequest:
         choice: LlmChatToolChoiceName | JsonObject | None
@@ -340,7 +377,9 @@ class LlmChatRequest(_StrictModel):
                 tuple(
                     LlmTool(
                         type=tool.type,
-                        function=tool.function.model_dump(mode="json", exclude_none=True),
+                        function=tool.function.model_dump(
+                            mode="json", exclude_none=True
+                        ),
                     )
                     for tool in self.tools
                 )
@@ -349,7 +388,11 @@ class LlmChatRequest(_StrictModel):
             ),
             tool_choice=choice,
             parallel_tool_calls=self.parallel_tool_calls,
-            thinking=self.thinking.to_thinking_config() if self.thinking is not None else None,
+            thinking=(
+                self.thinking.to_thinking_config()
+                if self.thinking is not None
+                else None
+            ),
         )
 
     def provider_extra_payload(self) -> JsonObject | None:

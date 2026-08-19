@@ -11,9 +11,15 @@ def test_resource_usage_snapshot_reads_process_memory_cpu_and_disk(
     tmp_path: Path,
 ) -> None:
     cpu_snapshots = iter(((12.0, 120.0), (15.0, 125.0)))
-    monkeypatch.setattr(resource_usage, "_read_cpu_snapshot", lambda: next(cpu_snapshots))
-    monkeypatch.setattr(resource_usage, "_read_process_rss_bytes", lambda: 512 * 1024 * 1024)
-    monkeypatch.setattr(resource_usage, "_read_total_memory_bytes", lambda: 2 * 1024 * 1024 * 1024)
+    monkeypatch.setattr(
+        resource_usage, "_read_cpu_snapshot", lambda: next(cpu_snapshots)
+    )
+    monkeypatch.setattr(
+        resource_usage, "_read_process_rss_bytes", lambda: 512 * 1024 * 1024
+    )
+    monkeypatch.setattr(
+        resource_usage, "_read_total_memory_bytes", lambda: 2 * 1024 * 1024 * 1024
+    )
     monkeypatch.setattr(resource_usage, "_read_cpu_capacity_cores", lambda: 4.0)
     monkeypatch.setattr(
         resource_usage,
@@ -50,7 +56,9 @@ def test_read_total_memory_bytes_prefers_cgroup_v2_limit(
     cgroup_v1.write_text(str(3 * 1024 * 1024 * 1024), encoding="utf-8")
     monkeypatch.setattr(resource_usage, "_CGROUP_V2_MEMORY_MAX_PATH", cgroup_v2)
     monkeypatch.setattr(resource_usage, "_CGROUP_V1_MEMORY_LIMIT_PATH", cgroup_v1)
-    monkeypatch.setattr(resource_usage, "_read_host_total_memory_bytes", lambda: 16 * 1024 * 1024 * 1024)
+    monkeypatch.setattr(
+        resource_usage, "_read_host_total_memory_bytes", lambda: 16 * 1024 * 1024 * 1024
+    )
 
     assert resource_usage._read_total_memory_bytes() == 2 * 1024 * 1024 * 1024
 
@@ -65,7 +73,9 @@ def test_read_total_memory_bytes_prefers_cgroup_v1_limit_when_v2_is_unbounded(
     cgroup_v1.write_text(str(3 * 1024 * 1024 * 1024), encoding="utf-8")
     monkeypatch.setattr(resource_usage, "_CGROUP_V2_MEMORY_MAX_PATH", cgroup_v2)
     monkeypatch.setattr(resource_usage, "_CGROUP_V1_MEMORY_LIMIT_PATH", cgroup_v1)
-    monkeypatch.setattr(resource_usage, "_read_host_total_memory_bytes", lambda: 16 * 1024 * 1024 * 1024)
+    monkeypatch.setattr(
+        resource_usage, "_read_host_total_memory_bytes", lambda: 16 * 1024 * 1024 * 1024
+    )
 
     assert resource_usage._read_total_memory_bytes() == 3 * 1024 * 1024 * 1024
 
@@ -80,7 +90,9 @@ def test_read_total_memory_bytes_falls_back_to_host_when_cgroup_limits_are_unbou
     cgroup_v1.write_text(str(16 * 1024 * 1024 * 1024), encoding="utf-8")
     monkeypatch.setattr(resource_usage, "_CGROUP_V2_MEMORY_MAX_PATH", cgroup_v2)
     monkeypatch.setattr(resource_usage, "_CGROUP_V1_MEMORY_LIMIT_PATH", cgroup_v1)
-    monkeypatch.setattr(resource_usage, "_read_host_total_memory_bytes", lambda: 16 * 1024 * 1024 * 1024)
+    monkeypatch.setattr(
+        resource_usage, "_read_host_total_memory_bytes", lambda: 16 * 1024 * 1024 * 1024
+    )
 
     assert resource_usage._read_total_memory_bytes() == 16 * 1024 * 1024 * 1024
 
@@ -93,9 +105,15 @@ def test_read_cpu_capacity_cores_uses_cgroup_v2_quota_bounded_by_affinity(
     cpu_max.write_text("250000 100000", encoding="utf-8")
     _disable_proc_cgroup_discovery(monkeypatch, tmp_path)
     monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", cpu_max)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period")
-    monkeypatch.setattr(resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8)))
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period"
+    )
+    monkeypatch.setattr(
+        resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8))
+    )
 
     assert resource_usage._read_cpu_capacity_cores() == 2.5
 
@@ -108,9 +126,15 @@ def test_read_cpu_capacity_cores_uses_affinity_when_it_is_tighter_than_quota(
     cpu_max.write_text("800000 100000", encoding="utf-8")
     _disable_proc_cgroup_discovery(monkeypatch, tmp_path)
     monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", cpu_max)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period")
-    monkeypatch.setattr(resource_usage.os, "sched_getaffinity", lambda _pid: set(range(4)))
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period"
+    )
+    monkeypatch.setattr(
+        resource_usage.os, "sched_getaffinity", lambda _pid: set(range(4))
+    )
 
     assert resource_usage._read_cpu_capacity_cores() == 4.0
 
@@ -123,9 +147,15 @@ def test_read_cpu_capacity_cores_preserves_sub_one_core_cgroup_v2_quota(
     cpu_max.write_text("50000 100000", encoding="utf-8")
     _disable_proc_cgroup_discovery(monkeypatch, tmp_path)
     monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", cpu_max)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period")
-    monkeypatch.setattr(resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8)))
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period"
+    )
+    monkeypatch.setattr(
+        resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8))
+    )
 
     assert resource_usage._read_cpu_capacity_cores() == 0.5
 
@@ -139,10 +169,14 @@ def test_read_cpu_capacity_cores_uses_cgroup_v1_quota(
     quota_path.write_text("100000", encoding="utf-8")
     period_path.write_text("100000", encoding="utf-8")
     _disable_proc_cgroup_discovery(monkeypatch, tmp_path)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max")
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max"
+    )
     monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", quota_path)
     monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", period_path)
-    monkeypatch.setattr(resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8)))
+    monkeypatch.setattr(
+        resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8))
+    )
 
     assert resource_usage._read_cpu_capacity_cores() == 1.0
 
@@ -176,10 +210,18 @@ def test_read_cpu_capacity_cores_matches_cgroup_v1_membership_to_mount_controlle
     )
     monkeypatch.setattr(resource_usage, "_PROC_SELF_CGROUP_PATH", proc_cgroup)
     monkeypatch.setattr(resource_usage, "_PROC_SELF_MOUNTINFO_PATH", mountinfo)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period")
-    monkeypatch.setattr(resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8)))
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period"
+    )
+    monkeypatch.setattr(
+        resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8))
+    )
 
     assert resource_usage._read_cpu_capacity_cores() == 4.0
 
@@ -195,13 +237,23 @@ def test_read_cpu_capacity_cores_reads_nested_cgroup_v2_cpu_max(
     proc_cgroup = tmp_path / "cgroup"
     proc_cgroup.write_text("0::/kubepods.slice/pod.slice\n", encoding="utf-8")
     mountinfo = tmp_path / "mountinfo"
-    mountinfo.write_text(f"1 0 0:1 / {cgroup_mount} rw - cgroup2 cgroup rw\n", encoding="utf-8")
+    mountinfo.write_text(
+        f"1 0 0:1 / {cgroup_mount} rw - cgroup2 cgroup rw\n", encoding="utf-8"
+    )
     monkeypatch.setattr(resource_usage, "_PROC_SELF_CGROUP_PATH", proc_cgroup)
     monkeypatch.setattr(resource_usage, "_PROC_SELF_MOUNTINFO_PATH", mountinfo)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period")
-    monkeypatch.setattr(resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8)))
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period"
+    )
+    monkeypatch.setattr(
+        resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8))
+    )
 
     assert resource_usage._read_cpu_capacity_cores() == 2.5
 
@@ -219,13 +271,23 @@ def test_read_cpu_capacity_cores_uses_tightest_ancestor_cgroup_v2_quota(
     proc_cgroup = tmp_path / "cgroup"
     proc_cgroup.write_text("0::/kubepods.slice/pod.slice\n", encoding="utf-8")
     mountinfo = tmp_path / "mountinfo"
-    mountinfo.write_text(f"1 0 0:1 / {cgroup_mount} rw - cgroup2 cgroup rw\n", encoding="utf-8")
+    mountinfo.write_text(
+        f"1 0 0:1 / {cgroup_mount} rw - cgroup2 cgroup rw\n", encoding="utf-8"
+    )
     monkeypatch.setattr(resource_usage, "_PROC_SELF_CGROUP_PATH", proc_cgroup)
     monkeypatch.setattr(resource_usage, "_PROC_SELF_MOUNTINFO_PATH", mountinfo)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period")
-    monkeypatch.setattr(resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8)))
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period"
+    )
+    monkeypatch.setattr(
+        resource_usage.os, "sched_getaffinity", lambda _pid: set(range(8))
+    )
 
     assert resource_usage._read_cpu_capacity_cores() == 1.0
 
@@ -235,9 +297,15 @@ def test_read_cpu_capacity_cores_falls_back_to_os_cpu_count(
     tmp_path: Path,
 ) -> None:
     _disable_proc_cgroup_discovery(monkeypatch, tmp_path)
-    monkeypatch.setattr(resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota")
-    monkeypatch.setattr(resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period")
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V2_CPU_MAX_PATH", tmp_path / "missing-cpu.max"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_QUOTA_PATH", tmp_path / "missing-quota"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_CGROUP_V1_CPU_PERIOD_PATH", tmp_path / "missing-period"
+    )
     monkeypatch.delattr(resource_usage.os, "sched_getaffinity")
     monkeypatch.setattr(resource_usage.os, "cpu_count", lambda: 16)
 
@@ -245,5 +313,9 @@ def test_read_cpu_capacity_cores_falls_back_to_os_cpu_count(
 
 
 def _disable_proc_cgroup_discovery(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(resource_usage, "_PROC_SELF_CGROUP_PATH", tmp_path / "missing-cgroup")
-    monkeypatch.setattr(resource_usage, "_PROC_SELF_MOUNTINFO_PATH", tmp_path / "missing-mountinfo")
+    monkeypatch.setattr(
+        resource_usage, "_PROC_SELF_CGROUP_PATH", tmp_path / "missing-cgroup"
+    )
+    monkeypatch.setattr(
+        resource_usage, "_PROC_SELF_MOUNTINFO_PATH", tmp_path / "missing-mountinfo"
+    )

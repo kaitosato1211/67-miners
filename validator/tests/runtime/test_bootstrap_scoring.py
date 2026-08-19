@@ -19,7 +19,11 @@ from harnyx_commons.config.subtensor import SubtensorSettings
 from harnyx_commons.config.vertex import VertexSettings
 from harnyx_commons.domain.session import Session, SessionStatus, SessionUsage
 from harnyx_commons.domain.tool_call import ToolCallOutcome
-from harnyx_commons.errors import BudgetExceededError, ConcurrencyLimitError, ToolProviderError
+from harnyx_commons.errors import (
+    BudgetExceededError,
+    ConcurrencyLimitError,
+    ToolProviderError,
+)
 from harnyx_commons.llm.routing import ResolvedLlmRoute, RoutedLlmProvider
 from harnyx_commons.tools.dto import ToolInvocationRequest
 from harnyx_commons.tools.types import ToolName
@@ -64,7 +68,14 @@ class _ProviderFailingPlatformToolProxyClient:
         attempt_number,
         assignment_token,
     ):  # type: ignore[no-untyped-def]
-        _ = batch_id, artifact_id, task_id, validator_session_id, attempt_number, assignment_token
+        _ = (
+            batch_id,
+            artifact_id,
+            task_id,
+            validator_session_id,
+            attempt_number,
+            assignment_token,
+        )
         self.grants += 1
         return PlatformToolProxyGrant(
             token="platform-tool-proxy-token",  # noqa: S106 - fixed test-only proxy token
@@ -76,10 +87,14 @@ class _ProviderFailingPlatformToolProxyClient:
         **kwargs: object,
     ) -> object:
         self.calls.append(kwargs)
-        raise PlatformToolProxyProviderError(status_code=400, message="provider rejected")
+        raise PlatformToolProxyProviderError(
+            status_code=400, message="provider rejected"
+        )
 
 
-class _ProxyPolicyFailingPlatformToolProxyClient(_ProviderFailingPlatformToolProxyClient):
+class _ProxyPolicyFailingPlatformToolProxyClient(
+    _ProviderFailingPlatformToolProxyClient
+):
     async def execute_platform_tool_proxy_tool(
         self,
         **kwargs: object,
@@ -98,7 +113,9 @@ class _BudgetFailingPlatformToolProxyClient(_ProviderFailingPlatformToolProxyCli
         **kwargs: object,
     ) -> object:
         self.calls.append(kwargs)
-        raise PlatformToolProxyBudgetExceededError(status_code=400, message="platform tool proxy budget exhausted")
+        raise PlatformToolProxyBudgetExceededError(
+            status_code=400, message="platform tool proxy budget exhausted"
+        )
 
 
 def _settings_for_tooling(search_provider: str = "desearch") -> Settings:
@@ -110,7 +127,9 @@ def _settings_for_tooling(search_provider: str = "desearch") -> Settings:
     )
 
 
-def _register_proxy_session(state: bootstrap.InMemoryState, *, batch_id, session_id, artifact_id, task_id) -> None:
+def _register_proxy_session(
+    state: bootstrap.InMemoryState, *, batch_id, session_id, artifact_id, task_id
+) -> None:
     issued_at = datetime.now(UTC)
     session = Session(
         session_id=session_id,
@@ -124,7 +143,9 @@ def _register_proxy_session(state: bootstrap.InMemoryState, *, batch_id, session
     )
     state.session_registry.create(session)
     state.token_registry.register(session_id, TEST_SESSION_TOKEN)
-    state.progress_tracker.register_task_session(batch_id=batch_id, session_id=session_id)
+    state.progress_tracker.register_task_session(
+        batch_id=batch_id, session_id=session_id
+    )
     state.platform_tool_proxy_scopes.register_session(
         batch_id=batch_id,
         session_id=session_id,
@@ -135,14 +156,18 @@ def _register_proxy_session(state: bootstrap.InMemoryState, *, batch_id, session
 
 
 def test_llm_settings_default_scoring_timeout_is_300_seconds() -> None:
-    assert LlmSettings(_env_file=None).scoring_llm_timeout_seconds == pytest.approx(300.0)
+    assert LlmSettings(_env_file=None).scoring_llm_timeout_seconds == pytest.approx(
+        300.0
+    )
 
 
 def test_local_provider_tooling_forwards_separate_search_role_dependencies(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    state = bootstrap._build_state(_settings_for_tooling(), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        _settings_for_tooling(), progress_storage_root=tmp_path / "run-progress"
+    )
     captured: dict[str, object] = {}
     web_client = object()
     ai_client = object()
@@ -171,14 +196,18 @@ def test_local_provider_tooling_forwards_separate_search_role_dependencies(
     assert captured["ai_search_provider_resolver"] is ai_resolver
 
 
-def test_build_llm_clients_uses_shared_provider_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_llm_clients_uses_shared_provider_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     settings = Settings.model_construct(
         llm=LlmSettings.model_construct(
             search_provider=None,
             tool_llm_provider="bedrock",
             scoring_llm_provider="vertex",
             similarity_llm_provider="chutes",
-            llm_model_provider_overrides_json=json.dumps({"tool": {"unused-tool-model": "bedrock"}}),
+            llm_model_provider_overrides_json=json.dumps(
+                {"tool": {"unused-tool-model": "bedrock"}}
+            ),
         ),
         vertex=VertexSettings.model_construct(
             gcp_project_id="project",
@@ -195,13 +224,19 @@ def test_build_llm_clients_uses_shared_provider_registry(monkeypatch: pytest.Mon
             calls.append(name)
             return f"provider:{name}"
 
-    def fake_build_cached_llm_provider_registry(*, llm_settings, bedrock_settings, vertex_settings):
+    def fake_build_cached_llm_provider_registry(
+        *, llm_settings, bedrock_settings, vertex_settings
+    ):
         assert llm_settings is settings.llm
         assert bedrock_settings is settings.bedrock
         assert vertex_settings is settings.vertex
         return _FakeRegistry()
 
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", fake_build_cached_llm_provider_registry)
+    monkeypatch.setattr(
+        bootstrap,
+        "build_cached_llm_provider_registry",
+        fake_build_cached_llm_provider_registry,
+    )
 
     clients = _build_llm_clients(settings)
 
@@ -211,7 +246,9 @@ def test_build_llm_clients_uses_shared_provider_registry(monkeypatch: pytest.Mon
     assert _routed_surface(clients.similarity_llm_provider) == "duplication_detection"
     assert type(clients.llm_provider_registry).__name__ == "_FakeRegistry"
     assert clients.scoring_routes == {
-        entry.model: ResolvedLlmRoute(surface="scoring", provider="vertex", model=entry.model)
+        entry.model: ResolvedLlmRoute(
+            surface="scoring", provider="vertex", model=entry.model
+        )
         for entry in bootstrap._SCORING_SLOT_CONFIG.entries
     }
     assert clients.similarity_route == ResolvedLlmRoute(
@@ -243,9 +280,13 @@ def test_validator_runtime_llm_clients_do_not_build_local_tool_invocation_client
     )
 
     def fail_if_called(**_: object) -> object:
-        raise AssertionError("validator runtime must not build local tool invocation clients")
+        raise AssertionError(
+            "validator runtime must not build local tool invocation clients"
+        )
 
-    monkeypatch.setattr(bootstrap, "build_tool_invocation_clients", fail_if_called, raising=False)
+    monkeypatch.setattr(
+        bootstrap, "build_tool_invocation_clients", fail_if_called, raising=False
+    )
 
     clients = _build_llm_clients(settings)
 
@@ -297,7 +338,9 @@ def test_build_llm_clients_resolves_route_for_each_scoring_slot_entry(
         def resolve(self, name: str) -> str:
             return f"provider:{name}"
 
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry())
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry()
+    )
 
     clients = _build_llm_clients(settings)
 
@@ -309,16 +352,28 @@ def test_build_llm_clients_resolves_route_for_each_scoring_slot_entry(
 
 
 def test_build_state_uses_single_tool_concurrency_cap(tmp_path: Path) -> None:
-    state = bootstrap._build_state(Settings(), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        Settings(), progress_storage_root=tmp_path / "run-progress"
+    )
     session_id = uuid4()
     token = "token"  # noqa: S105
-    tools: tuple[ToolName, ...] = ("search_web", "fetch_page", "tooling_info", "test_tool", "llm_chat")
+    tools: tuple[ToolName, ...] = (
+        "search_web",
+        "fetch_page",
+        "tooling_info",
+        "test_tool",
+        "llm_chat",
+    )
     held = [
         ToolInvocationRequest(
             session_id=session_id,
             token=token,
             tool=tools[index % len(tools)],
-            kwargs={"model": f"model-{index}"} if tools[index % len(tools)] == "llm_chat" else {},
+            kwargs=(
+                {"model": f"model-{index}"}
+                if tools[index % len(tools)] == "llm_chat"
+                else {}
+            ),
         )
         for index in range(20)
     ]
@@ -333,13 +388,19 @@ def test_build_state_uses_single_tool_concurrency_cap(tmp_path: Path) -> None:
     for invocation in held:
         state.tool_concurrency_limiter.release(invocation)
 
-    next_invocation = ToolInvocationRequest(session_id=session_id, token=token, tool="search_web")
+    next_invocation = ToolInvocationRequest(
+        session_id=session_id, token=token, tool="search_web"
+    )
     state.tool_concurrency_limiter.acquire(next_invocation)
     state.tool_concurrency_limiter.release(next_invocation)
 
 
-def test_build_proxy_tooling_uses_plain_executor_with_platform_tool_proxy_client(tmp_path: Path) -> None:
-    state = bootstrap._build_state(_settings_for_tooling(), progress_storage_root=tmp_path / "run-progress")
+def test_build_proxy_tooling_uses_plain_executor_with_platform_tool_proxy_client(
+    tmp_path: Path,
+) -> None:
+    state = bootstrap._build_state(
+        _settings_for_tooling(), progress_storage_root=tmp_path / "run-progress"
+    )
 
     tool_invoker, tool_executor = _build_proxy_tooling(
         state=state,
@@ -355,7 +416,9 @@ def test_build_proxy_tooling_uses_plain_executor_with_platform_tool_proxy_client
 async def test_proxy_enabled_tool_executor_keeps_provider_failure_miner_owned_without_provider_evidence(
     tmp_path: Path,
 ) -> None:
-    state = bootstrap._build_state(_settings_for_tooling(), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        _settings_for_tooling(), progress_storage_root=tmp_path / "run-progress"
+    )
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -387,7 +450,9 @@ async def test_proxy_enabled_tool_executor_keeps_provider_failure_miner_owned_wi
     assert len(receipts) == 1
     assert receipts[0].outcome is ToolCallOutcome.PROVIDER_ERROR
     assert receipts[0].details.extra is not None
-    assert receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    assert (
+        receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    )
     assert state.progress_tracker.consume_provider_failures(session_id) == ()
     assert state.progress_tracker.provider_evidence(batch_id) == ()
 
@@ -396,7 +461,9 @@ async def test_proxy_enabled_tool_executor_keeps_provider_failure_miner_owned_wi
 async def test_proxy_enabled_tool_executor_keeps_llm_provider_failure_miner_owned_without_provider_evidence(
     tmp_path: Path,
 ) -> None:
-    state = bootstrap._build_state(_settings_for_tooling(), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        _settings_for_tooling(), progress_storage_root=tmp_path / "run-progress"
+    )
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -432,7 +499,9 @@ async def test_proxy_enabled_tool_executor_keeps_llm_provider_failure_miner_owne
     assert len(receipts) == 1
     assert receipts[0].outcome is ToolCallOutcome.PROVIDER_ERROR
     assert receipts[0].details.extra is not None
-    assert receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    assert (
+        receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    )
     assert state.progress_tracker.consume_provider_failures(session_id) == ()
     assert state.progress_tracker.provider_evidence(batch_id) == ()
 
@@ -443,7 +512,9 @@ async def test_proxy_enabled_tool_executor_does_not_default_attribute_invalid_ex
     tmp_path: Path,
     invalid_provider: object,
 ) -> None:
-    state = bootstrap._build_state(_settings_for_tooling(), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        _settings_for_tooling(), progress_storage_root=tmp_path / "run-progress"
+    )
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -476,14 +547,18 @@ async def test_proxy_enabled_tool_executor_does_not_default_attribute_invalid_ex
     receipts = tuple(state.receipt_log.for_session(session_id))
     assert len(receipts) == 1
     assert receipts[0].details.extra is not None
-    assert receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    assert (
+        receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    )
 
 
 @pytest.mark.anyio("asyncio")
 async def test_proxy_enabled_tool_executor_does_not_record_provider_failure_for_proxy_policy_error(
     tmp_path: Path,
 ) -> None:
-    state = bootstrap._build_state(_settings_for_tooling(), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        _settings_for_tooling(), progress_storage_root=tmp_path / "run-progress"
+    )
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -516,14 +591,19 @@ async def test_proxy_enabled_tool_executor_does_not_record_provider_failure_for_
     receipts = tuple(state.receipt_log.for_session(session_id))
     assert len(receipts) == 1
     assert receipts[0].details.extra is not None
-    assert receipts[0].details.extra["platform_tool_proxy_error_code"] == "miner_credential_missing"
+    assert (
+        receipts[0].details.extra["platform_tool_proxy_error_code"]
+        == "miner_credential_missing"
+    )
 
 
 @pytest.mark.anyio("asyncio")
 async def test_proxy_enabled_tool_executor_records_budget_exceeded_receipt_without_provider_evidence(
     tmp_path: Path,
 ) -> None:
-    state = bootstrap._build_state(_settings_for_tooling(), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        _settings_for_tooling(), progress_storage_root=tmp_path / "run-progress"
+    )
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -555,7 +635,10 @@ async def test_proxy_enabled_tool_executor_records_budget_exceeded_receipt_witho
     assert len(receipts) == 1
     assert receipts[0].outcome is ToolCallOutcome.BUDGET_EXCEEDED
     assert receipts[0].details.extra is not None
-    assert receipts[0].details.extra["platform_tool_proxy_error_code"] == "budget_exhausted"
+    assert (
+        receipts[0].details.extra["platform_tool_proxy_error_code"]
+        == "budget_exhausted"
+    )
     assert state.progress_tracker.consume_provider_failures(session_id) == ()
     assert state.progress_tracker.provider_evidence(batch_id) == ()
 
@@ -564,7 +647,10 @@ async def test_proxy_enabled_tool_executor_records_budget_exceeded_receipt_witho
 async def test_proxy_enabled_tool_executor_keeps_no_provider_payload_failure_miner_owned_without_provider_evidence(
     tmp_path: Path,
 ) -> None:
-    state = bootstrap._build_state(_settings_for_tooling("desearch"), progress_storage_root=tmp_path / "run-progress")
+    state = bootstrap._build_state(
+        _settings_for_tooling("desearch"),
+        progress_storage_root=tmp_path / "run-progress",
+    )
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -596,7 +682,9 @@ async def test_proxy_enabled_tool_executor_keeps_no_provider_payload_failure_min
     assert len(receipts) == 1
     assert receipts[0].outcome is ToolCallOutcome.PROVIDER_ERROR
     assert receipts[0].details.extra is not None
-    assert receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    assert (
+        receipts[0].details.extra["platform_tool_proxy_error_code"] == "provider_failed"
+    )
     assert state.progress_tracker.consume_provider_failures(session_id) == ()
     assert state.progress_tracker.provider_evidence(batch_id) == ()
 
@@ -626,13 +714,19 @@ def test_build_runtime_cleans_stale_sandbox_containers_on_startup(
         def __init__(self) -> None:
             self.cleanup_calls: list[dict[str, object]] = []
 
-        def cleanup_stale_sandbox_containers(self, *, labels: dict[str, str], name_prefix: str) -> None:
-            self.cleanup_calls.append({"labels": dict(labels), "name_prefix": name_prefix})
+        def cleanup_stale_sandbox_containers(
+            self, *, labels: dict[str, str], name_prefix: str
+        ) -> None:
+            self.cleanup_calls.append(
+                {"labels": dict(labels), "name_prefix": name_prefix}
+            )
 
     manager = FakeSandboxManager()
 
     monkeypatch.setattr(
-        bootstrap, "_build_external_clients", lambda _settings: (object(), object(), object(), object())
+        bootstrap,
+        "_build_external_clients",
+        lambda _settings: (object(), object(), object(), object()),
     )
     monkeypatch.setattr(
         bootstrap,
@@ -649,7 +743,9 @@ def test_build_runtime_cleans_stale_sandbox_containers_on_startup(
             similarity_request_extra_by_model={},
         ),
     )
-    monkeypatch.setattr(bootstrap, "_build_proxy_tooling", lambda **_kwargs: (object(), object()))
+    monkeypatch.setattr(
+        bootstrap, "_build_proxy_tooling", lambda **_kwargs: (object(), object())
+    )
     monkeypatch.setattr(
         bootstrap,
         "_build_services",
@@ -662,7 +758,11 @@ def test_build_runtime_cleans_stale_sandbox_containers_on_startup(
     monkeypatch.setattr(
         bootstrap,
         "_build_factories",
-        lambda **_kwargs: (lambda _client: object(), lambda _client: object(), lambda: object()),
+        lambda **_kwargs: (
+            lambda _client: object(),
+            lambda _client: object(),
+            lambda: object(),
+        ),
     )
     monkeypatch.setattr(
         bootstrap,
@@ -680,7 +780,10 @@ def test_build_runtime_cleans_stale_sandbox_containers_on_startup(
 
     assert manager.cleanup_calls == [
         {
-            "labels": {"harnyx.sandbox.managed": "true", "harnyx.sandbox.owner": "validator"},
+            "labels": {
+                "harnyx.sandbox.managed": "true",
+                "harnyx.sandbox.owner": "validator",
+            },
             "name_prefix": "harnyx-sandbox-",
         }
     ]
@@ -748,7 +851,9 @@ def test_create_scoring_service_does_not_require_vertex_config_at_bootstrap() ->
     assert service._config.retry_policy == settings.llm.scoring_llm_retry_policy
 
 
-def test_create_scoring_service_uses_effective_route_model_and_default_provider() -> None:
+def test_create_scoring_service_uses_effective_route_model_and_default_provider() -> (
+    None
+):
     settings = Settings.model_construct(
         rpc_listen_host="127.0.0.1",
         rpc_port=8100,
@@ -829,7 +934,10 @@ def test_create_scoring_service_uses_explicit_fallback_models() -> None:
         fallback_models=("zai-org/GLM-5.2-TEE", "moonshotai/Kimi-K2.6-TEE"),
     )
 
-    assert service._config.fallback_models == ("zai-org/GLM-5.2-TEE", "moonshotai/Kimi-K2.6-TEE")
+    assert service._config.fallback_models == (
+        "zai-org/GLM-5.2-TEE",
+        "moonshotai/Kimi-K2.6-TEE",
+    )
 
 
 def test_scoring_slot_config_entries_are_hard_coded() -> None:
@@ -949,7 +1057,10 @@ def test_direct_scoring_service_inherits_configured_fallback_models() -> None:
         }
     )
 
-    assert selected._config.fallback_models == ("zai-org/GLM-5.2-TEE", "moonshotai/Kimi-K2.6-TEE")
+    assert selected._config.fallback_models == (
+        "zai-org/GLM-5.2-TEE",
+        "moonshotai/Kimi-K2.6-TEE",
+    )
 
 
 @pytest.mark.anyio("asyncio")
@@ -972,7 +1083,9 @@ async def test_score_platform_execution_executor_converts_scoring_errors(
         observed["convert_scoring_error"] = convert_scoring_error
         return expected
 
-    monkeypatch.setattr(bootstrap, "score_platform_execution", fake_score_platform_execution)
+    monkeypatch.setattr(
+        bootstrap, "score_platform_execution", fake_score_platform_execution
+    )
 
     executor = bootstrap._score_platform_execution_with(scoring_service)  # type: ignore[arg-type]
     result = await executor(execution)  # type: ignore[arg-type]
@@ -1036,7 +1149,9 @@ def test_similarity_fallback_tail_only_uses_candidates_after_primary_override() 
         ),
     )
 
-    assert bootstrap._similarity_judge_fallback_models(settings) == ("moonshotai/Kimi-K3-TEE",)
+    assert bootstrap._similarity_judge_fallback_models(settings) == (
+        "moonshotai/Kimi-K3-TEE",
+    )
 
 
 def test_similarity_deepseek_override_uses_only_later_candidates() -> None:
@@ -1052,7 +1167,9 @@ def test_similarity_deepseek_override_uses_only_later_candidates() -> None:
     )
 
 
-def test_similarity_model_override_participates_in_duplication_detection_route_override() -> None:
+def test_similarity_model_override_participates_in_duplication_detection_route_override() -> (
+    None
+):
     settings = Settings.model_construct(
         llm=LlmSettings.model_construct(
             similarity_llm_provider="chutes",
@@ -1073,7 +1190,9 @@ def test_similarity_model_override_participates_in_duplication_detection_route_o
 
 
 @pytest.mark.parametrize("provider", ("bedrock", "vertex"))
-def test_default_similarity_chain_rejects_incompatible_builtin_provider(provider: str) -> None:
+def test_default_similarity_chain_rejects_incompatible_builtin_provider(
+    provider: str,
+) -> None:
     settings = Settings.model_construct(
         llm=LlmSettings.model_construct(
             similarity_llm_provider=provider,
@@ -1082,7 +1201,9 @@ def test_default_similarity_chain_rejects_incompatible_builtin_provider(provider
         ),
     )
 
-    with pytest.raises(ValueError, match="google/gemma-4-31B-turbo-TEE.*requires a Chutes or custom"):
+    with pytest.raises(
+        ValueError, match="google/gemma-4-31B-turbo-TEE.*requires a Chutes or custom"
+    ):
         bootstrap._resolve_similarity_judge_routes(settings)
 
 
@@ -1127,7 +1248,9 @@ def test_default_similarity_chain_allows_explicit_custom_routes() -> None:
 
     routes = bootstrap._resolve_similarity_judge_routes(settings)
 
-    assert tuple(route.provider for route in routes) == tuple(route_target for _ in models)
+    assert tuple(route.provider for route in routes) == tuple(
+        route_target for _ in models
+    )
 
 
 def test_default_similarity_chain_routes_only_deepseek_through_openrouter() -> None:
@@ -1202,9 +1325,7 @@ def test_build_llm_clients_routes_configured_scoring_entries_to_custom_endpoints
             parallel_max_concurrent=7,
             tool_llm_provider="chutes",
             scoring_llm_provider="vertex",
-            llm_model_provider_overrides_json=json.dumps(
-                {"scoring": scoring_routes}
-            ),
+            llm_model_provider_overrides_json=json.dumps({"scoring": scoring_routes}),
             openai_compatible_endpoints_json=json.dumps(
                 [
                     {
@@ -1216,7 +1337,7 @@ def test_build_llm_clients_routes_configured_scoring_entries_to_custom_endpoints
                         "id": "qwen36-cloud-run",
                         "base_url": "https://qwen3-6-27b-obbrpx3ppa-uc.a.run.app/v1",
                         "auth": {"type": "none"},
-                    }
+                    },
                 ]
             ),
         ),
@@ -1233,7 +1354,9 @@ def test_build_llm_clients_routes_configured_scoring_entries_to_custom_endpoints
         def resolve(self, name: str) -> str:
             return f"provider:{name}"
 
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry())
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry()
+    )
 
     clients = _build_llm_clients(settings)
 

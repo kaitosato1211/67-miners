@@ -10,7 +10,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from harnyx_commons.sandbox.docker import DockerSandboxManager, resolve_sandbox_host_container_url
+from harnyx_commons.sandbox.docker import (
+    DockerSandboxManager,
+    resolve_sandbox_host_container_url,
+)
 from harnyx_commons.sandbox.options import SandboxOptions
 from harnyx_commons.sandbox.seccomp.paths import default_profile_path
 
@@ -87,7 +90,9 @@ def _consume_sandbox_log(sandbox_log: logging.Logger, line: str) -> None:
     except ValidationError:
         sandbox_log.info("%s", line)
         return
-    sandbox_log.info("sandbox_invocation.output", extra={"data": record.model_dump(mode="json")})
+    sandbox_log.info(
+        "sandbox_invocation.output", extra={"data": record.model_dump(mode="json")}
+    )
 
 
 def build_sandbox_options(
@@ -105,10 +110,13 @@ def build_sandbox_options(
 ) -> SandboxOptions:
     """Build hardened sandbox options shared by platform and validator."""
 
-    resolved_host_container_url = host_container_url or resolve_sandbox_host_container_url(
-        docker_binary=DOCKER_BINARY,
-        sandbox_network=network,
-        rpc_port=rpc_port,
+    resolved_host_container_url = (
+        host_container_url
+        or resolve_sandbox_host_container_url(
+            docker_binary=DOCKER_BINARY,
+            sandbox_network=network,
+            rpc_port=rpc_port,
+        )
     )
 
     env: dict[str, str] = {

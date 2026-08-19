@@ -52,7 +52,9 @@ class ToolProxy:
         resolved_base_url = base_url.rstrip("/")
         if client is None:
             resolved_base_url = _resolve_base_url_host(resolved_base_url)
-        self._client = client or httpx.AsyncClient(base_url=resolved_base_url, timeout=timeout)
+        self._client = client or httpx.AsyncClient(
+            base_url=resolved_base_url, timeout=timeout
+        )
         self._token = token
         self._session_id = session_id
 
@@ -83,7 +85,9 @@ class ToolProxy:
                 timeout=self._timeout,
             )
             response.raise_for_status()
-        except httpx.HTTPStatusError as exc:  # pragma: no cover - exercised via integration
+        except (
+            httpx.HTTPStatusError
+        ) as exc:  # pragma: no cover - exercised via integration
             status = exc.response.status_code
             detail = _summarize_error_response(exc.response)
             logger.warning(
@@ -164,7 +168,9 @@ def _resolve_base_url_host(base_url: str) -> str:
     if ":" in resolved_host and not resolved_host.startswith("["):
         resolved_host = f"[{resolved_host}]"
     netloc = resolved_host if parsed.port is None else f"{resolved_host}:{parsed.port}"
-    return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+    return urlunsplit(
+        (parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment)
+    )
 
 
 def _is_ip_literal(host: str) -> bool:

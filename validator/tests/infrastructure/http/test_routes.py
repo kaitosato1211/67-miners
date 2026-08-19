@@ -12,13 +12,26 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from harnyx_commons.domain.session import Session, SessionStatus, SessionUsage
-from harnyx_commons.domain.tool_call import ToolCall, ToolCallDetails, ToolCallOutcome, ToolResultPolicy
+from harnyx_commons.domain.tool_call import (
+    ToolCall,
+    ToolCallDetails,
+    ToolCallOutcome,
+    ToolResultPolicy,
+)
 from harnyx_commons.errors import ToolProviderError
 from harnyx_commons.infrastructure.state.receipt_log import InMemoryReceiptLog
 from harnyx_commons.infrastructure.state.token_registry import InMemoryTokenRegistry
 from harnyx_commons.protocol_headers import SESSION_ID_HEADER
-from harnyx_commons.tools.dto import ToolBudgetSnapshot, ToolInvocationRequest, ToolInvocationResult
-from harnyx_commons.tools.executor import ToolExecutor, ToolInvocationContext, ToolInvocationOutput
+from harnyx_commons.tools.dto import (
+    ToolBudgetSnapshot,
+    ToolInvocationRequest,
+    ToolInvocationResult,
+)
+from harnyx_commons.tools.executor import (
+    ToolExecutor,
+    ToolInvocationContext,
+    ToolInvocationOutput,
+)
 from harnyx_commons.tools.runtime_invoker import build_miner_sandbox_tool_invoker
 from harnyx_commons.tools.token_semaphore import (
     DEFAULT_TOOL_CONCURRENCY_LIMITS,
@@ -47,7 +60,13 @@ def _invocation(tool: ToolName = "search_web") -> ToolInvocationRequest:
 
 
 def _mixed_invocations(count: int) -> list[ToolInvocationRequest]:
-    tools: tuple[ToolName, ...] = ("search_web", "fetch_page", "tooling_info", "test_tool", "llm_chat")
+    tools: tuple[ToolName, ...] = (
+        "search_web",
+        "fetch_page",
+        "tooling_info",
+        "test_tool",
+        "llm_chat",
+    )
     return [_invocation(tools[index % len(tools)]) for index in range(count)]
 
 
@@ -87,7 +106,9 @@ class RecordingToolInvoker:
 
 
 class RecordingToolConcurrencyLimiter(ToolConcurrencyLimiter):
-    def __init__(self, limits: ToolConcurrencyLimits = DEFAULT_TOOL_CONCURRENCY_LIMITS) -> None:
+    def __init__(
+        self, limits: ToolConcurrencyLimits = DEFAULT_TOOL_CONCURRENCY_LIMITS
+    ) -> None:
         super().__init__(limits)
         self.acquire_calls: list[tuple[str, ToolName]] = []
         self.release_calls: list[tuple[str, ToolName]] = []
@@ -214,8 +235,12 @@ def test_execute_tool_endpoint_records_receipt() -> None:
     assert session_snapshot is not None
     assert session_snapshot.usage.total_cost_usd == pytest.approx(0.005)
     invocation = _invocation("search_web")
-    assert provider.tool_concurrency_limiter.acquire_calls == [(DEMO_SESSION_TOKEN, "search_web")]
-    assert provider.tool_concurrency_limiter.release_calls == [(DEMO_SESSION_TOKEN, "search_web")]
+    assert provider.tool_concurrency_limiter.acquire_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
+    assert provider.tool_concurrency_limiter.release_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
     assert provider.tool_concurrency_limiter.in_flight(invocation) == 0
 
 
@@ -238,8 +263,12 @@ def test_execute_tool_endpoint_accepts_neutral_headers() -> None:
     )
 
     assert response.status_code == 200
-    assert provider.tool_concurrency_limiter.acquire_calls == [(DEMO_SESSION_TOKEN, "search_web")]
-    assert provider.tool_concurrency_limiter.release_calls == [(DEMO_SESSION_TOKEN, "search_web")]
+    assert provider.tool_concurrency_limiter.acquire_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
+    assert provider.tool_concurrency_limiter.release_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
 
 
 def test_execute_tool_endpoint_releases_semaphore_on_failure() -> None:
@@ -266,7 +295,9 @@ def test_execute_tool_endpoint_releases_semaphore_on_failure() -> None:
 
     assert response.status_code == 400
     invocation = _invocation("search_web")
-    assert provider.tool_concurrency_limiter.release_calls == [(DEMO_SESSION_TOKEN, "search_web")]
+    assert provider.tool_concurrency_limiter.release_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
     assert provider.tool_concurrency_limiter.in_flight(invocation) == 0
 
 
@@ -328,7 +359,9 @@ def test_execute_tool_endpoint_returns_platform_provider_failure_detail() -> Non
 def test_execute_tool_endpoint_coarsens_platform_provider_http_detail() -> None:
     provider = DemoDependencyProvider()
     provider.dependencies = ToolRouteDeps(
-        tool_executor=_PlatformProviderFailingToolExecutor("http_429: provider body with detail"),
+        tool_executor=_PlatformProviderFailingToolExecutor(
+            "http_429: provider body with detail"
+        ),
         tool_concurrency_limiter=provider.tool_concurrency_limiter,
     )
     app = create_test_app(provider)
@@ -351,7 +384,9 @@ def test_execute_tool_endpoint_coarsens_platform_provider_http_detail() -> None:
     assert response.json() == {"detail": "http_429"}
 
 
-def test_execute_tool_endpoint_keeps_unsafe_platform_provider_failure_detail_generic() -> None:
+def test_execute_tool_endpoint_keeps_unsafe_platform_provider_failure_detail_generic() -> (
+    None
+):
     provider = DemoDependencyProvider()
     provider.dependencies = ToolRouteDeps(
         tool_executor=_PlatformProviderFailingToolExecutor("provider body with detail"),
@@ -377,7 +412,9 @@ def test_execute_tool_endpoint_keeps_unsafe_platform_provider_failure_detail_gen
     assert response.json() == {"detail": "tool execution failed"}
 
 
-def test_execute_tool_endpoint_unexpected_internal_error_uses_generic_500_body() -> None:
+def test_execute_tool_endpoint_unexpected_internal_error_uses_generic_500_body() -> (
+    None
+):
     provider = DemoDependencyProvider()
     provider.dependencies = ToolRouteDeps(
         tool_executor=_UnexpectedFailingToolExecutor(),
@@ -445,10 +482,16 @@ def test_execute_tool_endpoint_supports_tooling_info() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["result_policy"] == "log_only"
-    assert body["budget"]["session_budget_usd"] == pytest.approx(provider.session.budget_usd)
-    assert body["budget"]["session_hard_limit_usd"] == pytest.approx(provider.session.effective_hard_limit_usd)
+    assert body["budget"]["session_budget_usd"] == pytest.approx(
+        provider.session.budget_usd
+    )
+    assert body["budget"]["session_hard_limit_usd"] == pytest.approx(
+        provider.session.effective_hard_limit_usd
+    )
     assert body["budget"]["session_used_budget_usd"] == pytest.approx(0.0)
-    assert body["budget"]["session_remaining_budget_usd"] == pytest.approx(provider.session.budget_usd)
+    assert body["budget"]["session_remaining_budget_usd"] == pytest.approx(
+        provider.session.budget_usd
+    )
     response_payload = body["response"]
     assert "search_repo" not in response_payload["tool_names"]
     assert "get_repo_file" not in response_payload["tool_names"]
@@ -462,7 +505,9 @@ def test_execute_tool_endpoint_supports_tooling_info() -> None:
     assert session_snapshot.usage.total_cost_usd == pytest.approx(0.0)
 
 
-def test_execute_tool_endpoint_waits_when_shared_tool_cap_is_full_then_succeeds() -> None:
+def test_execute_tool_endpoint_waits_when_shared_tool_cap_is_full_then_succeeds() -> (
+    None
+):
     provider = DemoDependencyProvider()
     provider.dependencies = ToolRouteDeps(
         tool_executor=cast(ToolExecutor, _StaticToolExecutor()),
@@ -520,7 +565,9 @@ def test_execute_tool_endpoint_uses_same_cap_for_different_llm_models() -> None:
     assert provider.tool_concurrency_limiter.in_flight(_invocation("llm_chat")) == 0
 
 
-def test_execute_tool_endpoint_waits_for_twenty_first_mixed_tool_call_then_succeeds() -> None:
+def test_execute_tool_endpoint_waits_for_twenty_first_mixed_tool_call_then_succeeds() -> (
+    None
+):
     provider = DemoDependencyProvider()
     app = create_test_app(provider)
     held = _mixed_invocations(20)
@@ -584,9 +631,14 @@ def _issue_waiting_tool_request(
     request_thread = threading.Thread(target=issue_request)
     request_thread.start()
     deadline = time.monotonic() + 1.0
-    while len(provider.tool_concurrency_limiter.acquire_calls) < expected_acquire_calls and time.monotonic() < deadline:
+    while (
+        len(provider.tool_concurrency_limiter.acquire_calls) < expected_acquire_calls
+        and time.monotonic() < deadline
+    ):
         time.sleep(0.01)
-    assert len(provider.tool_concurrency_limiter.acquire_calls) == expected_acquire_calls
+    assert (
+        len(provider.tool_concurrency_limiter.acquire_calls) == expected_acquire_calls
+    )
     assert not done.is_set()
 
     provider.tool_concurrency_limiter.release(unblock_invocation)

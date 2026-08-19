@@ -22,11 +22,26 @@ from harnyx_commons.domain.tool_call import (
     ToolCallOutcome,
     ToolExecutionFacts,
 )
-from harnyx_commons.errors import ToolInvocationTimeoutError, ToolProviderError, ToolProviderFailureCode
+from harnyx_commons.errors import (
+    ToolInvocationTimeoutError,
+    ToolProviderError,
+    ToolProviderFailureCode,
+)
 from harnyx_commons.infrastructure.state.token_registry import InMemoryTokenRegistry
-from harnyx_commons.llm.schema import LlmChoice, LlmChoiceMessage, LlmMessageContentPart, LlmResponse, LlmUsage
+from harnyx_commons.llm.schema import (
+    LlmChoice,
+    LlmChoiceMessage,
+    LlmMessageContentPart,
+    LlmResponse,
+    LlmUsage,
+)
 from harnyx_commons.tools.dto import ToolInvocationRequest
-from harnyx_commons.tools.executor import ToolExecutor, ToolInvocationContext, ToolInvocationOutput, ToolInvoker
+from harnyx_commons.tools.executor import (
+    ToolExecutor,
+    ToolInvocationContext,
+    ToolInvocationOutput,
+    ToolInvoker,
+)
 from harnyx_commons.tools.usage_tracker import UsageTracker
 from harnyx_validator.application.evaluate_task_run import UsageSummarizer
 from harnyx_validator.domain.exceptions import BudgetExceededError
@@ -61,7 +76,9 @@ def generate_token() -> str:
     return uuid4().hex
 
 
-def search_output(payload: dict[str, object], *, cost_usd: float = TEST_SEARCH_COST_USD) -> ToolInvocationOutput:
+def search_output(
+    payload: dict[str, object], *, cost_usd: float = TEST_SEARCH_COST_USD
+) -> ToolInvocationOutput:
     return ToolInvocationOutput(
         public_payload=payload,
         actual_cost_usd=cost_usd,
@@ -97,7 +114,9 @@ class RecordingToolInvoker(ToolInvoker):
         context: ToolInvocationContext | None = None,
     ) -> ToolInvocationOutput:
         self.calls.append((tool_name, args, kwargs))
-        return search_output({"data": [], "search_queries": kwargs.get("search_queries", [])})
+        return search_output(
+            {"data": [], "search_queries": kwargs.get("search_queries", [])}
+        )
 
 
 class RaisingReceiptLog(FakeReceiptLog):
@@ -309,7 +328,9 @@ def build_executor_with_invoker(
     return executor, receipt_log, session_registry
 
 
-def require_log_record(caplog: pytest.LogCaptureFixture, message: str) -> logging.LogRecord:
+def require_log_record(
+    caplog: pytest.LogCaptureFixture, message: str
+) -> logging.LogRecord:
     return next(record for record in caplog.records if record.message == message)
 
 
@@ -324,12 +345,18 @@ async def test_execute_tool_records_receipt_and_updates_budget() -> None:
 
     result = await executor.execute(request)
 
-    assert invoker.calls == [("search_web", (), {"search_queries": ["harnyx", "subnet"]})]
+    assert invoker.calls == [
+        ("search_web", (), {"search_queries": ["harnyx", "subnet"]})
+    ]
     stored_session = session_registry.get(session.session_id)
     assert stored_session is not None
     assert stored_session.usage.total_cost_usd == pytest.approx(TEST_SEARCH_COST_USD)
-    assert stored_session.usage.reference_total_cost_usd == pytest.approx(TEST_SEARCH_COST_USD)
-    assert stored_session.usage.actual_total_cost_usd == pytest.approx(TEST_SEARCH_COST_USD)
+    assert stored_session.usage.reference_total_cost_usd == pytest.approx(
+        TEST_SEARCH_COST_USD
+    )
+    assert stored_session.usage.actual_total_cost_usd == pytest.approx(
+        TEST_SEARCH_COST_USD
+    )
 
     receipt = receipt_log.lookup(result.receipt.receipt_id)
     assert receipt is not None
@@ -349,10 +376,12 @@ async def test_execute_tool_observes_exact_materialized_receipt() -> None:
     async def observe(observed_session: Session, tool_call: ToolCall) -> None:
         observed.append((observed_session, tool_call))
 
-    executor, _invoker, _receipt_log, _session_registry, _token_registry = build_executor(
-        session,
-        token=token,
-        tool_call_observer=observe,
+    executor, _invoker, _receipt_log, _session_registry, _token_registry = (
+        build_executor(
+            session,
+            token=token,
+            tool_call_observer=observe,
+        )
     )
 
     result = await executor.execute(make_request(session, token=token))
@@ -369,10 +398,12 @@ async def test_execute_tool_marks_session_error_when_receipt_observer_fails() ->
     async def observe(_session: Session, _tool_call: ToolCall) -> None:
         raise RuntimeError("durable receipt write failed")
 
-    executor, _invoker, _receipt_log, session_registry, _token_registry = build_executor(
-        session,
-        token=token,
-        tool_call_observer=observe,
+    executor, _invoker, _receipt_log, session_registry, _token_registry = (
+        build_executor(
+            session,
+            token=token,
+            tool_call_observer=observe,
+        )
     )
 
     with pytest.raises(RuntimeError, match="durable receipt write failed"):
@@ -383,7 +414,9 @@ async def test_execute_tool_marks_session_error_when_receipt_observer_fails() ->
     assert stored.status is SessionStatus.ERROR
 
 
-async def test_execute_tool_rejects_nonfinite_provider_cost_before_settling_usage() -> None:
+async def test_execute_tool_rejects_nonfinite_provider_cost_before_settling_usage() -> (
+    None
+):
     session = make_session()
     token = generate_token()
 
@@ -416,7 +449,9 @@ async def test_execute_tool_rejects_nonfinite_provider_cost_before_settling_usag
     assert receipts[0].outcome is ToolCallOutcome.INTERNAL_ERROR
 
 
-async def test_execute_tool_rejects_boolean_provider_cost_before_settling_usage() -> None:
+async def test_execute_tool_rejects_boolean_provider_cost_before_settling_usage() -> (
+    None
+):
     session = make_session()
     token = generate_token()
 
@@ -453,7 +488,9 @@ async def test_execute_tool_rejects_boolean_provider_cost_before_settling_usage(
     assert receipts[0].outcome is ToolCallOutcome.INTERNAL_ERROR
 
 
-async def test_execute_tool_does_not_settle_late_completion_after_pending_receipt_is_abandoned() -> None:
+async def test_execute_tool_does_not_settle_late_completion_after_pending_receipt_is_abandoned() -> (
+    None
+):
     session = make_session(budget_usd=1.0)
     token = generate_token()
     invoker = BlockingLlmInvoker()
@@ -490,7 +527,9 @@ async def test_execute_tool_does_not_settle_late_completion_after_pending_receip
     assert stored_session.usage.llm_usage_totals == {}
 
 
-async def test_execute_tool_does_not_record_late_provider_failure_after_pending_receipt_is_abandoned() -> None:
+async def test_execute_tool_does_not_record_late_provider_failure_after_pending_receipt_is_abandoned() -> (
+    None
+):
     session = make_session(budget_usd=1.0)
     token = generate_token()
     invoker = BlockingProviderErrorInvoker()
@@ -617,7 +656,9 @@ async def test_execute_tool_budget_is_session_scoped() -> None:
     assert result_b.budget.session_budget_usd == pytest.approx(0.7)
 
 
-async def test_execute_tool_budget_snapshot_clamps_remaining_after_soft_budget_is_exhausted() -> None:
+async def test_execute_tool_budget_snapshot_clamps_remaining_after_soft_budget_is_exhausted() -> (
+    None
+):
     session = make_session(budget_usd=0.0001, hard_limit_usd=0.01)
     token = generate_token()
 
@@ -718,8 +759,12 @@ async def test_execute_tool_prices_search_web_by_referenceable_results() -> None
     assert stored_session.usage.reference_total_cost_usd == pytest.approx(0.005)
     assert stored_session.usage.actual_total_cost_usd == pytest.approx(0.005)
     assert stored_session.usage.cost_by_provider == {"parallel": pytest.approx(0.005)}
-    assert stored_session.usage.reference_cost_by_provider == {"parallel": pytest.approx(0.005)}
-    assert stored_session.usage.actual_cost_by_provider == {"parallel": pytest.approx(0.005)}
+    assert stored_session.usage.reference_cost_by_provider == {
+        "parallel": pytest.approx(0.005)
+    }
+    assert stored_session.usage.actual_cost_by_provider == {
+        "parallel": pytest.approx(0.005)
+    }
     assert result.budget.session_used_budget_usd == pytest.approx(0.005)
     assert result.budget.session_remaining_budget_usd == pytest.approx(0.995)
     assert "actual_cost_usd" not in result.response_payload
@@ -794,7 +839,9 @@ async def test_execute_tool_prices_search_ai_by_referenceable_results() -> None:
     assert len(receipt.details.results) == 2
 
 
-async def test_execute_tool_logs_response_preview(caplog: pytest.LogCaptureFixture) -> None:
+async def test_execute_tool_logs_response_preview(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     session = make_session()
     token = generate_token()
     executor, *_ = build_executor(session, token=token)
@@ -803,9 +850,19 @@ async def test_execute_tool_logs_response_preview(caplog: pytest.LogCaptureFixtu
     with caplog.at_level("INFO", logger="harnyx_commons.tools"):
         await executor.execute(request)
 
-    completed = next(record for record in caplog.records if record.message.startswith("tool call completed:"))
-    assert "response_preview={'data': [], 'search_queries': ['harnyx', 'subnet']}" in completed.message
-    assert completed.response_preview == "{'data': [], 'search_queries': ['harnyx', 'subnet']}"
+    completed = next(
+        record
+        for record in caplog.records
+        if record.message.startswith("tool call completed:")
+    )
+    assert (
+        "response_preview={'data': [], 'search_queries': ['harnyx', 'subnet']}"
+        in completed.message
+    )
+    assert (
+        completed.response_preview
+        == "{'data': [], 'search_queries': ['harnyx', 'subnet']}"
+    )
     assert completed.results_preview == "()"
 
 
@@ -837,11 +894,16 @@ async def test_platform_success_log_omits_provider_response_payload(
         result = await executor.execute(make_request(session, token=token))
 
     assert result.response_payload == {"data": [{"snippet": response_sentinel}]}
-    assert tuple(receipt_log.for_session(session.session_id))[0].details.response_payload == result.response_payload
+    assert (
+        tuple(receipt_log.for_session(session.session_id))[0].details.response_payload
+        == result.response_payload
+    )
     completed = require_log_record(caplog, "tool call completed")
     assert not hasattr(completed, "response_preview")
     assert not hasattr(completed, "results_preview")
-    assert response_sentinel not in "\n".join(str(record.__dict__) for record in caplog.records)
+    assert response_sentinel not in "\n".join(
+        str(record.__dict__) for record in caplog.records
+    )
 
 
 async def test_execute_tool_debug_log_includes_full_request_response_payload(
@@ -870,8 +932,12 @@ async def test_execute_tool_debug_log_includes_full_request_response_payload(
         "data": [],
         "search_queries": ["harnyx", "subnet"],
     }
-    assert completed.data["budget"]["session_budget_usd"] == pytest.approx(session.budget_usd)
-    assert completed.data["actual_cost_evidence"] == {"settlement_source": "provider_returned"}
+    assert completed.data["budget"]["session_budget_usd"] == pytest.approx(
+        session.budget_usd
+    )
+    assert completed.data["actual_cost_evidence"] == {
+        "settlement_source": "provider_returned"
+    }
     assert completed.data["error"] is None
 
 
@@ -941,7 +1007,9 @@ async def test_execute_tool_debug_log_preserves_raw_payload_and_error_text(
     assert normal_failure.exc_info is None
 
 
-async def test_execute_tool_records_failed_receipt_before_reraising_provider_error() -> None:
+async def test_execute_tool_records_failed_receipt_before_reraising_provider_error() -> (
+    None
+):
     session = make_session()
     token = generate_token()
 
@@ -955,7 +1023,9 @@ async def test_execute_tool_records_failed_receipt_before_reraising_provider_err
             context: ToolInvocationContext | None = None,
         ) -> dict[str, object]:
             assert tool_name == "search_web"
-            raise ToolProviderError("tool provider failed") from ValueError("upstream detail")
+            raise ToolProviderError("tool provider failed") from ValueError(
+                "upstream detail"
+            )
 
     executor, receipt_log, session_registry = build_executor_with_invoker(
         session,
@@ -1037,7 +1107,9 @@ async def test_platform_receipt_does_not_store_runtime_provider_error_detail(
     failed_session = session_registry.get(session.session_id)
     assert failed_session is not None
     assert failed_session.status is SessionStatus.ERROR
-    assert failed_session.failure_code is SessionFailureCode.PROVIDER_AUTHENTICATION_FAILED
+    assert (
+        failed_session.failure_code is SessionFailureCode.PROVIDER_AUTHENTICATION_FAILED
+    )
 
     with pytest.raises(RuntimeError, match="is not active"):
         await executor.execute(make_request(session, token=token))
@@ -1050,7 +1122,9 @@ async def test_platform_receipt_does_not_store_runtime_provider_error_detail(
     assert all(not hasattr(record, "tool_kwargs") for record in caplog.records)
 
 
-async def test_execute_tool_records_failed_receipt_before_reraising_generic_error() -> None:
+async def test_execute_tool_records_failed_receipt_before_reraising_generic_error() -> (
+    None
+):
     session = make_session()
     token = generate_token()
 
@@ -1085,7 +1159,10 @@ async def test_execute_tool_records_failed_receipt_before_reraising_generic_erro
     assert receipt.details.cost_usd is None
     assert receipt.details.extra is not None
     assert receipt.details.extra["error_type"] == "ValueError"
-    assert receipt.details.extra["error_message"] == "model openai/gpt-oss-120b is not allowed"
+    assert (
+        receipt.details.extra["error_message"]
+        == "model openai/gpt-oss-120b is not allowed"
+    )
     stored = session_registry.get(session.session_id)
     assert stored is not None
     assert stored.usage.total_cost_usd == pytest.approx(0.0)
@@ -1131,19 +1208,25 @@ async def test_execute_tool_records_failed_receipt_before_reraising_generic_erro
             "400",
         ),
         (
-            PlatformToolProxyToolTimeoutError(status_code=408, message="tool timed out"),
+            PlatformToolProxyToolTimeoutError(
+                status_code=408, message="tool timed out"
+            ),
             ToolCallOutcome.TIMEOUT,
             "tool_timeout",
             "408",
         ),
         (
-            PlatformToolProxyInterruptedError("platform tool proxy execution interrupted before a response"),
+            PlatformToolProxyInterruptedError(
+                "platform tool proxy execution interrupted before a response"
+            ),
             ToolCallOutcome.INTERNAL_ERROR,
             "platform_interrupted",
             "0",
         ),
         (
-            PlatformToolProxyBudgetExceededError(status_code=400, message="budget exhausted"),
+            PlatformToolProxyBudgetExceededError(
+                status_code=400, message="budget exhausted"
+            ),
             ToolCallOutcome.BUDGET_EXCEEDED,
             "budget_exhausted",
             "400",
@@ -1186,8 +1269,12 @@ async def test_execute_tool_records_platform_tool_proxy_category_in_failed_recei
     receipt = receipts[0]
     assert receipt.outcome is expected_outcome
     assert receipt.details.extra is not None
-    assert receipt.details.extra["platform_tool_proxy_error_code"] == expected_error_code
-    assert receipt.details.extra["platform_tool_proxy_status_code"] == expected_status_code
+    assert (
+        receipt.details.extra["platform_tool_proxy_error_code"] == expected_error_code
+    )
+    assert (
+        receipt.details.extra["platform_tool_proxy_status_code"] == expected_status_code
+    )
     failure_log = require_log_record(caplog, "tool call failed")
     assert failure_log.platform_tool_proxy_error_code == expected_error_code
     assert failure_log.platform_tool_proxy_status_code == expected_status_code
@@ -1293,13 +1380,17 @@ async def test_execute_tool_skips_failure_debug_payload_when_debug_disabled(
         token=token,
         invoker=FailingInvoker(),
     )
-    monkeypatch.setattr(tool_executor_module, "_debug_error_data", fail_debug_error_data)
+    monkeypatch.setattr(
+        tool_executor_module, "_debug_error_data", fail_debug_error_data
+    )
 
     with caplog.at_level("INFO", logger="harnyx_commons.tools"):
         with pytest.raises(RuntimeError):
             await executor.execute(make_request(session, token=token))
 
-    assert not any(record.message == "miner_tool_call.failed" for record in caplog.records)
+    assert not any(
+        record.message == "miner_tool_call.failed" for record in caplog.records
+    )
 
 
 async def test_execute_tool_debug_logs_completion_before_budget_exhausted_failure(
@@ -1318,7 +1409,10 @@ async def test_execute_tool_debug_logs_completion_before_budget_exhausted_failur
             context: ToolInvocationContext | None = None,
         ) -> ToolInvocationOutput:
             assert tool_name == "search_web"
-            return search_output({"data": [{"link": "https://a.example", "snippet": "A"}]}, cost_usd=0.0001)
+            return search_output(
+                {"data": [{"link": "https://a.example", "snippet": "A"}]},
+                cost_usd=0.0001,
+            )
 
     executor, _, _ = build_executor_with_invoker(
         session,
@@ -1333,7 +1427,9 @@ async def test_execute_tool_debug_logs_completion_before_budget_exhausted_failur
     completed = require_log_record(caplog, "miner_tool_call.completed")
     failed = require_log_record(caplog, "miner_tool_call.failed")
     assert completed.data["call_id"] == failed.data["call_id"]
-    assert completed.data["response"] == {"data": [{"link": "https://a.example", "snippet": "A"}]}
+    assert completed.data["response"] == {
+        "data": [{"link": "https://a.example", "snippet": "A"}]
+    }
     assert completed.data["cost_usd"] == pytest.approx(0.0001)
     assert completed.data["budget"]["session_used_budget_usd"] == pytest.approx(0.0001)
 
@@ -1428,7 +1524,9 @@ async def test_execute_tool_exhausts_budget_from_provider_actual_cost() -> None:
         ) -> ToolInvocationOutput:
             assert tool_name == "search_web"
             return ToolInvocationOutput(
-                public_payload={"data": [{"link": "https://a.example", "snippet": "A"}]},
+                public_payload={
+                    "data": [{"link": "https://a.example", "snippet": "A"}]
+                },
                 actual_cost_usd=0.005,
                 actual_cost_provider="parallel",
             )
@@ -1504,12 +1602,16 @@ async def test_execute_tool_returns_unknown_cost_embedding_and_allows_future_cal
     with caplog.at_level(logging.DEBUG, logger=tool_executor_module.tool_logger.name):
         result = await executor.execute(request)
 
-    assert result.response_payload["data"] == [{"index": 0, "embedding": [0.1, 0.2, 0.3]}]
+    assert result.response_payload["data"] == [
+        {"index": 0, "embedding": [0.1, 0.2, 0.3]}
+    ]
     assert result.receipt.details.cost_usd is None
     assert result.receipt.details.actual_cost_usd is None
     assert result.receipt.details.actual_cost_provider == "openrouter"
     assert result.receipt.details.extra is not None
-    assert result.receipt.details.extra["actual_cost_settlement_source"] == "unavailable"
+    assert (
+        result.receipt.details.extra["actual_cost_settlement_source"] == "unavailable"
+    )
     stored = session_registry.get(session.session_id)
     assert stored is not None
     assert stored.status is SessionStatus.ACTIVE
@@ -1527,7 +1629,9 @@ async def test_execute_tool_returns_unknown_cost_embedding_and_allows_future_cal
 
     second_result = await executor.execute(request)
 
-    assert second_result.response_payload["data"] == [{"index": 0, "embedding": [0.1, 0.2, 0.3]}]
+    assert second_result.response_payload["data"] == [
+        {"index": 0, "embedding": [0.1, 0.2, 0.3]}
+    ]
     assert second_result.receipt.details.actual_cost_usd is None
     assert len(receipt_log.for_session(session.session_id)) == 2
     stored = session_registry.get(session.session_id)
@@ -1551,7 +1655,9 @@ async def test_openrouter_byok_cost_drives_receipt_session_budget_and_log(
         result = await executor.execute(make_llm_request(session, token=token))
 
     assert result.receipt.details.cost_usd == pytest.approx(TEST_BYOK_COST_USD)
-    assert result.receipt.details.reference_cost_usd == pytest.approx(TEST_BYOK_COST_USD)
+    assert result.receipt.details.reference_cost_usd == pytest.approx(
+        TEST_BYOK_COST_USD
+    )
     assert result.receipt.details.actual_cost_usd == pytest.approx(TEST_BYOK_COST_USD)
     assert result.receipt.details.extra is not None
     assert result.receipt.details.extra["actual_cost_evidence"] == TEST_BYOK_EVIDENCE
@@ -1695,8 +1801,12 @@ async def test_execute_tool_records_llm_tokens_for_llm_chat(model: str) -> None:
     assert stored_session.usage.reference_total_cost_usd == pytest.approx(0.003)
     assert stored_session.usage.actual_total_cost_usd == pytest.approx(0.003)
     assert stored_session.usage.cost_by_provider["openrouter"] == pytest.approx(0.003)
-    assert stored_session.usage.reference_cost_by_provider["openrouter"] == pytest.approx(0.003)
-    assert stored_session.usage.actual_cost_by_provider["openrouter"] == pytest.approx(0.003)
+    assert stored_session.usage.reference_cost_by_provider[
+        "openrouter"
+    ] == pytest.approx(0.003)
+    assert stored_session.usage.actual_cost_by_provider["openrouter"] == pytest.approx(
+        0.003
+    )
     assert result.budget.session_used_budget_usd == pytest.approx(0.003)
 
 
@@ -1745,7 +1855,9 @@ async def test_execute_tool_rejects_llm_chat_usage_when_provider_is_missing() ->
         },
     )
 
-    with pytest.raises(ValueError, match="llm tool request must include a 'provider' payload value"):
+    with pytest.raises(
+        ValueError, match="llm tool request must include a 'provider' payload value"
+    ):
         await executor.execute(request)
 
     stored_session = session_registry.get(session.session_id)
@@ -1757,7 +1869,9 @@ async def test_execute_tool_rejects_llm_chat_usage_when_provider_is_missing() ->
     assert receipts[0].outcome is ToolCallOutcome.INTERNAL_ERROR
 
 
-async def test_execute_tool_records_zero_token_llm_usage_when_counters_are_missing() -> None:
+async def test_execute_tool_records_zero_token_llm_usage_when_counters_are_missing() -> (
+    None
+):
     session = make_session(budget_usd=1.0)
     token = generate_token()
     model = "deepseek/deepseek-v3.2"
@@ -1830,7 +1944,9 @@ async def test_execute_tool_records_zero_token_llm_usage_when_counters_are_missi
     assert stored_session.usage.total_cost_usd == pytest.approx(0.003)
 
 
-async def test_execute_tool_records_llm_tokens_for_first_positional_llm_chat_payload() -> None:
+async def test_execute_tool_records_llm_tokens_for_first_positional_llm_chat_payload() -> (
+    None
+):
     model = "zai-org/GLM-5-TEE"
     session = make_session(budget_usd=1.0)
     token = generate_token()
@@ -1885,7 +2001,13 @@ async def test_execute_tool_records_llm_tokens_for_first_positional_llm_chat_pay
         session_id=session.session_id,
         token=token,
         tool="llm_chat",
-        args=({"provider": "chutes", "model": model, "messages": [{"role": "user", "content": "ping"}]},),
+        args=(
+            {
+                "provider": "chutes",
+                "model": model,
+                "messages": [{"role": "user", "content": "ping"}],
+            },
+        ),
         kwargs={},
     )
 
@@ -2047,7 +2169,9 @@ async def test_execute_tool_counts_reasoning_tokens_when_total_is_missing() -> N
     stored_session = session_registry.get(session.session_id)
     assert stored_session is not None
     assert stored_session.usage.llm_tokens_last_call == 22
-    usage_totals = stored_session.usage.llm_usage_totals["chutes"]["deepseek-ai/DeepSeek-V3.2-TEE"]
+    usage_totals = stored_session.usage.llm_usage_totals["chutes"][
+        "deepseek-ai/DeepSeek-V3.2-TEE"
+    ]
     assert usage_totals.prompt_tokens == 10
     assert usage_totals.completion_tokens == 5
     assert usage_totals.reasoning_tokens == 7
@@ -2119,7 +2243,9 @@ async def test_execute_tool_counts_reasoning_only_usage_when_total_is_missing() 
     stored_session = session_registry.get(session.session_id)
     assert stored_session is not None
     assert stored_session.usage.llm_tokens_last_call == 7
-    usage_totals = stored_session.usage.llm_usage_totals["chutes"]["deepseek-ai/DeepSeek-V3.2-TEE"]
+    usage_totals = stored_session.usage.llm_usage_totals["chutes"][
+        "deepseek-ai/DeepSeek-V3.2-TEE"
+    ]
     assert usage_totals.prompt_tokens == 0
     assert usage_totals.completion_tokens == 0
     assert usage_totals.reasoning_tokens == 7
@@ -2130,7 +2256,9 @@ async def test_execute_tool_counts_reasoning_only_usage_when_total_is_missing() 
     assert result.response_payload["usage"]["reasoning_tokens"] == 7
 
 
-async def test_execute_tool_ignores_stale_response_model_metadata_for_llm_chat() -> None:
+async def test_execute_tool_ignores_stale_response_model_metadata_for_llm_chat() -> (
+    None
+):
     request_model = "zai-org/GLM-5-TEE"
     stale_payload_model = "provider-returned-stale-model"
     session = make_session(budget_usd=1.0)
@@ -2211,7 +2339,9 @@ async def test_execute_tool_ignores_stale_response_model_metadata_for_llm_chat()
     assert usage_totals.total_tokens == 15
     assert usage_totals.call_count == 1
     assert stored_session.usage.total_cost_usd == pytest.approx(TEST_LLM_COST_USD)
-    assert stored_session.usage.cost_by_provider["openrouter"] == pytest.approx(TEST_LLM_COST_USD)
+    assert stored_session.usage.cost_by_provider["openrouter"] == pytest.approx(
+        TEST_LLM_COST_USD
+    )
 
 
 async def test_execute_tool_records_llm_elapsed_ms_only_in_receipt_details() -> None:
@@ -2350,7 +2480,9 @@ async def test_execute_tool_allows_settlement_after_sibling_exhausts_session() -
     assert receipt_log.lookup(result.receipt.receipt_id) is not None
 
 
-async def test_execute_tool_records_receipt_for_search_call_that_exhausts_budget() -> None:
+async def test_execute_tool_records_receipt_for_search_call_that_exhausts_budget() -> (
+    None
+):
     session = make_session(budget_usd=0.00005, hard_limit_usd=0.00005)
     token = generate_token()
 
@@ -2405,7 +2537,9 @@ async def test_execute_tool_records_receipt_for_search_call_that_exhausts_budget
     assert total_tool_usage.search_tool_cost == pytest.approx(0.0001)
 
 
-async def test_execute_tool_budget_exhaustion_records_one_successful_receipt_only() -> None:
+async def test_execute_tool_budget_exhaustion_records_one_successful_receipt_only() -> (
+    None
+):
     session = make_session(budget_usd=0.00005, hard_limit_usd=0.00005)
     token = generate_token()
 
@@ -2418,7 +2552,10 @@ async def test_execute_tool_budget_exhaustion_records_one_successful_receipt_onl
             kwargs: dict[str, object],
             context: ToolInvocationContext | None = None,
         ) -> ToolInvocationOutput:
-            return search_output({"data": [{"link": "https://a.example", "snippet": "A"}]}, cost_usd=0.0001)
+            return search_output(
+                {"data": [{"link": "https://a.example", "snippet": "A"}]},
+                cost_usd=0.0001,
+            )
 
     executor, receipt_log, _ = build_executor_with_invoker(
         session,
@@ -2433,12 +2570,16 @@ async def test_execute_tool_budget_exhaustion_records_one_successful_receipt_onl
     assert len(receipts) == 1
     receipt = receipts[0]
     assert receipt.outcome is ToolCallOutcome.OK
-    assert receipt.details.response_payload == {"data": [{"link": "https://a.example", "snippet": "A"}]}
+    assert receipt.details.response_payload == {
+        "data": [{"link": "https://a.example", "snippet": "A"}]
+    }
     assert receipt.details.extra is not None
     assert "error_type" not in receipt.details.extra
 
 
-async def test_execute_tool_attempts_failed_receipt_for_receipt_persistence_failure() -> None:
+async def test_execute_tool_attempts_failed_receipt_for_receipt_persistence_failure() -> (
+    None
+):
     session = make_session()
     token = generate_token()
 
@@ -2475,10 +2616,14 @@ async def test_execute_tool_attempts_failed_receipt_for_receipt_persistence_fail
         ToolCallOutcome.INTERNAL_ERROR,
     ]
     assert receipt_log.attempted_receipts[1].details.extra is not None
-    assert receipt_log.attempted_receipts[1].details.extra["error_type"] == "RuntimeError"
+    assert (
+        receipt_log.attempted_receipts[1].details.extra["error_type"] == "RuntimeError"
+    )
 
 
-async def test_execute_tool_preserves_successful_receipt_for_usage_settlement_failure() -> None:
+async def test_execute_tool_preserves_successful_receipt_for_usage_settlement_failure() -> (
+    None
+):
     session = make_session()
     token = generate_token()
 

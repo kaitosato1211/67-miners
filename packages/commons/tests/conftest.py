@@ -13,6 +13,7 @@ def reset_entrypoints() -> Generator[None, None, None]:
     yield
     clear_entrypoints()
 
+
 @pytest.fixture
 def anyio_backend() -> str:
     # Force AnyIO-managed tests in commons suite (unit + integration) to use asyncio only

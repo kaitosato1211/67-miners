@@ -264,7 +264,9 @@ class EvaluationScoringService:
             miner_wins += 1
         if reference_first.preferred_position == "second":
             miner_wins += 1
-        judge_usage = merge_judge_usage((miner_first.judge_usage, reference_first.judge_usage))
+        judge_usage = merge_judge_usage(
+            (miner_first.judge_usage, reference_first.judge_usage)
+        )
         return _PairwiseScore(
             comparison_score=miner_wins / 2.0,
             reasoning=_build_pairwise_reasoning_trace(miner_first, reference_first),
@@ -292,7 +294,8 @@ class EvaluationScoringService:
         system_prompt = _PAIRWISE_SYSTEM_PROMPT
         if has_output_contract:
             user_prompt_prefix = (
-                _PAIRWISE_USER_PROMPT_PREFIX.removesuffix("Payload:\n") + _PAIRWISE_STRUCTURED_USER_PROMPT_SUFFIX
+                _PAIRWISE_USER_PROMPT_PREFIX.removesuffix("Payload:\n")
+                + _PAIRWISE_STRUCTURED_USER_PROMPT_SUFFIX
             )
             system_prompt += _PAIRWISE_STRUCTURED_SYSTEM_PROMPT_SUFFIX
         user_prompt = user_prompt_prefix + json.dumps(
@@ -404,7 +407,9 @@ class EvaluationScoringService:
         )
 
 
-def _selected_pairwise_failure(pair_tasks: Sequence[asyncio.Task[_PairwiseJudgeResult]]) -> Exception | None:
+def _selected_pairwise_failure(
+    pair_tasks: Sequence[asyncio.Task[_PairwiseJudgeResult]],
+) -> Exception | None:
     failures = tuple(
         outcome.failure
         for outcome in (_completed_pairwise_outcome(task) for task in pair_tasks)
@@ -416,11 +421,15 @@ def _selected_pairwise_failure(pair_tasks: Sequence[asyncio.Task[_PairwiseJudgeR
     return failures[0] if failures else None
 
 
-def _pairwise_failure_category(exc: Exception) -> Literal["retry_exhausted", "non_retryable"]:
+def _pairwise_failure_category(
+    exc: Exception,
+) -> Literal["retry_exhausted", "non_retryable"]:
     return "retry_exhausted" if type(exc) is LlmRetryExhaustedError else "non_retryable"
 
 
-async def _cancel_unfinished_pairwise_tasks(pair_tasks: Sequence[asyncio.Task[_PairwiseJudgeResult]]) -> None:
+async def _cancel_unfinished_pairwise_tasks(
+    pair_tasks: Sequence[asyncio.Task[_PairwiseJudgeResult]],
+) -> None:
     pending = tuple(task for task in pair_tasks if not task.done())
     for task in pending:
         task.cancel()
@@ -433,19 +442,29 @@ def _attach_pairwise_failure_metadata(
     pair_tasks: Sequence[asyncio.Task[_PairwiseJudgeResult]],
 ) -> Exception:
     outcomes = tuple(_completed_pairwise_outcome(task) for task in pair_tasks)
-    partial_usage = merge_judge_usage(_judge_usage_from_pairwise_outcome(outcome) for outcome in outcomes)
+    partial_usage = merge_judge_usage(
+        _judge_usage_from_pairwise_outcome(outcome) for outcome in outcomes
+    )
     partial_trace = _merge_scoring_evaluation_traces(
         (_evaluation_trace_from_pairwise_outcome(outcome) for outcome in outcomes),
-        status="exhausted" if _pairwise_failure_category(exc) == "retry_exhausted" else "failed",
+        status=(
+            "exhausted"
+            if _pairwise_failure_category(exc) == "retry_exhausted"
+            else "failed"
+        ),
     )
     if partial_usage.call_count > 0:
-        return attach_scoring_judge_usage(exc, partial_usage, evaluation_trace=partial_trace)
+        return attach_scoring_judge_usage(
+            exc, partial_usage, evaluation_trace=partial_trace
+        )
     if partial_trace is not None:
         return attach_scoring_evaluation_trace(exc, partial_trace)
     return exc
 
 
-def _completed_pairwise_outcome(task: asyncio.Task[_PairwiseJudgeResult]) -> _CompletedPairwiseOutcome | None:
+def _completed_pairwise_outcome(
+    task: asyncio.Task[_PairwiseJudgeResult],
+) -> _CompletedPairwiseOutcome | None:
     if task.cancelled() or not task.done():
         return _CompletedPairwiseOutcome(interrupted=True)
     try:
@@ -454,7 +473,9 @@ def _completed_pairwise_outcome(task: asyncio.Task[_PairwiseJudgeResult]) -> _Co
         return _CompletedPairwiseOutcome(failure=exc)
 
 
-def _judge_usage_from_pairwise_outcome(outcome: _CompletedPairwiseOutcome | None) -> JudgeUsageSummary | None:
+def _judge_usage_from_pairwise_outcome(
+    outcome: _CompletedPairwiseOutcome | None,
+) -> JudgeUsageSummary | None:
     if outcome is None:
         return None
     if outcome.result is not None:
@@ -464,11 +485,15 @@ def _judge_usage_from_pairwise_outcome(outcome: _CompletedPairwiseOutcome | None
     return None
 
 
-def _evaluation_trace_from_pairwise_outcome(outcome: _CompletedPairwiseOutcome | None) -> EvaluationTrace | None:
+def _evaluation_trace_from_pairwise_outcome(
+    outcome: _CompletedPairwiseOutcome | None,
+) -> EvaluationTrace | None:
     if outcome is None:
         return None
     if outcome.interrupted:
-        return EvaluationTrace(scoring_judge_retry_reasons=(_PAIRWISE_INTERRUPTED_RETRY_REASON,))
+        return EvaluationTrace(
+            scoring_judge_retry_reasons=(_PAIRWISE_INTERRUPTED_RETRY_REASON,)
+        )
     if outcome.result is not None:
         return outcome.result.evaluation_trace
     if outcome.failure is not None:
@@ -492,7 +517,9 @@ def attach_scoring_judge_usage(
     return exc
 
 
-def attach_scoring_evaluation_trace(exc: Exception, evaluation_trace: EvaluationTrace) -> Exception:
+def attach_scoring_evaluation_trace(
+    exc: Exception, evaluation_trace: EvaluationTrace
+) -> Exception:
     exc.__dict__["evaluation_trace"] = evaluation_trace
     return exc
 
@@ -530,7 +557,9 @@ def _retry_metadata_from_response(
 ) -> dict[str, object]:
     metadata = response.metadata or {}
     return {
-        "selected_provider": _metadata_string(metadata, "selected_provider", default_provider),
+        "selected_provider": _metadata_string(
+            metadata, "selected_provider", default_provider
+        ),
         "selected_model": _metadata_string(metadata, "selected_model", default_model),
         "attempts": _metadata_positive_int(metadata, "attempts", fallback=1),
         "retry_reasons": _metadata_strings(metadata, "retry_reasons"),
@@ -544,15 +573,27 @@ def _retry_metadata_from_exception(
     default_provider: str,
     default_model: str,
 ) -> dict[str, object]:
-    response_metadata = exc.response.metadata if exc.response is not None and exc.response.metadata is not None else {}
+    response_metadata = (
+        exc.response.metadata
+        if exc.response is not None and exc.response.metadata is not None
+        else {}
+    )
     return {
-        "selected_provider": _metadata_string(response_metadata, "selected_provider", default_provider),
-        "selected_model": _metadata_string(response_metadata, "selected_model", default_model),
-        "attempts": exc.attempts or _metadata_positive_int(response_metadata, "attempts", fallback=1),
-        "retry_reasons": exc.retry_reasons or _metadata_strings(response_metadata, "retry_reasons"),
-        "latency_ms_total": exc.latency_ms_total
-        if exc.latency_ms_total is not None
-        else _metadata_non_negative_float(response_metadata, "latency_ms_total"),
+        "selected_provider": _metadata_string(
+            response_metadata, "selected_provider", default_provider
+        ),
+        "selected_model": _metadata_string(
+            response_metadata, "selected_model", default_model
+        ),
+        "attempts": exc.attempts
+        or _metadata_positive_int(response_metadata, "attempts", fallback=1),
+        "retry_reasons": exc.retry_reasons
+        or _metadata_strings(response_metadata, "retry_reasons"),
+        "latency_ms_total": (
+            exc.latency_ms_total
+            if exc.latency_ms_total is not None
+            else _metadata_non_negative_float(response_metadata, "latency_ms_total")
+        ),
     }
 
 
@@ -561,10 +602,14 @@ def _aggregate_scoring_evaluation_trace(
     *,
     status: Literal["ok", "exhausted", "failed"],
 ) -> EvaluationTrace:
-    selected_routes = _unique_ordered(route for metadata in retry_metadata if (route := _selected_route(metadata)))
+    selected_routes = _unique_ordered(
+        route for metadata in retry_metadata if (route := _selected_route(metadata))
+    )
     attempts = tuple(_metadata_attempts(metadata) for metadata in retry_metadata)
     durations = tuple(
-        duration for metadata in retry_metadata if (duration := _metadata_duration_ms(metadata)) is not None
+        duration
+        for metadata in retry_metadata
+        if (duration := _metadata_duration_ms(metadata)) is not None
     )
     return EvaluationTrace(
         scoring_judge_selected_routes=selected_routes,
@@ -589,14 +634,20 @@ def _merge_scoring_evaluation_traces(
     if not present:
         return None
     durations = tuple(
-        trace.scoring_judge_duration_ms for trace in present if trace.scoring_judge_duration_ms is not None
+        trace.scoring_judge_duration_ms
+        for trace in present
+        if trace.scoring_judge_duration_ms is not None
     )
     return EvaluationTrace(
         scoring_judge_selected_routes=_unique_ordered(
             route for trace in present for route in trace.scoring_judge_selected_routes
         ),
-        scoring_judge_attempt_count=sum(trace.scoring_judge_attempt_count or 0 for trace in present),
-        scoring_judge_retry_count=sum(trace.scoring_judge_retry_count or 0 for trace in present),
+        scoring_judge_attempt_count=sum(
+            trace.scoring_judge_attempt_count or 0 for trace in present
+        ),
+        scoring_judge_retry_count=sum(
+            trace.scoring_judge_retry_count or 0 for trace in present
+        ),
         scoring_judge_retry_reasons=_unique_ordered(
             reason for trace in present for reason in trace.scoring_judge_retry_reasons
         ),
@@ -610,14 +661,18 @@ def _metadata_string(metadata: Mapping[str, object], key: str, fallback: str) ->
     return value.strip() if isinstance(value, str) and value.strip() else fallback
 
 
-def _metadata_positive_int(metadata: Mapping[str, object], key: str, *, fallback: int) -> int:
+def _metadata_positive_int(
+    metadata: Mapping[str, object], key: str, *, fallback: int
+) -> int:
     value = metadata.get(key)
     if isinstance(value, int) and not isinstance(value, bool) and value > 0:
         return value
     return fallback
 
 
-def _metadata_non_negative_float(metadata: Mapping[str, object], key: str) -> float | None:
+def _metadata_non_negative_float(
+    metadata: Mapping[str, object], key: str
+) -> float | None:
     value = metadata.get(key)
     if isinstance(value, int | float) and not isinstance(value, bool) and value >= 0:
         return float(value)
@@ -635,7 +690,11 @@ def _metadata_strings(metadata: Mapping[str, object], key: str) -> tuple[str, ..
 
 def _metadata_attempts(metadata: Mapping[str, object]) -> int:
     value = metadata.get("attempts")
-    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 1
+    return (
+        value
+        if isinstance(value, int) and not isinstance(value, bool) and value > 0
+        else 1
+    )
 
 
 def _metadata_retry_reasons(metadata: Mapping[str, object]) -> tuple[str, ...]:
@@ -677,13 +736,21 @@ def _unique_ordered(values: Iterable[str]) -> tuple[str, ...]:
 
 def _normalize_retry_reason(reason: str) -> str:
     normalized = reason.lower()
-    if "transport" in normalized or "connection" in normalized or "network" in normalized:
+    if (
+        "transport" in normalized
+        or "connection" in normalized
+        or "network" in normalized
+    ):
         return "transport_error"
     if "timeout" in normalized or "timed out" in normalized:
         return "timeout"
     if "rate" in normalized or "429" in normalized:
         return "rate_limited"
-    if "postprocess" in normalized or "structured" in normalized or "parse" in normalized:
+    if (
+        "postprocess" in normalized
+        or "structured" in normalized
+        or "parse" in normalized
+    ):
         return "structured_output_invalid"
     if "provider" in normalized:
         return "provider_error"
@@ -695,19 +762,29 @@ def _build_pairwise_reasoning_trace(
     reference_first: _PairwiseJudgeResult,
 ) -> ScorerReasoning | None:
     reasoning_texts = tuple(
-        text for text in (miner_first.reasoning_text, reference_first.reasoning_text) if text is not None
+        text
+        for text in (miner_first.reasoning_text, reference_first.reasoning_text)
+        if text is not None
     )
-    reasoning_tokens = _sum_reasoning_tokens(miner_first.reasoning_tokens, reference_first.reasoning_tokens)
+    reasoning_tokens = _sum_reasoning_tokens(
+        miner_first.reasoning_tokens, reference_first.reasoning_tokens
+    )
     if not reasoning_texts and reasoning_tokens is None:
         return None
     return ScorerReasoning(
-        text=_PAIRWISE_REASONING_SEPARATOR.join(reasoning_texts) if reasoning_texts else None,
+        text=(
+            _PAIRWISE_REASONING_SEPARATOR.join(reasoning_texts)
+            if reasoning_texts
+            else None
+        ),
         reasoning_tokens=reasoning_tokens,
     )
 
 
 def _sum_reasoning_tokens(*reasoning_tokens: int | None) -> int | None:
-    present_reasoning_tokens = tuple(token_count for token_count in reasoning_tokens if token_count is not None)
+    present_reasoning_tokens = tuple(
+        token_count for token_count in reasoning_tokens if token_count is not None
+    )
     if not present_reasoning_tokens:
         return None
     return sum(present_reasoning_tokens)
@@ -715,7 +792,9 @@ def _sum_reasoning_tokens(*reasoning_tokens: int | None) -> int | None:
 
 def _extract_reasoning_text(response: LlmResponse) -> str | None:
     for choice in response.choices:
-        normalized_reasoning = choice.message.reasoning.strip() if choice.message.reasoning else ""
+        normalized_reasoning = (
+            choice.message.reasoning.strip() if choice.message.reasoning else ""
+        )
         if normalized_reasoning:
             return normalized_reasoning
     return None
@@ -760,7 +839,9 @@ def _bounded_citations(
         return []
     rendered: list[dict[str, str] | None] = []
     for citation in citations:
-        rendered.append(None if citation is None else _render_citation_payload(citation))
+        rendered.append(
+            None if citation is None else _render_citation_payload(citation)
+        )
         if len(rendered) == _MAX_RENDERED_CITATIONS:
             break
     return rendered

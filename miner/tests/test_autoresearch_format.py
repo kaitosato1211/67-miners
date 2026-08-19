@@ -21,7 +21,9 @@ README_PATH = MINER_ROOT / "README.md"
 
 
 def _load_prepare_module() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("harnyx_autoresearch_prepare", PREPARE_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "harnyx_autoresearch_prepare", PREPARE_PATH
+    )
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -179,7 +181,9 @@ def test_prepare_builds_local_benchmark_command(tmp_path: Path) -> None:
     ]
 
 
-def test_prepare_requires_explicit_benchmark_suite(capsys: pytest.CaptureFixture[str]) -> None:
+def test_prepare_requires_explicit_benchmark_suite(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     prepare = _load_prepare_module()
 
     with pytest.raises(SystemExit) as exc_info:
@@ -189,7 +193,9 @@ def test_prepare_requires_explicit_benchmark_suite(capsys: pytest.CaptureFixture
     assert "--benchmark-suite" in capsys.readouterr().err
 
 
-def test_prepare_resolves_explicit_benchmark_suite(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prepare_resolves_explicit_benchmark_suite(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     prepare = _load_prepare_module()
     captured: dict[str, object] = {}
 
@@ -205,7 +211,9 @@ def test_prepare_resolves_explicit_benchmark_suite(monkeypatch: pytest.MonkeyPat
         captured["suite_slug"] = suite_slug
         return _Snapshot()
 
-    monkeypatch.setattr(prepare, "load_current_benchmark_snapshot", fake_load_current_benchmark_snapshot)
+    monkeypatch.setattr(
+        prepare, "load_current_benchmark_snapshot", fake_load_current_benchmark_snapshot
+    )
 
     pin = prepare._resolve_benchmark(benchmark_suite="webwalkerqa", sample_size=20)
 
@@ -251,7 +259,9 @@ def test_public_env_loader_finds_parent_env_from_miner_directory(
     public_root = tmp_path / "public"
     miner_root = public_root / "miner"
     miner_root.mkdir(parents=True)
-    (public_root / ".env").write_text("PLATFORM_BASE_URL=https://platform.example.com\n", encoding="utf-8")
+    (public_root / ".env").write_text(
+        "PLATFORM_BASE_URL=https://platform.example.com\n", encoding="utf-8"
+    )
     monkeypatch.chdir(miner_root)
     monkeypatch.delenv("PLATFORM_BASE_URL", raising=False)
 
@@ -280,15 +290,22 @@ def test_public_program_requires_failure_first_research_cycle() -> None:
     assert "### Pick one bottleneck per cycle" in program
     assert "### Write the hypothesis before editing" in program
     assert "### Use focused diagnostic cases before full evaluation" in program
-    assert "Full evaluation with `LOG_LEVEL=DEBUG uv run train.py > run.log 2>&1` is allowed only when:" in program
+    assert (
+        "Full evaluation with `LOG_LEVEL=DEBUG uv run train.py > run.log 2>&1` is allowed only when:"
+        in program
+    )
     assert "### Inspect intermediate artifacts, not just score" in program
     assert "### Do not abandon a hypothesis after one failed attempt" in program
     assert "### Use the intervention ladder" in program
     assert "## Research ledger" in program
     assert ".autoresearch/experiment-ledger.md" in program
 
-    assert program.index("### Start from failures") < program.index("### Build a failure taxonomy")
-    assert program.index("### Build a failure taxonomy") < program.index("### Pick one bottleneck per cycle")
+    assert program.index("### Start from failures") < program.index(
+        "### Build a failure taxonomy"
+    )
+    assert program.index("### Build a failure taxonomy") < program.index(
+        "### Pick one bottleneck per cycle"
+    )
     assert program.index("### Pick one bottleneck per cycle") < program.index(
         "### Write the hypothesis before editing"
     )
@@ -324,4 +341,6 @@ def test_auto_research_runbook_documents_operator_startup_contract() -> None:
     assert "public/.env" not in runbook
 
     assert "[`AUTO-RESEARCH.md`](AUTO-RESEARCH.md)" in readme
-    assert "The agent-facing research policy lives in [`program.md`](program.md)" in readme
+    assert (
+        "The agent-facing research policy lives in [`program.md`](program.md)" in readme
+    )

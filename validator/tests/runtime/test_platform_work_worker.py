@@ -46,7 +46,9 @@ from harnyx_validator.runtime.platform_work_worker import (
 )
 
 pytestmark = pytest.mark.anyio("asyncio")
-_ASSIGNMENT_TOKEN_PREFIX = "assignment-token"  # noqa: S105 - fixed test-only assignment token prefix
+_ASSIGNMENT_TOKEN_PREFIX = (
+    "assignment-token"  # noqa: S105 - fixed test-only assignment token prefix
+)
 _MODEL_A = "model-a"
 _MODEL_B = "model-b"
 
@@ -86,12 +88,18 @@ async def _wait_for_scoreable_request_done(worker: PlatformWorkWorker) -> None:
     raise AssertionError("platform scoreable execution request did not finish")
 
 
-def _single_model_scoring_config(*, model: str = _MODEL_A, slot_limit: int = 20) -> ScoringSlotConfig:
-    return ScoringSlotConfig(entries=(ScoringSlotConfigEntry(model=model, slot_limit=slot_limit),))
+def _single_model_scoring_config(
+    *, model: str = _MODEL_A, slot_limit: int = 20
+) -> ScoringSlotConfig:
+    return ScoringSlotConfig(
+        entries=(ScoringSlotConfigEntry(model=model, slot_limit=slot_limit),)
+    )
 
 
 def test_scoring_slot_config_entry_normalizes_fallback_models() -> None:
-    entry = ScoringSlotConfigEntry(model=" primary ", slot_limit=1, fallback_models=(" fallback ",))
+    entry = ScoringSlotConfigEntry(
+        model=" primary ", slot_limit=1, fallback_models=(" fallback ",)
+    )
 
     assert entry.model == "primary"
     assert entry.fallback_models == ("fallback",)
@@ -104,12 +112,16 @@ def test_scoring_slot_config_entry_rejects_empty_fallback_model() -> None:
 
 def test_scoring_slot_config_entry_rejects_duplicate_fallback_model() -> None:
     with pytest.raises(ValueError, match="fallback_models must be unique"):
-        ScoringSlotConfigEntry(model="primary", slot_limit=1, fallback_models=("fallback", "fallback"))
+        ScoringSlotConfigEntry(
+            model="primary", slot_limit=1, fallback_models=("fallback", "fallback")
+        )
 
 
 def test_scoring_slot_config_entry_rejects_primary_as_fallback_model() -> None:
     with pytest.raises(ValueError, match="must not include the primary model"):
-        ScoringSlotConfigEntry(model="primary", slot_limit=1, fallback_models=("primary",))
+        ScoringSlotConfigEntry(
+            model="primary", slot_limit=1, fallback_models=("primary",)
+        )
 
 
 def _two_model_scoring_config(
@@ -138,7 +150,9 @@ def _active_scoring_record(
     *,
     model: str = _MODEL_A,
 ) -> platform_work_worker_module._ActiveScoringRecord:
-    return platform_work_worker_module._ActiveScoringRecord(identity=identity, model=model)
+    return platform_work_worker_module._ActiveScoringRecord(
+        identity=identity, model=model
+    )
 
 
 def _mark_scoring_result_pending_submission(
@@ -148,10 +162,14 @@ def _mark_scoring_result_pending_submission(
     model: str = _MODEL_A,
 ) -> None:
     worker._results_pending_submission.append(result)
-    worker._scoring_models_for_results_pending_submission[platform_work_worker_module._result_identity(result)] = model
+    worker._scoring_models_for_results_pending_submission[
+        platform_work_worker_module._result_identity(result)
+    ] = model
 
 
-async def test_platform_work_worker_offloads_result_pending_submission(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_platform_work_worker_offloads_result_pending_submission(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Protect the FastAPI event loop from blocking platform result submission."""
 
     result = _platform_result()
@@ -159,7 +177,9 @@ async def test_platform_work_worker_offloads_result_pending_submission(monkeypat
     to_thread_calls: list[tuple[object, tuple[object, ...], dict[str, object]]] = []
 
     class _Platform:
-        def submit_miner_task_work_results(self, results: tuple[PlatformOwnedTaskResult, ...]):
+        def submit_miner_task_work_results(
+            self, results: tuple[PlatformOwnedTaskResult, ...]
+        ):
             observed["submitted_results"] = results
             return (_ack(result),)
 
@@ -171,7 +191,9 @@ async def test_platform_work_worker_offloads_result_pending_submission(monkeypat
         to_thread_calls.append((func, args, kwargs))
         return func(*args, **kwargs)
 
-    monkeypatch.setattr(platform_work_worker_module.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        platform_work_worker_module.asyncio, "to_thread", fake_to_thread
+    )
     worker = PlatformWorkWorker(
         platform=_Platform(),  # type: ignore[arg-type]
         execute_artifact_assignments=_unexpected_execute_artifact_assignments,
@@ -197,7 +219,9 @@ async def test_platform_work_worker_offloads_result_pending_submission(monkeypat
     assert worker._results_pending_submission == []
 
 
-async def test_platform_work_worker_retains_result_pending_submission_when_report_transport_fails() -> None:
+async def test_platform_work_worker_retains_result_pending_submission_when_report_transport_fails() -> (
+    None
+):
     """Prevent a lost HTTP response from dropping a terminal task result."""
 
     result = _platform_result()
@@ -205,7 +229,9 @@ async def test_platform_work_worker_retains_result_pending_submission_when_repor
     scoreable_requests = 0
 
     class _Platform:
-        def submit_miner_task_work_results(self, _results: tuple[PlatformOwnedTaskResult, ...]):
+        def submit_miner_task_work_results(
+            self, _results: tuple[PlatformOwnedTaskResult, ...]
+        ):
             raise RuntimeError("platform result report failed before acknowledgement")
 
         def request_scoreable_miner_task_work_executions(
@@ -219,13 +245,19 @@ async def test_platform_work_worker_retains_result_pending_submission_when_repor
             scoreable_requests += 1
             return ()
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             nonlocal work_requests
             work_requests += 1
             return ()
 
-    async def unexpected_score_execution(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
-        raise AssertionError("worker must not start scoring after result submission fails")
+    async def unexpected_score_execution(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
+        raise AssertionError(
+            "worker must not start scoring after result submission fails"
+        )
 
     worker = PlatformWorkWorker(
         platform=_Platform(),  # type: ignore[arg-type]
@@ -269,7 +301,9 @@ async def test_platform_work_worker_scoreable_poll_does_not_block_work_poll() ->
             work_requests.append(kwargs)
             return ()
 
-    async def unexpected_score_execution(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def unexpected_score_execution(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         raise AssertionError("no scoreable execution should be returned")
 
     worker = PlatformWorkWorker(
@@ -300,7 +334,9 @@ async def test_platform_work_worker_scoreable_poll_does_not_block_work_poll() ->
     release_scoreable.set()
 
 
-async def test_platform_work_worker_scores_persisted_executions_without_consuming_execution_slots() -> None:
+async def test_platform_work_worker_scores_persisted_executions_without_consuming_execution_slots() -> (
+    None
+):
     """Scoring persisted execution evidence must not reduce miner task query capacity."""
 
     batch_id = uuid4()
@@ -338,7 +374,9 @@ async def test_platform_work_worker_scores_persisted_executions_without_consumin
             work_requests.append(kwargs)
             return ()
 
-    async def score_execution(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def score_execution(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         assert _execution is execution
         score_started.set()
         await release_score.wait()
@@ -368,7 +406,9 @@ async def test_platform_work_worker_scores_persisted_executions_without_consumin
     )
     assert worker._local_inflight_count() == 0
     assert scoreable_requests[0] == (20, ())
-    assert all(request == (19, (scoring_identity,)) for request in scoreable_requests[1:])
+    assert all(
+        request == (19, (scoring_identity,)) for request in scoreable_requests[1:]
+    )
     assert work_requests
     assert all(
         request
@@ -389,7 +429,9 @@ async def test_platform_work_worker_scores_persisted_executions_without_consumin
     assert worker._scoring_models_for_results_pending_submission == {}
 
 
-async def test_platform_work_worker_suppresses_stale_scoreable_with_scoring_error_result_pending_submission() -> None:
+async def test_platform_work_worker_suppresses_stale_scoreable_with_scoring_error_result_pending_submission() -> (
+    None
+):
     """Do not rescore an execution whose scoring error result is already pending submission."""
 
     batch_id = uuid4()
@@ -423,10 +465,14 @@ async def test_platform_work_worker_suppresses_stale_scoreable_with_scoring_erro
             assert active_scoring == ()
             return (execution,)
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
-    async def score_execution(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def score_execution(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         nonlocal score_calls
         score_calls += 1
         return result
@@ -464,7 +510,9 @@ async def test_platform_work_worker_requests_only_remaining_scoring_slots() -> N
             observed_active_scoring.append(active_scoring)
             return ()
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def never_complete() -> PlatformOwnedTaskResult:
@@ -474,7 +522,9 @@ async def test_platform_work_worker_requests_only_remaining_scoring_slots() -> N
     worker = PlatformWorkWorker(
         platform=_Platform(),  # type: ignore[arg-type]
         execute_artifact_assignments=_unexpected_execute_artifact_assignments,
-        score_execution_by_model=_score_execution_by_model(lambda _execution: never_complete()),
+        score_execution_by_model=_score_execution_by_model(
+            lambda _execution: never_complete()
+        ),
         scoring_slot_config=_single_model_scoring_config(slot_limit=20),
         target_concurrency=1,
         max_active_artifacts=1,
@@ -500,7 +550,9 @@ async def test_platform_work_worker_requests_only_remaining_scoring_slots() -> N
     await worker._cancel_scoring_tasks()
 
 
-async def test_platform_work_worker_does_not_poll_scoreable_executions_when_scoring_full() -> None:
+async def test_platform_work_worker_does_not_poll_scoreable_executions_when_scoring_full() -> (
+    None
+):
     class _Platform:
         def request_scoreable_miner_task_work_executions(
             self,
@@ -509,9 +561,13 @@ async def test_platform_work_worker_does_not_poll_scoreable_executions_when_scor
             active_scoring: tuple[PlatformTaskAttemptIdentity, ...],
         ) -> tuple[PlatformOwnedTaskExecution, ...]:
             _ = limit, active_scoring
-            raise AssertionError("worker must not request scoreable executions when scoring is full")
+            raise AssertionError(
+                "worker must not request scoreable executions when scoring is full"
+            )
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def never_complete() -> PlatformOwnedTaskResult:
@@ -521,7 +577,9 @@ async def test_platform_work_worker_does_not_poll_scoreable_executions_when_scor
     worker = PlatformWorkWorker(
         platform=_Platform(),  # type: ignore[arg-type]
         execute_artifact_assignments=_unexpected_execute_artifact_assignments,
-        score_execution_by_model=_score_execution_by_model(lambda _execution: never_complete()),
+        score_execution_by_model=_score_execution_by_model(
+            lambda _execution: never_complete()
+        ),
         scoring_slot_config=_single_model_scoring_config(slot_limit=2),
         target_concurrency=1,
         max_active_artifacts=1,
@@ -544,10 +602,16 @@ async def test_platform_work_worker_does_not_poll_scoreable_executions_when_scor
     await worker._cancel_scoring_tasks()
 
 
-async def test_platform_work_worker_does_not_start_more_scoring_than_remaining_slots_from_large_response() -> None:
+async def test_platform_work_worker_does_not_start_more_scoring_than_remaining_slots_from_large_response() -> (
+    None
+):
     batch_id = uuid4()
     executions = tuple(
-        _platform_execution(batch_id=batch_id, artifact=_artifact(uid=index), task=_task(f"over-return-{index}"))
+        _platform_execution(
+            batch_id=batch_id,
+            artifact=_artifact(uid=index),
+            task=_task(f"over-return-{index}"),
+        )
         for index in range(1, 6)
     )
     score_started: list[UUID] = []
@@ -564,14 +628,22 @@ async def test_platform_work_worker_does_not_start_more_scoring_than_remaining_s
             assert active_scoring == ()
             return executions
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
-    async def score_execution(execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def score_execution(
+        execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         score_started.append(execution.task_id)
         await release_score.wait()
         return _platform_result(
-            _assignment(batch_id=execution.batch_id, artifact=execution.artifact, task=execution.task),
+            _assignment(
+                batch_id=execution.batch_id,
+                artifact=execution.artifact,
+                task=execution.task,
+            ),
             successful=True,
             validator_session_id=execution.validator_session_id,
         )
@@ -596,10 +668,16 @@ async def test_platform_work_worker_does_not_start_more_scoring_than_remaining_s
     await worker._cancel_scoring_tasks()
 
 
-async def test_platform_work_worker_rotates_scoreable_executions_across_scoring_entries() -> None:
+async def test_platform_work_worker_rotates_scoreable_executions_across_scoring_entries() -> (
+    None
+):
     batch_id = uuid4()
     executions = tuple(
-        _platform_execution(batch_id=batch_id, artifact=_artifact(uid=index), task=_task(f"rotate-{index}"))
+        _platform_execution(
+            batch_id=batch_id,
+            artifact=_artifact(uid=index),
+            task=_task(f"rotate-{index}"),
+        )
         for index in range(1, 5)
     )
     started: list[tuple[str, UUID]] = []
@@ -616,15 +694,23 @@ async def test_platform_work_worker_rotates_scoreable_executions_across_scoring_
             assert active_scoring == ()
             return executions
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
     def scoring_executor(model: str) -> ScoringExecutor:
-        async def score(execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+        async def score(
+            execution: PlatformOwnedTaskExecution,
+        ) -> PlatformOwnedTaskResult:
             started.append((model, execution.task_id))
             await release_score.wait()
             return _platform_result(
-                _assignment(batch_id=execution.batch_id, artifact=execution.artifact, task=execution.task),
+                _assignment(
+                    batch_id=execution.batch_id,
+                    artifact=execution.artifact,
+                    task=execution.task,
+                ),
                 successful=True,
                 validator_session_id=execution.validator_session_id,
             )
@@ -638,7 +724,9 @@ async def test_platform_work_worker_rotates_scoreable_executions_across_scoring_
             _MODEL_A: scoring_executor(_MODEL_A),
             _MODEL_B: scoring_executor(_MODEL_B),
         },
-        scoring_slot_config=_two_model_scoring_config(first_slot_limit=2, second_slot_limit=2),
+        scoring_slot_config=_two_model_scoring_config(
+            first_slot_limit=2, second_slot_limit=2
+        ),
         target_concurrency=1,
         max_active_artifacts=1,
     )
@@ -658,10 +746,16 @@ async def test_platform_work_worker_rotates_scoreable_executions_across_scoring_
     await worker._cancel_scoring_tasks()
 
 
-async def test_platform_work_worker_skips_full_scoring_entry_when_assigning_scoreable_executions() -> None:
+async def test_platform_work_worker_skips_full_scoring_entry_when_assigning_scoreable_executions() -> (
+    None
+):
     batch_id = uuid4()
     executions = tuple(
-        _platform_execution(batch_id=batch_id, artifact=_artifact(uid=index), task=_task(f"skip-full-{index}"))
+        _platform_execution(
+            batch_id=batch_id,
+            artifact=_artifact(uid=index),
+            task=_task(f"skip-full-{index}"),
+        )
         for index in range(1, 3)
     )
     started_models: list[str] = []
@@ -678,18 +772,26 @@ async def test_platform_work_worker_skips_full_scoring_entry_when_assigning_scor
             assert len(active_scoring) == 1
             return executions
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def never_complete() -> PlatformOwnedTaskResult:
         await asyncio.Event().wait()
         raise AssertionError("unreachable")
 
-    async def score_with_model_b(execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def score_with_model_b(
+        execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         started_models.append(_MODEL_B)
         await release_score.wait()
         return _platform_result(
-            _assignment(batch_id=execution.batch_id, artifact=execution.artifact, task=execution.task),
+            _assignment(
+                batch_id=execution.batch_id,
+                artifact=execution.artifact,
+                task=execution.task,
+            ),
             successful=True,
             validator_session_id=execution.validator_session_id,
         )
@@ -701,7 +803,9 @@ async def test_platform_work_worker_skips_full_scoring_entry_when_assigning_scor
             _MODEL_A: lambda _execution: never_complete(),
             _MODEL_B: score_with_model_b,
         },
-        scoring_slot_config=_two_model_scoring_config(first_slot_limit=1, second_slot_limit=2),
+        scoring_slot_config=_two_model_scoring_config(
+            first_slot_limit=1, second_slot_limit=2
+        ),
         target_concurrency=1,
         max_active_artifacts=1,
     )
@@ -727,19 +831,31 @@ async def test_platform_work_worker_skips_full_scoring_entry_when_assigning_scor
     await worker._cancel_scoring_tasks()
 
 
-async def test_platform_work_worker_result_pending_submission_consumes_only_assigned_entry_slot() -> None:
+async def test_platform_work_worker_result_pending_submission_consumes_only_assigned_entry_slot() -> (
+    None
+):
     batch_id = uuid4()
-    execution = _platform_execution(batch_id=batch_id, artifact=_artifact(uid=1), task=_task("pending-entry-slot"))
+    execution = _platform_execution(
+        batch_id=batch_id, artifact=_artifact(uid=1), task=_task("pending-entry-slot")
+    )
     started_models: list[str] = []
 
     class _Platform:
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
-    async def score_with_model_a(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
-        raise AssertionError("model A slot is already consumed by the result pending submission")
+    async def score_with_model_a(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
+        raise AssertionError(
+            "model A slot is already consumed by the result pending submission"
+        )
 
-    async def score_with_model_b(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def score_with_model_b(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         started_models.append(_MODEL_B)
         await asyncio.Event().wait()
         raise AssertionError("scoring task should be cancelled by the test")
@@ -751,11 +867,15 @@ async def test_platform_work_worker_result_pending_submission_consumes_only_assi
             _MODEL_A: score_with_model_a,
             _MODEL_B: score_with_model_b,
         },
-        scoring_slot_config=_two_model_scoring_config(first_slot_limit=1, second_slot_limit=1),
+        scoring_slot_config=_two_model_scoring_config(
+            first_slot_limit=1, second_slot_limit=1
+        ),
         target_concurrency=1,
         max_active_artifacts=1,
     )
-    _mark_scoring_result_pending_submission(worker, _platform_result(successful=True), model=_MODEL_A)
+    _mark_scoring_result_pending_submission(
+        worker, _platform_result(successful=True), model=_MODEL_A
+    )
 
     assert worker._remaining_scoring_slots() == 1
 
@@ -763,17 +883,25 @@ async def test_platform_work_worker_result_pending_submission_consumes_only_assi
     await asyncio.sleep(0)
 
     assert started_models == [_MODEL_B]
-    assert tuple(record.model for record in worker._active_scoring.values()) == (_MODEL_B,)
+    assert tuple(record.model for record in worker._active_scoring.values()) == (
+        _MODEL_B,
+    )
     assert worker._remaining_scoring_slots() == 0
     await worker._cancel_scoring_tasks()
 
 
-async def test_platform_work_worker_rejects_executor_map_that_does_not_match_config_entries() -> None:
-    async def score_execution(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+async def test_platform_work_worker_rejects_executor_map_that_does_not_match_config_entries() -> (
+    None
+):
+    async def score_execution(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         raise AssertionError("constructor should fail before scoring")
 
     class _Platform:
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
     with pytest.raises(ValueError, match="score_execution_by_model must match"):
@@ -787,7 +915,9 @@ async def test_platform_work_worker_rejects_executor_map_that_does_not_match_con
         )
 
 
-async def test_platform_work_worker_submits_results_while_work_poll_is_pending() -> None:
+async def test_platform_work_worker_submits_results_while_work_poll_is_pending() -> (
+    None
+):
     """Prevent slow assignment polling from blocking terminal result delivery."""
 
     result = _platform_result()
@@ -796,7 +926,9 @@ async def test_platform_work_worker_submits_results_while_work_poll_is_pending()
     submitted: list[tuple[PlatformOwnedTaskResult, ...]] = []
 
     class _Platform:
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             poll_started.set()
             await release_poll.wait()
             return ()
@@ -835,7 +967,9 @@ async def test_platform_work_worker_cancels_pending_work_poll() -> None:
     poll_cancelled = asyncio.Event()
 
     class _Platform:
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             poll_started.set()
             try:
                 await asyncio.Event().wait()
@@ -843,7 +977,9 @@ async def test_platform_work_worker_cancels_pending_work_poll() -> None:
                 poll_cancelled.set()
                 raise
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     worker = PlatformWorkWorker(
@@ -880,10 +1016,14 @@ async def test_platform_work_worker_cancels_pending_scoreable_poll() -> None:
             release_poll.wait()
             return ()
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
-    async def unexpected_score_execution(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def unexpected_score_execution(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         raise AssertionError("no scoreable execution should be returned")
 
     worker = PlatformWorkWorker(
@@ -933,13 +1073,19 @@ async def test_platform_work_worker_cancels_active_scoring_on_stop() -> None:
             self.requested = True
             return (execution,)
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
             return ()
 
-    async def score_execution(_execution: PlatformOwnedTaskExecution) -> PlatformOwnedTaskResult:
+    async def score_execution(
+        _execution: PlatformOwnedTaskExecution,
+    ) -> PlatformOwnedTaskResult:
         scoring_started.set()
         try:
             await asyncio.Event().wait()
@@ -965,12 +1111,16 @@ async def test_platform_work_worker_cancels_active_scoring_on_stop() -> None:
     assert worker._active_scoring == {}
 
 
-async def test_platform_work_worker_freezes_active_attempts_before_scheduling_work_poll() -> None:
+async def test_platform_work_worker_freezes_active_attempts_before_scheduling_work_poll() -> (
+    None
+):
     """Prevent a scheduled work poll from observing a later unreportable starting state."""
 
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("scheduled"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("scheduled")
+    )
     captured_active_attempts: list[tuple[PlatformTaskAttemptIdentity, ...]] = []
 
     class _Platform:
@@ -983,7 +1133,9 @@ async def test_platform_work_worker_freezes_active_attempts_before_scheduling_wo
             captured_active_attempts.append(active_attempts)
             return ()
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     worker = PlatformWorkWorker(
@@ -1021,7 +1173,9 @@ async def test_platform_work_worker_freezes_active_attempts_before_scheduling_wo
     ]
 
 
-async def test_platform_work_worker_removes_acknowledged_rejected_result(caplog: pytest.LogCaptureFixture) -> None:
+async def test_platform_work_worker_removes_acknowledged_rejected_result(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Prevent an explicitly rejected result from blocking future work forever."""
 
     result = _platform_result()
@@ -1059,7 +1213,10 @@ async def test_platform_work_worker_removes_acknowledged_rejected_result(caplog:
 
     assert worker._results_pending_submission == []
     assert "platform rejected miner task result" in caplog.text
-    assert any(record.__dict__.get("reason_code") == "conflicting_replay" for record in caplog.records)
+    assert any(
+        record.__dict__.get("reason_code") == "conflicting_replay"
+        for record in caplog.records
+    )
     assert observed["request_work_kwargs"] == {
         "target_concurrency": 1,
         "max_active_artifacts": 1,
@@ -1067,11 +1224,17 @@ async def test_platform_work_worker_removes_acknowledged_rejected_result(caplog:
     }
 
 
-async def test_worker_groups_assignments_by_artifact_and_reports_all_active_attempts() -> None:
+async def test_worker_groups_assignments_by_artifact_and_reports_all_active_attempts() -> (
+    None
+):
     batch_id = uuid4()
     artifacts = tuple(_artifact(uid=index) for index in range(1, 5))
     assignments = tuple(
-        _assignment(batch_id=batch_id, artifact=artifact, task=_task(f"{artifact.uid}-{task_index}"))
+        _assignment(
+            batch_id=batch_id,
+            artifact=artifact,
+            task=_task(f"{artifact.uid}-{task_index}"),
+        )
         for artifact in artifacts
         for task_index in range(5)
     )
@@ -1080,13 +1243,17 @@ async def test_worker_groups_assignments_by_artifact_and_reports_all_active_atte
         def __init__(self) -> None:
             self.requested = False
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             if self.requested:
                 return ()
             self.requested = True
             return assignments
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def idle_executor(
@@ -1120,11 +1287,15 @@ async def test_worker_groups_assignments_by_artifact_and_reports_all_active_atte
     await worker._cancel_artifact_group_tasks()
 
 
-async def test_worker_does_not_release_reservations_while_artifact_startup_is_in_flight() -> None:
+async def test_worker_does_not_release_reservations_while_artifact_startup_is_in_flight() -> (
+    None
+):
     clock = _MonotonicClock()
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("never-started"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("never-started")
+    )
     request_active_attempts: list[tuple[PlatformTaskAttemptIdentity, ...]] = []
 
     class _Platform:
@@ -1141,7 +1312,9 @@ async def test_worker_does_not_release_reservations_while_artifact_startup_is_in
             self.request_count += 1
             return (assignment,) if self.request_count == 1 else ()
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     startup_assignment_seen = asyncio.Event()
@@ -1194,10 +1367,14 @@ async def test_worker_does_not_release_reservations_while_artifact_startup_is_in
     await worker._cancel_artifact_group_tasks()
 
 
-async def test_claimed_assignment_counts_capacity_but_is_not_reportable_until_started() -> None:
+async def test_claimed_assignment_counts_capacity_but_is_not_reportable_until_started() -> (
+    None
+):
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("claimed"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("claimed")
+    )
     group = _assigned_group(artifact_id=artifact.artifact_id)
     session_id = uuid4()
 
@@ -1223,10 +1400,14 @@ async def test_claimed_assignment_counts_capacity_but_is_not_reportable_until_st
     )
 
 
-async def test_claimed_assignment_failure_before_start_enqueues_result_and_clears_capacity() -> None:
+async def test_claimed_assignment_failure_before_start_enqueues_result_and_clears_capacity() -> (
+    None
+):
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("start-failed"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("start-failed")
+    )
     group = _assigned_group(artifact_id=artifact.artifact_id)
     result = _platform_result(
         assignment=assignment,
@@ -1247,22 +1428,30 @@ async def test_claimed_assignment_failure_before_start_enqueues_result_and_clear
     assert group.result_queue.empty()
 
 
-async def test_mark_started_does_not_resurrect_released_dispatchable_assignment() -> None:
+async def test_mark_started_does_not_resurrect_released_dispatchable_assignment() -> (
+    None
+):
     clock = _MonotonicClock()
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("released"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("released")
+    )
     dispatch_ready = asyncio.Event()
 
     class _Platform:
         def __init__(self) -> None:
             self.request_count = 0
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             self.request_count += 1
             return (assignment,) if self.request_count == 1 else ()
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def queued_executor(
@@ -1298,21 +1487,29 @@ async def test_mark_started_does_not_resurrect_released_dispatchable_assignment(
     await worker._cancel_artifact_group_tasks()
 
 
-async def test_worker_counts_startup_reservations_against_capacity_without_time_expiry() -> None:
+async def test_worker_counts_startup_reservations_against_capacity_without_time_expiry() -> (
+    None
+):
     clock = _MonotonicClock()
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("capacity"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("capacity")
+    )
 
     class _Platform:
         def __init__(self) -> None:
             self.request_count = 0
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             self.request_count += 1
             return (assignment,) if self.request_count == 1 else ()
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def never_starting_executor(
@@ -1346,19 +1543,29 @@ async def test_worker_counts_startup_reservations_against_capacity_without_time_
     await worker._cancel_artifact_group_tasks()
 
 
-async def test_worker_does_not_poll_platform_when_closing_group_still_consumes_only_artifact_slot() -> None:
+async def test_worker_does_not_poll_platform_when_closing_group_still_consumes_only_artifact_slot() -> (
+    None
+):
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("closing"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("closing")
+    )
     group = _assigned_group(artifact_id=artifact.artifact_id)
     group.state = platform_work_worker_module._ArtifactGroupState.CLOSING
     group.put_nowait(assignment)
 
     class _Platform:
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
-            raise AssertionError("worker must not request work while an artifact group is closing")
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
+            raise AssertionError(
+                "worker must not request work while an artifact group is closing"
+            )
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     worker = PlatformWorkWorker(
@@ -1374,7 +1581,9 @@ async def test_worker_does_not_poll_platform_when_closing_group_still_consumes_o
     assert group.state is platform_work_worker_module._ArtifactGroupState.CLOSING
 
 
-async def test_worker_polls_platform_when_idle_closing_group_does_not_own_capacity() -> None:
+async def test_worker_polls_platform_when_idle_closing_group_does_not_own_capacity() -> (
+    None
+):
     """Prevent an idle cleanup task from blocking unrelated platform-owned assignments."""
 
     old_batch_id = uuid4()
@@ -1384,17 +1593,23 @@ async def test_worker_polls_platform_when_idle_closing_group_does_not_own_capaci
 
     new_batch_id = uuid4()
     new_artifact = _artifact(uid=2)
-    new_assignment = _assignment(batch_id=new_batch_id, artifact=new_artifact, task=_task("new"))
+    new_assignment = _assignment(
+        batch_id=new_batch_id, artifact=new_artifact, task=_task("new")
+    )
 
     class _Platform:
         request_count = 0
 
-        async def request_miner_task_work(self, **kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             self.request_count += 1
             assert kwargs["active_attempts"] == ()
             return (new_assignment,)
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     platform = _Platform()
@@ -1410,13 +1625,20 @@ async def test_worker_polls_platform_when_idle_closing_group_does_not_own_capaci
 
     assert platform.request_count == 1
     assert (new_batch_id, new_artifact.artifact_id) in worker._active_artifacts
-    assert worker._active_artifacts[(new_batch_id, new_artifact.artifact_id)].local_inflight_count() == 1
+    assert (
+        worker._active_artifacts[
+            (new_batch_id, new_artifact.artifact_id)
+        ].local_inflight_count()
+        == 1
+    )
 
 
 async def test_worker_can_poll_after_result_ack_releases_idle_group_capacity() -> None:
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("finished"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("finished")
+    )
     result = _platform_result(assignment=assignment)
     group = _assigned_group(artifact_id=artifact.artifact_id)
     assert group.put_nowait(assignment)
@@ -1460,10 +1682,14 @@ async def test_worker_can_poll_after_result_ack_releases_idle_group_capacity() -
     assert group.local_inflight_count() == 0
 
 
-async def test_worker_does_not_poll_platform_while_claimed_assignment_is_unreportable() -> None:
+async def test_worker_does_not_poll_platform_while_claimed_assignment_is_unreportable() -> (
+    None
+):
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("claimed"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("claimed")
+    )
     group = _assigned_group(artifact_id=artifact.artifact_id)
     assert group.put_nowait(assignment)
     group.mark_dispatch_ready()
@@ -1473,10 +1699,16 @@ async def test_worker_does_not_poll_platform_while_claimed_assignment_is_unrepor
     assert group.reportable_identities() == ()
 
     class _Platform:
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[object, ...]:
-            raise AssertionError("worker must not request work while claimed assignments are unreportable")
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[object, ...]:
+            raise AssertionError(
+                "worker must not request work while claimed assignments are unreportable"
+            )
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     worker = PlatformWorkWorker(
@@ -1493,11 +1725,17 @@ async def test_worker_does_not_poll_platform_while_claimed_assignment_is_unrepor
     assert worker._local_inflight_count() == 1
 
 
-async def test_worker_can_poll_when_full_artifact_capacity_is_open_and_reportable() -> None:
+async def test_worker_can_poll_when_full_artifact_capacity_is_open_and_reportable() -> (
+    None
+):
     batch_id = uuid4()
     artifacts = (_artifact(uid=1), _artifact(uid=2))
-    first_assignment = _assignment(batch_id=batch_id, artifact=artifacts[0], task=_task("first"))
-    second_assignment = _assignment(batch_id=batch_id, artifact=artifacts[1], task=_task("second"))
+    first_assignment = _assignment(
+        batch_id=batch_id, artifact=artifacts[0], task=_task("first")
+    )
+    second_assignment = _assignment(
+        batch_id=batch_id, artifact=artifacts[1], task=_task("second")
+    )
     request_active_attempts: list[tuple[PlatformTaskAttemptIdentity, ...]] = []
 
     class _Platform:
@@ -1510,7 +1748,9 @@ async def test_worker_can_poll_when_full_artifact_capacity_is_open_and_reportabl
             request_active_attempts.append(active_attempts)
             return ()
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     worker = PlatformWorkWorker(
@@ -1536,27 +1776,43 @@ async def test_worker_can_poll_when_full_artifact_capacity_is_open_and_reportabl
         (attempt.artifact_id, attempt.task_id, attempt.validator_session_id)
         for attempt in request_active_attempts[0]
     } == {
-        (first_assignment.artifact.artifact_id, first_assignment.task.task_id, UUID(int=1)),
-        (second_assignment.artifact.artifact_id, second_assignment.task.task_id, UUID(int=2)),
+        (
+            first_assignment.artifact.artifact_id,
+            first_assignment.task.task_id,
+            UUID(int=1),
+        ),
+        (
+            second_assignment.artifact.artifact_id,
+            second_assignment.task.task_id,
+            UUID(int=2),
+        ),
     }
 
 
-async def test_worker_resumes_polling_after_closed_artifact_group_is_collected() -> None:
+async def test_worker_resumes_polling_after_closed_artifact_group_is_collected() -> (
+    None
+):
     old_batch_id = uuid4()
     old_artifact = _artifact(uid=1)
     new_batch_id = uuid4()
     new_artifact = _artifact(uid=2)
-    new_assignment = _assignment(batch_id=new_batch_id, artifact=new_artifact, task=_task("new"))
+    new_assignment = _assignment(
+        batch_id=new_batch_id, artifact=new_artifact, task=_task("new")
+    )
 
     class _Platform:
         def __init__(self) -> None:
             self.request_count = 0
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             self.request_count += 1
             return (new_assignment,)
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def completed_executor() -> None:
@@ -1594,11 +1850,15 @@ async def test_worker_resumes_polling_after_closed_artifact_group_is_collected()
     await worker._cancel_artifact_group_tasks()
 
 
-async def test_worker_does_not_release_started_assignment_when_pre_start_lease_expires() -> None:
+async def test_worker_does_not_release_started_assignment_when_pre_start_lease_expires() -> (
+    None
+):
     clock = _MonotonicClock()
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("started"))
+    assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("started")
+    )
     session_id = uuid4()
     request_active_attempts: list[tuple[PlatformTaskAttemptIdentity, ...]] = []
     started = asyncio.Event()
@@ -1617,7 +1877,9 @@ async def test_worker_does_not_release_started_assignment_when_pre_start_lease_e
             self.request_count += 1
             return (assignment,) if self.request_count == 1 else ()
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def starting_executor(
@@ -1648,7 +1910,9 @@ async def test_worker_does_not_release_started_assignment_when_pre_start_lease_e
     await _wait_for_work_request_done(worker)
 
     group = next(iter(worker._active_artifacts.values()))
-    assert next(iter(group.assignment_records.values())).state is _AssignmentState.STARTED
+    assert (
+        next(iter(group.assignment_records.values())).state is _AssignmentState.STARTED
+    )
     assert group.task is not None
     assert not group.task.done()
     assert request_active_attempts[-1] == (
@@ -1665,12 +1929,18 @@ async def test_worker_does_not_release_started_assignment_when_pre_start_lease_e
     await worker._cancel_artifact_group_tasks()
 
 
-async def test_worker_expires_queued_reservation_inside_started_group_without_dropping_reassignment() -> None:
+async def test_worker_expires_queued_reservation_inside_started_group_without_dropping_reassignment() -> (
+    None
+):
     clock = _MonotonicClock()
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    started_assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("started"))
-    queued_assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("queued"))
+    started_assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("started")
+    )
+    queued_assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("queued")
+    )
     session_id = uuid4()
     request_active_attempts: list[tuple[PlatformTaskAttemptIdentity, ...]] = []
     started = asyncio.Event()
@@ -1693,7 +1963,9 @@ async def test_worker_expires_queued_reservation_inside_started_group_without_dr
                 return (queued_assignment,)
             return ()
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def starts_only_first_assignment(
@@ -1761,8 +2033,7 @@ async def test_worker_expires_queued_reservation_inside_started_group_without_dr
 
     assert group.local_inflight_count() == 1
     assert {
-        record.assignment.task.task_id
-        for record in group.assignment_records.values()
+        record.assignment.task.task_id for record in group.assignment_records.values()
     } == {started_assignment.task.task_id}
     assert group.assignment_queue.empty()
 
@@ -1770,7 +2041,9 @@ async def test_worker_expires_queued_reservation_inside_started_group_without_dr
     await worker._cancel_artifact_group_tasks()
 
 
-async def test_worker_submits_finished_task_results_without_waiting_for_artifact_group_to_close() -> None:
+async def test_worker_submits_finished_task_results_without_waiting_for_artifact_group_to_close() -> (
+    None
+):
     batch_id = uuid4()
     artifact = _artifact(uid=1)
     first = _assignment(batch_id=batch_id, artifact=artifact, task=_task("first"))
@@ -1782,7 +2055,9 @@ async def test_worker_submits_finished_task_results_without_waiting_for_artifact
         def __init__(self) -> None:
             self.request_count = 0
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             self.request_count += 1
             return (first, second) if self.request_count == 1 else ()
 
@@ -1838,18 +2113,24 @@ async def test_worker_keeps_same_artifact_assignments_separate_across_batches() 
     second_batch_id = uuid4()
     artifact = _artifact(uid=1)
     first = _assignment(batch_id=first_batch_id, artifact=artifact, task=_task("first"))
-    second = _assignment(batch_id=second_batch_id, artifact=artifact, task=_task("second"))
+    second = _assignment(
+        batch_id=second_batch_id, artifact=artifact, task=_task("second")
+    )
     started_batches: list[UUID] = []
 
     class _Platform:
         def __init__(self) -> None:
             self.request_count = 0
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             self.request_count += 1
             return (first,) if self.request_count == 1 else (second,)
 
-        def submit_miner_task_work_results(self, _results: object) -> tuple[object, ...]:
+        def submit_miner_task_work_results(
+            self, _results: object
+        ) -> tuple[object, ...]:
             return ()
 
     async def idle_executor(
@@ -1902,7 +2183,9 @@ async def test_worker_collects_result_from_group_that_finishes_before_cleanup() 
         def __init__(self) -> None:
             self.requested = False
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             if self.requested:
                 return ()
             self.requested = True
@@ -1944,7 +2227,9 @@ async def test_worker_collects_result_from_group_that_finishes_before_cleanup() 
     assert worker._results_pending_submission == []
 
 
-async def test_worker_delivery_failure_clears_group_identities_and_frees_capacity() -> None:
+async def test_worker_delivery_failure_clears_group_identities_and_frees_capacity() -> (
+    None
+):
     batch_id = uuid4()
     artifact = _artifact(uid=1)
     assignments = tuple(
@@ -1958,7 +2243,9 @@ async def test_worker_delivery_failure_clears_group_identities_and_frees_capacit
         def __init__(self) -> None:
             self.requested = False
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             if self.requested:
                 return ()
             self.requested = True
@@ -2021,13 +2308,19 @@ async def test_worker_delivery_failure_clears_group_identities_and_frees_capacit
     assert worker._active_artifacts == {}
 
 
-async def test_worker_defers_delivery_failure_until_started_sibling_result_is_collected() -> None:
+async def test_worker_defers_delivery_failure_until_started_sibling_result_is_collected() -> (
+    None
+):
     """Prevent platform-wide dispatch failure from racing ahead of a started sibling result."""
 
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    delivery_assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("delivery"))
-    sibling_assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("sibling"))
+    delivery_assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("delivery")
+    )
+    sibling_assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("sibling")
+    )
     delivery_emitted = asyncio.Event()
     release_sibling = asyncio.Event()
     submitted: list[tuple[PlatformOwnedTaskResult, ...]] = []
@@ -2036,7 +2329,9 @@ async def test_worker_defers_delivery_failure_until_started_sibling_result_is_co
         def __init__(self) -> None:
             self.requested = False
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             if self.requested:
                 return ()
             self.requested = True
@@ -2109,13 +2404,21 @@ async def test_worker_defers_delivery_failure_until_started_sibling_result_is_co
         sibling_assignment.task.task_id,
         delivery_assignment.task.task_id,
     ]
-    assert submitted[0][0].terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
-    assert submitted[0][1].terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert (
+        submitted[0][0].terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
+    assert (
+        submitted[0][1].terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
     assert worker._results_pending_submission == []
     assert worker._active_artifacts == {}
 
 
-async def test_worker_collects_all_results_before_clearing_closed_artifact_group() -> None:
+async def test_worker_collects_all_results_before_clearing_closed_artifact_group() -> (
+    None
+):
     batch_id = uuid4()
     artifact = _artifact(uid=1)
     assignments = tuple(
@@ -2128,7 +2431,9 @@ async def test_worker_collects_all_results_before_clearing_closed_artifact_group
         def __init__(self) -> None:
             self.requested = False
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             if self.requested:
                 return ()
             self.requested = True
@@ -2173,29 +2478,40 @@ async def test_worker_collects_all_results_before_clearing_closed_artifact_group
     await worker.run_once()
 
     assert len(submitted) == 1
-    assert {result.task_id for result in submitted[0]} == {assignment.task.task_id for assignment in assignments}
+    assert {result.task_id for result in submitted[0]} == {
+        assignment.task.task_id for assignment in assignments
+    }
     assert all(
-        result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
         for result in submitted[0]
     )
     assert worker._active_artifacts == {}
     assert worker._results_pending_submission == []
 
 
-async def test_worker_submits_deferred_delivery_failure_when_executor_closes_with_started_sibling() -> None:
+async def test_worker_submits_deferred_delivery_failure_when_executor_closes_with_started_sibling() -> (
+    None
+):
     """Prevent a deferred delivery-wide failure from disappearing during executor-close cleanup."""
 
     batch_id = uuid4()
     artifact = _artifact(uid=1)
-    delivery_assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("delivery"))
-    sibling_assignment = _assignment(batch_id=batch_id, artifact=artifact, task=_task("sibling"))
+    delivery_assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("delivery")
+    )
+    sibling_assignment = _assignment(
+        batch_id=batch_id, artifact=artifact, task=_task("sibling")
+    )
     submitted: list[tuple[PlatformOwnedTaskResult, ...]] = []
 
     class _Platform:
         def __init__(self) -> None:
             self.requested = False
 
-        async def request_miner_task_work(self, **_kwargs: object) -> tuple[MinerTaskWorkAssignment, ...]:
+        async def request_miner_task_work(
+            self, **_kwargs: object
+        ) -> tuple[MinerTaskWorkAssignment, ...]:
             if self.requested:
                 return ()
             self.requested = True
@@ -2240,13 +2556,20 @@ async def test_worker_submits_deferred_delivery_failure_when_executor_closes_wit
     await worker.run_once()
 
     assert len(submitted) == 1
-    assert [result.task_id for result in submitted[0]] == [delivery_assignment.task.task_id]
-    assert submitted[0][0].terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert [result.task_id for result in submitted[0]] == [
+        delivery_assignment.task.task_id
+    ]
+    assert (
+        submitted[0][0].terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
     assert worker._results_pending_submission == []
     assert worker._active_artifacts == {}
 
 
-async def _unexpected_execute_artifact_assignments(*args: object, **kwargs: object) -> None:
+async def _unexpected_execute_artifact_assignments(
+    *args: object, **kwargs: object
+) -> None:
     raise AssertionError("worker must not execute assignments in this test")
 
 
@@ -2363,15 +2686,21 @@ def _platform_result(
             miner_hotkey_ss58="miner-hotkey",
             started_at=now,
             finished_at=now,
-            status=MinerTaskAttemptStatus.FAILED
-            if terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
-            else MinerTaskAttemptStatus.SUCCEEDED,
-            error_code="artifact_setup_failed"
-            if terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
-            else None,
-            error_summary_code="artifact_setup_failed"
-            if terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
-            else None,
+            status=(
+                MinerTaskAttemptStatus.FAILED
+                if terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+                else MinerTaskAttemptStatus.SUCCEEDED
+            ),
+            error_code=(
+                "artifact_setup_failed"
+                if terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+                else None
+            ),
+            error_summary_code=(
+                "artifact_setup_failed"
+                if terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+                else None
+            ),
             retry_decision=MinerTaskAttemptRetryDecision.WILL_NOT_RETRY,
             terminal_effect=terminal_effect,
             max_attempts=2,

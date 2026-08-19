@@ -9,11 +9,18 @@ from aiobotocore.session import get_session
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError, ParamValidationError
 
-from harnyx_commons.llm.cost_settlement import settled_response_cost, with_settled_llm_cost
+from harnyx_commons.llm.cost_settlement import (
+    settled_response_cost,
+    with_settled_llm_cost,
+)
 from harnyx_commons.llm.provider import BaseLlmProvider
 from harnyx_commons.llm.schema import AbstractLlmRequest, LlmRequest, LlmResponse
 
-from .bedrock_codec import BEDROCK_STREAM_EVENT_ADAPTER, BedrockConverseStreamRequest, BedrockStreamAccumulator
+from .bedrock_codec import (
+    BEDROCK_STREAM_EVENT_ADAPTER,
+    BedrockConverseStreamRequest,
+    BedrockStreamAccumulator,
+)
 
 _ALLOWED_MODELS = frozenset(
     {
@@ -65,7 +72,9 @@ class BedrockLlmProvider(BaseLlmProvider):
         validated_request = _validate_request(request)
         return await self._call_with_retry(
             validated_request,
-            call_coro=lambda current_request: self._call_bedrock(_validate_request(current_request)),
+            call_coro=lambda current_request: self._call_bedrock(
+                _validate_request(current_request)
+            ),
             verifier=self._verify_response,
             classify_exception=self._classify_exception,
             policy=validated_request.retry_policy,
@@ -80,7 +89,9 @@ class BedrockLlmProvider(BaseLlmProvider):
         if cost is None:
             self._logger.warning(
                 "bedrock.cost_settlement.unavailable",
-                extra={"data": {"provider": self._provider_label, "model": request.model}},
+                extra={
+                    "data": {"provider": self._provider_label, "model": request.model}
+                },
             )
             return response
         return with_settled_llm_cost(response, cost)
@@ -110,7 +121,9 @@ class BedrockLlmProvider(BaseLlmProvider):
                     ttft_ms = round((time.perf_counter() - started_at) * 1000, 2)
 
         response_id = accumulator.response_id()
-        self._log_stream_ttft(model=request.model, response_id=response_id, ttft_ms=ttft_ms)
+        self._log_stream_ttft(
+            model=request.model, response_id=response_id, ttft_ms=ttft_ms
+        )
         llm_response = accumulator.to_llm_response()
         metadata = dict(llm_response.metadata or {})
         if ttft_ms is not None:
@@ -157,7 +170,9 @@ class BedrockLlmProvider(BaseLlmProvider):
             return True, exc.__class__.__name__
         return False, str(exc)
 
-    def _log_stream_ttft(self, *, model: str, response_id: str, ttft_ms: float | None) -> None:
+    def _log_stream_ttft(
+        self, *, model: str, response_id: str, ttft_ms: float | None
+    ) -> None:
         if ttft_ms is None:
             return
         self._logger.debug(
@@ -194,7 +209,9 @@ def _build_client_config(
     request_timeout_seconds: float | None,
 ) -> Config:
     read_timeout_seconds = (
-        request_timeout_seconds if request_timeout_seconds is not None else default_read_timeout_seconds
+        request_timeout_seconds
+        if request_timeout_seconds is not None
+        else default_read_timeout_seconds
     )
     return Config(
         connect_timeout=connect_timeout_seconds,
@@ -207,7 +224,10 @@ def _build_client_config(
 
 
 def _is_expired_signature_error(*, code: str, message: str) -> bool:
-    return code == _SIGNATURE_EXPIRED_ERROR_CODE and _SIGNATURE_EXPIRED_MESSAGE_FRAGMENT in message
+    return (
+        code == _SIGNATURE_EXPIRED_ERROR_CODE
+        and _SIGNATURE_EXPIRED_MESSAGE_FRAGMENT in message
+    )
 
 
 __all__ = ["BedrockLlmProvider"]

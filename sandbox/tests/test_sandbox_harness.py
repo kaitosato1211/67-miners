@@ -83,7 +83,9 @@ def _make_worker_payload() -> dict[str, object]:
 
 
 @pytest.mark.anyio("asyncio")
-async def test_worker_result_wait_does_not_use_executor_thread(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_worker_result_wait_does_not_use_executor_thread(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pipe = WorkerResultPipe.open()
     process = _FakeWorkerProcess()
 
@@ -94,7 +96,9 @@ async def test_worker_result_wait_does_not_use_executor_thread(monkeypatch: pyte
         return func(*args)
 
     monkeypatch.setattr(asyncio, "to_thread", decode_without_executor)
-    monkeypatch.setattr(asyncio.get_running_loop(), "run_in_executor", fail_run_in_executor)
+    monkeypatch.setattr(
+        asyncio.get_running_loop(), "run_in_executor", fail_run_in_executor
+    )
 
     async def send_result() -> None:
         await asyncio.sleep(0)
@@ -173,7 +177,9 @@ async def test_worker_result_partial_frame_does_not_block_event_loop() -> None:
     process = _FakeWorkerProcess()
     os.write(pipe.write_fd, struct.pack(">Q", 100) + b"partial")
 
-    wait_task = asyncio.create_task(WorkerResultReader(process=process, pipe=pipe).wait(timeout=1.0))
+    wait_task = asyncio.create_task(
+        WorkerResultReader(process=process, pipe=pipe).wait(timeout=1.0)
+    )
     await asyncio.sleep(0)
     await asyncio.sleep(0)
 
@@ -339,7 +345,11 @@ async def test_worker_process_join_allows_output_readers_to_advance(
     async def completed_result(*_args: object) -> tuple[str, object]:
         return "ok", {"status": "ready"}
 
-    monkeypatch.setattr(harness, "_spawn_worker", lambda _payload: (process, object(), object(), object()))
+    monkeypatch.setattr(
+        harness,
+        "_spawn_worker",
+        lambda _payload: (process, object(), object(), object()),
+    )
     monkeypatch.setattr(harness, "_await_worker_result", completed_result)
     monkeypatch.setattr(harness_module, "WorkerOutputReader", AdvancingOutputReader)
 
@@ -385,11 +395,17 @@ async def test_worker_process_cancellation_waits_for_join_and_output_readers(
     async def completed_result(*_args: object) -> tuple[str, object]:
         return "ok", {"status": "ready"}
 
-    monkeypatch.setattr(harness, "_spawn_worker", lambda _payload: (process, object(), object(), object()))
+    monkeypatch.setattr(
+        harness,
+        "_spawn_worker",
+        lambda _payload: (process, object(), object(), object()),
+    )
     monkeypatch.setattr(harness, "_await_worker_result", completed_result)
     monkeypatch.setattr(harness_module, "WorkerOutputReader", WaitingOutputReader)
 
-    invocation_task = asyncio.create_task(harness._invoke_with_worker(_make_worker_payload()))
+    invocation_task = asyncio.create_task(
+        harness._invoke_with_worker(_make_worker_payload())
+    )
     assert await asyncio.to_thread(join_started.wait, 1.0)
     invocation_task.cancel()
     await asyncio.sleep(0)
@@ -442,8 +458,12 @@ def test_spawn_worker_closes_every_acquired_pipe_after_partial_setup_failure(
             if failure_step == "start":
                 raise RuntimeError("process start failed")
 
-    monkeypatch.setattr(harness_module.WorkerResultPipe, "open", lambda: open_pipe("result"))
-    monkeypatch.setattr(harness_module.WorkerOutputPipe, "open", lambda: open_pipe("output"))
+    monkeypatch.setattr(
+        harness_module.WorkerResultPipe, "open", lambda: open_pipe("result")
+    )
+    monkeypatch.setattr(
+        harness_module.WorkerOutputPipe, "open", lambda: open_pipe("output")
+    )
     harness._mp = SimpleNamespace(Process=Process)
 
     with pytest.raises(RuntimeError, match="failed"):
@@ -483,7 +503,9 @@ async def test_parent_oversized_frame_is_parent_infrastructure_failure(
 
 
 @pytest.mark.anyio("asyncio")
-async def test_worker_result_too_large_is_structured_worker_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_worker_result_too_large_is_structured_worker_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pipe = WorkerResultPipe.open()
     process = _FakeWorkerProcess()
     monkeypatch.setattr(harness_module, "MAX_WORKER_RESULT_BYTES", 1024)
@@ -493,7 +515,9 @@ async def test_worker_result_too_large_is_structured_worker_error(monkeypatch: p
     process.finish()
 
     try:
-        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(timeout=1.0)
+        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(
+            timeout=1.0
+        )
     finally:
         process.close()
 
@@ -502,7 +526,9 @@ async def test_worker_result_too_large_is_structured_worker_error(monkeypatch: p
 
 
 @pytest.mark.anyio("asyncio")
-async def test_parent_reader_accepts_max_size_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parent_reader_accepts_max_size_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pipe = WorkerResultPipe.open()
     process = _FakeWorkerProcess()
     payload = b'{"status":"ok","result":{"value":"at-limit"}}'
@@ -524,7 +550,9 @@ async def test_parent_reader_accepts_max_size_payload(monkeypatch: pytest.Monkey
     "value",
     [
         pytest.param(("tuple",), id="tuple"),
-        pytest.param({1: "integer-key", "1": "string-key"}, id="non-string-colliding-key"),
+        pytest.param(
+            {1: "integer-key", "1": "string-key"}, id="non-string-colliding-key"
+        ),
         pytest.param(float("nan"), id="non-finite-number"),
     ],
 )
@@ -536,7 +564,9 @@ async def test_worker_rejects_non_json_success_values(value: object) -> None:
     process.finish()
 
     try:
-        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(timeout=1.0)
+        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(
+            timeout=1.0
+        )
     finally:
         process.close()
 
@@ -556,7 +586,9 @@ async def test_worker_rejects_builtin_json_subclasses() -> None:
     process.finish()
 
     try:
-        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(timeout=1.0)
+        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(
+            timeout=1.0
+        )
     finally:
         process.close()
 
@@ -581,7 +613,9 @@ async def test_worker_rejects_custom_result_without_using_reduce() -> None:
     process.finish()
 
     try:
-        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(timeout=1.0)
+        envelope = await WorkerResultReader(process=process, pipe=pipe).wait(
+            timeout=1.0
+        )
     finally:
         process.close()
 
@@ -595,7 +629,9 @@ async def test_worker_rejects_custom_result_without_using_reduce() -> None:
     "payload",
     [
         pytest.param(b'{"status":"ok","status":"ok","result":null}', id="top-level"),
-        pytest.param(b'{"status":"ok","result":{"value":1,"value":2}}', id="nested-result"),
+        pytest.param(
+            b'{"status":"ok","result":{"value":1,"value":2}}', id="nested-result"
+        ),
         pytest.param(
             b'{"status":"error","error":{"code":"x","exception":"x","message":"x","message":"y"}}',
             id="nested-error",
@@ -941,7 +977,9 @@ def test_worker_reports_preload_failure_with_phase_specific_code() -> None:
     clear_entrypoints()
 
     def preload() -> None:
-        raise TypeError("query entrypoint parameter must be annotated as harnyx_miner_sdk.query.Query")
+        raise TypeError(
+            "query entrypoint parameter must be annotated as harnyx_miner_sdk.query.Query"
+        )
 
     harness = SandboxHarness(preload=preload)
     app = FastAPI()
@@ -977,7 +1015,9 @@ def test_worker_reports_preload_infrastructure_failure_with_explicit_code() -> N
     assert response.json()["detail"]["exception"] == "ValueError"
 
 
-def test_worker_does_not_trust_miner_exception_named_like_infrastructure_error() -> None:
+def test_worker_does_not_trust_miner_exception_named_like_infrastructure_error() -> (
+    None
+):
     clear_entrypoints()
 
     class SandboxPreloadInfrastructureError(RuntimeError):
@@ -1003,21 +1043,27 @@ def test_worker_reports_query_runtime_type_error_as_unhandled_exception() -> Non
 
     @entrypoint("miner_runtime_type_error")
     async def runtime_type_error(_request: dict[str, object]) -> dict[str, object]:
-        raise TypeError("query entrypoint parameter must be annotated as harnyx_miner_sdk.query.Query")
+        raise TypeError(
+            "query entrypoint parameter must be annotated as harnyx_miner_sdk.query.Query"
+        )
 
     harness = SandboxHarness()
     app = FastAPI()
     app.include_router(harness.create_router(), prefix="/entry")
     client = TestClient(app)
 
-    response = client.post("/entry/miner_runtime_type_error", json={"payload": {}, "context": {}})
+    response = client.post(
+        "/entry/miner_runtime_type_error", json={"payload": {}, "context": {}}
+    )
 
     assert response.status_code == 500
     assert _detail_code(response) == "UnhandledException"
     assert response.json()["detail"]["exception"] == "TypeError"
 
 
-def test_load_agent_from_env_requires_agent_path(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_agent_from_env_requires_agent_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(sandbox_app, "_agent_loaded", False)
     monkeypatch.delenv("AGENT_PATH", raising=False)
     monkeypatch.delenv("AGENT_MODULE", raising=False)
@@ -1057,7 +1103,9 @@ def test_load_agent_from_env_wraps_loader_os_error_as_preload_infrastructure(
     monkeypatch.setattr(
         sandbox_app.runpy,
         "run_path",
-        lambda _path: (_ for _ in ()).throw(PermissionError(13, "denied", str(agent_path))),
+        lambda _path: (_ for _ in ()).throw(
+            PermissionError(13, "denied", str(agent_path))
+        ),
     )
 
     assert sandbox_app._load_agent_from_env() == SandboxPreloadFailure(
@@ -1077,8 +1125,12 @@ def test_load_agent_from_env_ignores_miner_monkeypatch_of_preload_globals(
     original_relative_to = path_type.relative_to
     sandbox_app_dict = vars(sandbox_app)
     missing = object()
-    original_loader_owned_helper = sandbox_app_dict.get("_is_loader_mounted_path_os_error", missing)
-    original_preload_failure_helper = sandbox_app_dict.get("_preload_infrastructure_failure", missing)
+    original_loader_owned_helper = sandbox_app_dict.get(
+        "_is_loader_mounted_path_os_error", missing
+    )
+    original_preload_failure_helper = sandbox_app_dict.get(
+        "_preload_infrastructure_failure", missing
+    )
     agent_path.write_text(
         "\n".join(
             [
@@ -1112,7 +1164,9 @@ def test_load_agent_from_env_ignores_miner_monkeypatch_of_preload_globals(
         if original_preload_failure_helper is missing:
             sandbox_app_dict.pop("_preload_infrastructure_failure", None)
         else:
-            sandbox_app._preload_infrastructure_failure = original_preload_failure_helper
+            sandbox_app._preload_infrastructure_failure = (
+                original_preload_failure_helper
+            )
 
 
 def test_load_agent_from_env_keeps_miner_runtime_os_error_miner_owned(

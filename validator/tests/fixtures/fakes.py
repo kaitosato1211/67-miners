@@ -99,5 +99,4 @@ class FakeReceiptLog(ReceiptLogPort):
         self._delegate.clear_session(session_id)
 
 
-
 __all__ = ["FakeAgentRegistry", "FakeReceiptLog", "FakeSessionRegistry"]

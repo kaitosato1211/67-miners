@@ -8,7 +8,11 @@ from harnyx_commons.llm.pricing import price_parallel_extract, price_parallel_se
 from harnyx_commons.tools.extraction_models import ExtractPagesRequest
 from harnyx_commons.tools.invocation_clients import build_miner_paid_web_search_provider
 from harnyx_commons.tools.parallel import ParallelClient
-from harnyx_commons.tools.search_models import FetchPageRequest, SearchAiSearchRequest, SearchWebSearchRequest
+from harnyx_commons.tools.search_models import (
+    FetchPageRequest,
+    SearchAiSearchRequest,
+    SearchWebSearchRequest,
+)
 
 pytestmark = [pytest.mark.integration, pytest.mark.anyio("asyncio")]
 
@@ -38,7 +42,9 @@ async def test_parallel_search_web_live() -> None:
         billing_response = await client.search_web(request)
         assert isinstance(billing_response.response.data, list)
         assert billing_response.billing is not None
-        assert billing_response.billing.billable_units == len(billing_response.response.data)
+        assert billing_response.billing.billable_units == len(
+            billing_response.response.data
+        )
         assert billing_response.billing.provider_request_id is not None
         assert billing_response.billing.source == "response_results"
         assert billing_response.billing.actual_cost_usd == pytest.approx(
@@ -60,7 +66,9 @@ async def test_parallel_search_web_live() -> None:
 
 @pytest.mark.flaky(reruns=1)
 @pytest.mark.expensive
-async def test_parallel_batch_extract_live_preserves_success_and_unavailable_url() -> None:
+async def test_parallel_batch_extract_live_preserves_success_and_unavailable_url() -> (
+    None
+):
     settings = LlmSettings()
     client = _build_parallel_client(settings)
     urls = (
@@ -84,11 +92,13 @@ async def test_parallel_batch_extract_live_preserves_success_and_unavailable_url
     extraction_summary = {
         "pages": [(page.url, bool(page.content)) for page in result.response.pages],
         "errors": [
-            (error.url, error.error_type, error.http_status_code) for error in result.response.errors
+            (error.url, error.error_type, error.http_status_code)
+            for error in result.response.errors
         ],
     }
     assert any(
-        page.url.rstrip("/") == urls[0].rstrip("/") and page.content for page in result.response.pages
+        page.url.rstrip("/") == urls[0].rstrip("/") and page.content
+        for page in result.response.pages
     ), extraction_summary
     assert any(
         error.url == urls[1] and error.error_type and error.http_status_code is not None
@@ -114,13 +124,22 @@ async def test_parallel_search_ai_live() -> None:
         billing_response = await client.search_ai(request)
         assert isinstance(billing_response.response.data, list)
         assert billing_response.billing is not None
-        assert billing_response.billing.billable_units == len(billing_response.response.data)
+        assert billing_response.billing.billable_units == len(
+            billing_response.response.data
+        )
         assert billing_response.billing.provider_request_id is not None
         assert billing_response.billing.source == "response_results"
         assert billing_response.billing.actual_cost_usd == pytest.approx(
-            price_parallel_search(billable_results=billing_response.billing.billable_units)
+            price_parallel_search(
+                billable_results=billing_response.billing.billable_units
+            )
         )
-        assert price_parallel_search(billable_results=billing_response.billing.billable_units) >= 0.005
+        assert (
+            price_parallel_search(
+                billable_results=billing_response.billing.billable_units
+            )
+            >= 0.005
+        )
     finally:
         await client.aclose()
 
@@ -143,13 +162,17 @@ async def test_parallel_fetch_page_live() -> None:
         assert response.data[0].url.rstrip("/") == "https://example.com"
         assert response.data[0].content
         assert billing_response.billing is not None
-        assert billing_response.billing.billable_units == len(billing_response.response.data)
+        assert billing_response.billing.billable_units == len(
+            billing_response.response.data
+        )
         assert billing_response.billing.provider_request_id is not None
         assert billing_response.billing.source in {"response_body", "request_body"}
         assert billing_response.billing.actual_cost_usd == pytest.approx(
             price_parallel_extract(url_count=billing_response.billing.billable_units)
         )
-        assert price_parallel_extract(url_count=billing_response.billing.billable_units) == pytest.approx(0.001)
+        assert price_parallel_extract(
+            url_count=billing_response.billing.billable_units
+        ) == pytest.approx(0.001)
     finally:
         await client.aclose()
 

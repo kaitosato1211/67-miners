@@ -80,14 +80,18 @@ def verify_signed_request(
     """Validate a Bittensor-signed request and return the parsed header."""
 
     if not authorization_header:
-        raise VerificationError("missing_authorization", "Authorization header is required")
+        raise VerificationError(
+            "missing_authorization", "Authorization header is required"
+        )
 
     try:
         parsed = parse_header(authorization_header)
     except VerificationError:
         raise
     except Exception as exc:
-        raise VerificationError("invalid_authorization_header", "Authorization header is invalid") from exc
+        raise VerificationError(
+            "invalid_authorization_header", "Authorization header is invalid"
+        ) from exc
 
     if allowed_ss58 is not None:
         allowed_set = set(allowed_ss58)
@@ -98,10 +102,14 @@ def verify_signed_request(
     try:
         signature = decode_auth_signature(parsed.signature_hex)
     except ValueError as exc:
-        raise VerificationError("invalid_signature_hex", "Signature must be hex-encoded") from exc
+        raise VerificationError(
+            "invalid_signature_hex", "Signature must be hex-encoded"
+        ) from exc
 
     if len(signature) != 64:
-        raise VerificationError("invalid_signature_length", "Signature must be 64 bytes")
+        raise VerificationError(
+            "invalid_signature_length", "Signature must be 64 bytes"
+        )
 
     try:
         keypair = bt.Keypair(ss58_address=parsed.ss58)

@@ -16,7 +16,10 @@ from harnyx_commons.application.ports.token_registry import TokenRegistryPort
 from harnyx_commons.domain.session import Session, SessionStatus
 from harnyx_commons.errors import SessionBudgetExhaustedError
 from harnyx_commons.sandbox.client import SandboxClient, SandboxInvokeError
-from harnyx_validator.application.dto.evaluation import EntrypointInvocationRequest, EntrypointInvocationResult
+from harnyx_validator.application.dto.evaluation import (
+    EntrypointInvocationRequest,
+    EntrypointInvocationResult,
+)
 
 QUERY_ENTRYPOINT = "query"
 
@@ -59,7 +62,9 @@ class EntrypointInvoker:
         self._tokens = token_registry
         self._receipts = receipt_log
 
-    async def invoke(self, request: EntrypointInvocationRequest) -> EntrypointInvocationResult:
+    async def invoke(
+        self, request: EntrypointInvocationRequest
+    ) -> EntrypointInvocationResult:
         """Invoke the requested entrypoint after validating the session token."""
         session = self._load_session(request.session_id)
         self._validate_session(session, request)
@@ -74,7 +79,9 @@ class EntrypointInvoker:
                 receipt_log=self._receipts,
             )
         except (MinerResponsePayloadError, ValidationError) as exc:
-            raise MinerResponseValidationError("miner returned invalid response payload") from exc
+            raise MinerResponseValidationError(
+                "miner returned invalid response payload"
+            ) from exc
         return EntrypointInvocationResult(
             response=hydrated_response,
             tool_receipts=receipts,
@@ -126,11 +133,15 @@ class EntrypointInvoker:
             raise RuntimeError(f"session {session_id} is not active")
         return session
 
-    def _validate_session(self, session: Session, request: EntrypointInvocationRequest) -> None:
+    def _validate_session(
+        self, session: Session, request: EntrypointInvocationRequest
+    ) -> None:
         if session.uid != request.uid:
             raise PermissionError("session UID does not match invocation UID")
         if not self._tokens.verify(session.session_id, request.token):
-            raise PermissionError("invalid session token presented for entrypoint invocation")
+            raise PermissionError(
+                "invalid session token presented for entrypoint invocation"
+            )
 
     def _raise_if_session_exhausted(
         self,
@@ -149,8 +160,11 @@ class EntrypointInvoker:
     def _load_post_invoke_session(self, session_id: UUID) -> Session:
         session = self._sessions.get(session_id)
         if session is None:
-            raise LookupError(f"session {session_id} not found after entrypoint invocation")
+            raise LookupError(
+                f"session {session_id} not found after entrypoint invocation"
+            )
         return session
+
 
 __all__ = [
     "EntrypointInvoker",

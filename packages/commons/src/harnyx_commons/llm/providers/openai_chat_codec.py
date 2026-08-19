@@ -64,7 +64,9 @@ class OpenAiChatResponseFormatPayload(BaseModel):
                     },
                 )
             case _:
-                raise ValueError(f"unsupported {provider_name} output_mode: {request.output_mode!r}")
+                raise ValueError(
+                    f"unsupported {provider_name} output_mode: {request.output_mode!r}"
+                )
 
 
 class OpenAiChatMessagePayload(BaseModel):
@@ -114,7 +116,9 @@ class OpenAiChatMessagePayload(BaseModel):
 
         if message.tool_calls:
             if message.role != "assistant" or tool_results:
-                raise ValueError("assistant tool_calls cannot be mixed with tool result parts")
+                raise ValueError(
+                    "assistant tool_calls cannot be mixed with tool result parts"
+                )
             return cls(
                 role="assistant",
                 content="\n".join(text_parts) or None,
@@ -187,9 +191,15 @@ class OpenAiChatRequestParts(BaseModel):
                 )
                 for message in request.messages
             ],
-            tools=[OpenAiChatToolPayload.from_tool(tool) for tool in request.tools] if request.tools else None,
+            tools=(
+                [OpenAiChatToolPayload.from_tool(tool) for tool in request.tools]
+                if request.tools
+                else None
+            ),
             tool_choice=(
-                dict(request.tool_choice) if isinstance(request.tool_choice, Mapping) else request.tool_choice
+                dict(request.tool_choice)
+                if isinstance(request.tool_choice, Mapping)
+                else request.tool_choice
             ),
             parallel_tool_calls=request.parallel_tool_calls,
             include=list(request.include) if request.include else None,

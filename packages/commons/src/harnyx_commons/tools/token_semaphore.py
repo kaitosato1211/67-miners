@@ -106,7 +106,9 @@ class TokenSemaphore:
         waiters = self._waiters.get(token)
         if waiters is None:
             return
-        self._waiters[token] = deque(queued for queued in waiters if queued is not waiter)
+        self._waiters[token] = deque(
+            queued for queued in waiters if queued is not waiter
+        )
         if not self._waiters[token]:
             del self._waiters[token]
 
@@ -138,7 +140,9 @@ def max_parallel_provider_tool_calls(
 class ToolConcurrencyLimiter:
     """Per-token tool concurrency for a miner script session."""
 
-    def __init__(self, limits: ToolConcurrencyLimits = DEFAULT_TOOL_CONCURRENCY_LIMITS) -> None:
+    def __init__(
+        self, limits: ToolConcurrencyLimits = DEFAULT_TOOL_CONCURRENCY_LIMITS
+    ) -> None:
         self._semaphore = TokenSemaphore(max_parallel_calls=limits.max_parallel_calls)
 
     def acquire(self, invocation: ToolInvocationRequest) -> None:

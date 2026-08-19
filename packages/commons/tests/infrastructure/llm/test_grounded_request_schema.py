@@ -111,7 +111,9 @@ def test_grounded_vertex_regular_claude_rejected() -> None:
         )
 
 
-def test_grounded_vertex_claude_web_search_model_allowed_without_additional_tools() -> None:
+def test_grounded_vertex_claude_web_search_model_allowed_without_additional_tools() -> (
+    None
+):
     request = GroundedLlmRequest(
         provider="vertex",
         model="publishers/anthropic/models/claude-sonnet-4-5@20250929",
@@ -153,9 +155,16 @@ def test_grounded_vertex_typoed_gemini_like_model_rejected() -> None:
         )
 
 
-def test_supports_grounded_additional_tools_matches_grounded_request_support_for_invalid_gemini_like_model() -> None:
-    assert supports_grounded_requests(provider="vertex", model="foo/gemini-typo") is False
-    assert supports_grounded_additional_tools(provider="vertex", model="foo/gemini-typo") is False
+def test_supports_grounded_additional_tools_matches_grounded_request_support_for_invalid_gemini_like_model() -> (
+    None
+):
+    assert (
+        supports_grounded_requests(provider="vertex", model="foo/gemini-typo") is False
+    )
+    assert (
+        supports_grounded_additional_tools(provider="vertex", model="foo/gemini-typo")
+        is False
+    )
 
 
 def test_grounded_vertex_malformed_gemini_publisher_path_rejected() -> None:

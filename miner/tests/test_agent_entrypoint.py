@@ -29,7 +29,9 @@ def _fake_budget() -> ToolBudgetDTO:
     )
 
 
-def _fake_search_response(results: list[dict[str, Any]]) -> ToolCallResponse[SearchWebSearchResponse]:
+def _fake_search_response(
+    results: list[dict[str, Any]],
+) -> ToolCallResponse[SearchWebSearchResponse]:
     parsed_results = tuple(ToolResultDTO.model_validate(result) for result in results)
     return ToolCallResponse(
         receipt_id="receipt-123",
@@ -85,7 +87,9 @@ async def test_query_builds_supported_response(monkeypatch: pytest.MonkeyPatch) 
         },
     ]
 
-    async def fake_search_web(*_: object, **__: object) -> ToolCallResponse[SearchWebSearchResponse]:
+    async def fake_search_web(
+        *_: object, **__: object
+    ) -> ToolCallResponse[SearchWebSearchResponse]:
         return _fake_search_response(fake_results)
 
     async def fake_llm_chat(**__: object) -> LlmChatResult:
@@ -102,7 +106,9 @@ async def test_query_builds_supported_response(monkeypatch: pytest.MonkeyPatch) 
         fake_llm_chat,
     )
 
-    result = await agent.query(Query(text="Harnyx Subnet validators manage sandboxed miners."))
+    result = await agent.query(
+        Query(text="Harnyx Subnet validators manage sandboxed miners.")
+    )
 
     assert "Evidence [1]" in result.text
     assert "Alpha evidence" in result.text
@@ -110,7 +116,9 @@ async def test_query_builds_supported_response(monkeypatch: pytest.MonkeyPatch) 
 
 
 async def test_query_raises_when_no_results(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_search_web(*_: object, **__: object) -> ToolCallResponse[SearchWebSearchResponse]:
+    async def fake_search_web(
+        *_: object, **__: object
+    ) -> ToolCallResponse[SearchWebSearchResponse]:
         return _fake_search_response([])
 
     monkeypatch.setattr(agent, "search_web", fake_search_web)

@@ -4,7 +4,9 @@ from harnyx_commons.llm.providers.thinking import resolve_template_thinking
 from harnyx_commons.llm.schema import LlmThinkingConfig
 
 
-def test_resolve_template_thinking_derives_named_reasoning_effort_for_capable_model() -> None:
+def test_resolve_template_thinking_derives_named_reasoning_effort_for_capable_model() -> (
+    None
+):
     resolved = resolve_template_thinking(
         canonical_model="google/gemma-4-31B-turbo-TEE",
         provider_name="chutes",
@@ -30,7 +32,9 @@ def test_resolve_template_thinking_prefers_explicit_request_thinking() -> None:
     assert resolved.chat_template_kwargs() == {"enable_thinking": False}
 
 
-def test_resolve_template_thinking_ignores_numeric_blank_and_unsupported_inputs() -> None:
+def test_resolve_template_thinking_ignores_numeric_blank_and_unsupported_inputs() -> (
+    None
+):
     assert (
         resolve_template_thinking(
             canonical_model="google/gemma-4-31B-turbo-TEE",

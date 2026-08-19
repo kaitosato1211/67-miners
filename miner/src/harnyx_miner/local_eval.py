@@ -19,7 +19,12 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
-from harnyx_commons.domain.miner_task import AnswerCitation, MinerTask, ReferenceAnswer, Response
+from harnyx_commons.domain.miner_task import (
+    AnswerCitation,
+    MinerTask,
+    ReferenceAnswer,
+    Response,
+)
 from harnyx_commons.domain.tool_usage import LlmModelUsageCost
 from harnyx_commons.llm.provider_factory import build_routed_llm_provider
 from harnyx_commons.miner_task_ranking import (
@@ -28,7 +33,10 @@ from harnyx_commons.miner_task_ranking import (
     aggregate_ranking_rows,
     ordered_challengers,
 )
-from harnyx_commons.miner_task_scoring import EvaluationScoringConfig, EvaluationScoringService
+from harnyx_commons.miner_task_scoring import (
+    EvaluationScoringConfig,
+    EvaluationScoringService,
+)
 from harnyx_commons.observability.logging import ExtrasFormatter
 from harnyx_commons.sandbox.agent_staging import stage_agent_source
 from harnyx_commons.sandbox.diagnostic_files import (
@@ -62,7 +70,10 @@ from harnyx_validator.application.dto.evaluation import (
 )
 from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator
 from harnyx_validator.application.invoke_entrypoint import EntrypointInvoker
-from harnyx_validator.application.ports.progress import ProgressRecorder, ProviderFailureEvidence
+from harnyx_validator.application.ports.progress import (
+    ProgressRecorder,
+    ProviderFailureEvidence,
+)
 from harnyx_validator.application.ports.subtensor import (
     CommitmentRecord,
     MetagraphSnapshot,
@@ -75,7 +86,10 @@ from harnyx_validator.application.services.evaluation_runner import (
     ArtifactFailure,
     EvaluationRunner,
 )
-from harnyx_validator.infrastructure.http.local_tool_host import LocalToolHostHandle, start_local_tool_host
+from harnyx_validator.infrastructure.http.local_tool_host import (
+    LocalToolHostHandle,
+    start_local_tool_host,
+)
 from harnyx_validator.infrastructure.state.run_progress import FileBackedRunProgress
 from harnyx_validator.runtime.bootstrap import (
     _DIRECT_SCORING_LLM_MODEL,
@@ -112,7 +126,9 @@ class _CliProgressReporter(ProgressRecorder):
     _artifact_totals: dict[UUID, int]
     _artifact_completed: dict[UUID, int]
     _batch_by_session: dict[UUID, UUID]
-    _provider_counters_by_batch: dict[UUID, dict[tuple[str, str], ProviderFailureEvidence]]
+    _provider_counters_by_batch: dict[
+        UUID, dict[tuple[str, str], ProviderFailureEvidence]
+    ]
     _failed_provider_keys_by_session: dict[UUID, set[tuple[str, str]]]
 
     def __init__(self) -> None:
@@ -136,7 +152,9 @@ class _CliProgressReporter(ProgressRecorder):
         self._artifact_labels[artifact.artifact_id] = label
         self._artifact_totals[artifact.artifact_id] = task_count
         self._artifact_completed[artifact.artifact_id] = 0
-        self.log(f"starting {label} evaluation: artifact_id={artifact.artifact_id} tasks={task_count}")
+        self.log(
+            f"starting {label} evaluation: artifact_id={artifact.artifact_id} tasks={task_count}"
+        )
 
     def finish_artifact(
         self,
@@ -146,7 +164,9 @@ class _CliProgressReporter(ProgressRecorder):
         submissions: Sequence[MinerTaskRunSubmission],
     ) -> None:
         total_score = round(sum(submission.score for submission in submissions), 6)
-        error_count = sum(1 for submission in submissions if submission.run.details.error is not None)
+        error_count = sum(
+            1 for submission in submissions if submission.run.details.error is not None
+        )
         self.log(
             f"finished {label} evaluation: artifact_id={artifact.artifact_id} "
             f"tasks={len(submissions)} total_score={total_score} errors={error_count}"
@@ -168,8 +188,12 @@ class _CliProgressReporter(ProgressRecorder):
         else:
             outcome = f"error={error.code}"
         elapsed_ms = result.run.details.elapsed_ms
-        elapsed_text = f" elapsed_ms={round(elapsed_ms, 1)}" if elapsed_ms is not None else ""
-        self.log(f"{label} task {completed}/{total} complete: task_id={result.run.task_id} {outcome}{elapsed_text}")
+        elapsed_text = (
+            f" elapsed_ms={round(elapsed_ms, 1)}" if elapsed_ms is not None else ""
+        )
+        self.log(
+            f"{label} task {completed}/{total} complete: task_id={result.run.task_id} {outcome}{elapsed_text}"
+        )
 
     def recorded_pairs(self, batch_id: UUID) -> frozenset[tuple[UUID, UUID]]:
         del batch_id
@@ -190,7 +214,9 @@ class _CliProgressReporter(ProgressRecorder):
         provider: str,
         model: str,
     ) -> None:
-        evidence = self._provider_evidence(session_id=session_id, provider=provider, model=model)
+        evidence = self._provider_evidence(
+            session_id=session_id, provider=provider, model=model
+        )
         if evidence is None:
             return
         evidence["total_calls"] += 1
@@ -203,16 +229,22 @@ class _CliProgressReporter(ProgressRecorder):
         model: str,
         reason: str,
     ) -> None:
-        evidence = self._provider_evidence(session_id=session_id, provider=provider, model=model)
+        evidence = self._provider_evidence(
+            session_id=session_id, provider=provider, model=model
+        )
         if evidence is None:
             return
         evidence["failed_calls"] += 1
         failure_reason = reason.strip()
         if failure_reason:
             evidence["failure_reason"] = failure_reason
-        self._failed_provider_keys_by_session.setdefault(session_id, set()).add((provider, model))
+        self._failed_provider_keys_by_session.setdefault(session_id, set()).add(
+            (provider, model)
+        )
 
-    def consume_provider_failures(self, session_id: UUID) -> tuple[ProviderFailureEvidence, ...]:
+    def consume_provider_failures(
+        self, session_id: UUID
+    ) -> tuple[ProviderFailureEvidence, ...]:
         batch_id = self._batch_by_session.get(session_id)
         if batch_id is None:
             return ()
@@ -272,7 +304,9 @@ class _LocalProgressRecorder(ProgressRecorder):
     def record_terminated_attempt(self, attempt: MinerTaskAttemptAuditRecord) -> None:
         self._storage.record_terminated_attempt(attempt)
 
-    def next_attempt_number(self, batch_id: UUID, artifact_id: UUID, task_id: UUID) -> int:
+    def next_attempt_number(
+        self, batch_id: UUID, artifact_id: UUID, task_id: UUID
+    ) -> int:
         return self._storage.next_attempt_number(batch_id, artifact_id, task_id)
 
     def recorded_pairs(self, batch_id: UUID) -> frozenset[tuple[UUID, UUID]]:
@@ -314,7 +348,9 @@ class _LocalProgressRecorder(ProgressRecorder):
             reason=reason,
         )
 
-    def consume_provider_failures(self, session_id: UUID) -> tuple[ProviderFailureEvidence, ...]:
+    def consume_provider_failures(
+        self, session_id: UUID
+    ) -> tuple[ProviderFailureEvidence, ...]:
         return self._storage.consume_provider_failures(session_id)
 
     def clear_task_session(self, session_id: UUID) -> None:
@@ -363,7 +399,9 @@ class LocalEvaluationRuntime:
             vertex_settings=settings.vertex,
             build_routed_tool_llm_provider=False,
         )
-        scoring_route = _resolve_scoring_judge_route(settings, model=_DIRECT_SCORING_LLM_MODEL)
+        scoring_route = _resolve_scoring_judge_route(
+            settings, model=_DIRECT_SCORING_LLM_MODEL
+        )
         scoring_llm_provider = build_routed_llm_provider(
             surface="scoring",
             default_provider=settings.llm.scoring_llm_provider,
@@ -524,10 +562,14 @@ class LocalEvaluationRuntime:
                 task_count=len(tasks),
             )
         tool_host = await self._ensure_tool_host()
-        state_dir_handle = tempfile.TemporaryDirectory(prefix=f"harnyx-local-eval-{artifact.artifact_id}-")
+        state_dir_handle = tempfile.TemporaryDirectory(
+            prefix=f"harnyx-local-eval-{artifact.artifact_id}-"
+        )
         deployment = None
         failure_bundle_recorded = False
-        failure_dir = self._failure_bundle_dir(artifact_label=artifact_label, artifact=artifact)
+        failure_dir = self._failure_bundle_dir(
+            artifact_label=artifact_label, artifact=artifact
+        )
         try:
             state_dir = Path(state_dir_handle.name)
             staged_agent = stage_agent_source(
@@ -590,7 +632,10 @@ class LocalEvaluationRuntime:
                     error=evaluation_outcome.artifact_failure,
                 )
                 failure_bundle_recorded = True
-            if self._progress_reporter is not None and evaluation_outcome.artifact_failure is None:
+            if (
+                self._progress_reporter is not None
+                and evaluation_outcome.artifact_failure is None
+            ):
                 self._progress_reporter.finish_artifact(
                     label=artifact_label,
                     artifact=artifact,
@@ -620,7 +665,11 @@ class LocalEvaluationRuntime:
         artifact_label: str,
         artifact: ScriptArtifactSpec,
     ) -> Path:
-        return _LOCAL_EVAL_FAILURE_ROOT / self._run_id / f"{artifact_label}-{artifact.artifact_id.hex[:12]}"
+        return (
+            _LOCAL_EVAL_FAILURE_ROOT
+            / self._run_id
+            / f"{artifact_label}-{artifact.artifact_id.hex[:12]}"
+        )
 
     def _record_failure_bundle(
         self,
@@ -667,7 +716,9 @@ class LocalEvaluationRuntime:
             )
         except Exception as exc:
             if self._progress_reporter is not None:
-                self._progress_reporter.log(f"failure bundle write failed: path={failure_dir} error={exc}")
+                self._progress_reporter.log(
+                    f"failure bundle write failed: path={failure_dir} error={exc}"
+                )
             return False
         return True
 
@@ -696,7 +747,9 @@ class LocalEvaluationRuntime:
                     tool_concurrency_limiter=self._state.tool_concurrency_limiter,
                 )
                 if self._progress_reporter is not None:
-                    self._progress_reporter.log(f"tool host ready: callback_url={self._tool_host.host_container_url}")
+                    self._progress_reporter.log(
+                        f"tool host ready: callback_url={self._tool_host.host_container_url}"
+                    )
         if self._tool_host is None:  # pragma: no cover - defensive
             raise RuntimeError("local tool host did not initialize")
         return self._tool_host
@@ -773,7 +826,9 @@ def _local_failure_context(
     return context
 
 
-def _local_failure_error_context(error: BaseException | ArtifactFailure) -> dict[str, object]:
+def _local_failure_error_context(
+    error: BaseException | ArtifactFailure,
+) -> dict[str, object]:
     if isinstance(error, ArtifactFailure):
         return {
             "error_type": "ArtifactFailure",
@@ -801,7 +856,9 @@ class _LocalSubtensorClient(SubtensorClientPort):
         del uid
         return None
 
-    def publish_commitment(self, data: str, *, blocks_until_reveal: int = 1) -> CommitmentRecord:
+    def publish_commitment(
+        self, data: str, *, blocks_until_reveal: int = 1
+    ) -> CommitmentRecord:
         del data, blocks_until_reveal
         raise RuntimeError("local evaluation does not publish commitments")
 
@@ -841,7 +898,9 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate a local miner artifact against a completed public miner-task batch.",
     )
-    parser.add_argument("--agent-path", required=True, help="Path to the local miner agent file.")
+    parser.add_argument(
+        "--agent-path", required=True, help="Path to the local miner agent file."
+    )
     parser.add_argument(
         "--batch-id",
         help="Specific public batch to use. Defaults to the latest completed public miner-task batch.",
@@ -904,28 +963,42 @@ async def _amain(argv: Sequence[str] | None) -> None:
         champion_submissions: tuple[MinerTaskRunSubmission, ...] | None = None
         if args.mode == "vs-champion":
             champion_artifact_id = _require_champion_artifact_id(batch_context.detail)
-            progress.log(f"fetching champion artifact: artifact_id={champion_artifact_id}")
+            progress.log(
+                f"fetching champion artifact: artifact_id={champion_artifact_id}"
+            )
             champion_script = monitoring.get_script(champion_artifact_id)
             champion_bytes = _decode_script_content(
                 artifact_id=champion_artifact_id,
                 script_payload=champion_script,
             )
             champion_artifact = ScriptArtifactSpec(
-                uid=_require_int(champion_script.get("uid"), label="champion script uid"),
+                uid=_require_int(
+                    champion_script.get("uid"), label="champion script uid"
+                ),
                 artifact_id=champion_artifact_id,
-                content_hash=_require_str(champion_script.get("content_hash"), label="champion script content hash"),
-                size_bytes=_require_int(champion_script.get("size_bytes"), label="champion script size bytes"),
+                content_hash=_require_str(
+                    champion_script.get("content_hash"),
+                    label="champion script content hash",
+                ),
+                size_bytes=_require_int(
+                    champion_script.get("size_bytes"),
+                    label="champion script size bytes",
+                ),
             )
             progress.log(
                 f"champion artifact ready: artifact_id={champion_artifact.artifact_id} uid={champion_artifact.uid}"
             )
         progress.log("starting local evaluation runtime")
-        run_progress_root = output_dir / ".harnyx-local-run-progress" / str(batch_context.batch_id)
+        run_progress_root = (
+            output_dir / ".harnyx-local-run-progress" / str(batch_context.batch_id)
+        )
         runtime = LocalEvaluationRuntime.create(
             run_progress_root=run_progress_root,
             progress_reporter=progress,
         )
-        progress.log(f"running local evaluations: artifact_task_parallelism={_DEFAULT_LOCAL_ARTIFACT_TASK_PARALLELISM}")
+        progress.log(
+            f"running local evaluations: artifact_task_parallelism={_DEFAULT_LOCAL_ARTIFACT_TASK_PARALLELISM}"
+        )
         if champion_artifact is not None and champion_bytes is not None:
             progress.log("running target and champion evaluations concurrently")
             target_outcome, champion_outcome = await asyncio.gather(
@@ -1011,7 +1084,9 @@ async def _amain(argv: Sequence[str] | None) -> None:
     )
 
 
-def _warn_if_repo_not_latest(*, progress: _CliProgressReporter, repo_path: Path) -> None:
+def _warn_if_repo_not_latest(
+    *, progress: _CliProgressReporter, repo_path: Path
+) -> None:
     warning = _repo_freshness_warning(repo_path)
     if warning is None:
         return
@@ -1025,9 +1100,7 @@ def _repo_freshness_warning(repo_path: Path) -> str | None:
         return None
     if local_head == remote_head:
         return None
-    return (
-        "repository is not at latest origin/HEAD; local eval will continue, but update before comparing final results"
-    )
+    return "repository is not at latest origin/HEAD; local eval will continue, but update before comparing final results"
 
 
 def _git_remote_head(repo_path: Path) -> str | None:
@@ -1080,7 +1153,10 @@ def _compact_artifact_outcome_for_local_report(
 ) -> ArtifactEvaluationOutcome:
     return replace(
         outcome,
-        submissions=tuple(_compact_submission_for_local_report(submission) for submission in outcome.submissions),
+        submissions=tuple(
+            _compact_submission_for_local_report(submission)
+            for submission in outcome.submissions
+        ),
     )
 
 
@@ -1102,7 +1178,9 @@ def _load_batch_tasks(detail: Mapping[str, object]) -> tuple[MinerTask, ...]:
     return tuple(parsed)
 
 
-def _select_batch_tasks(tasks: tuple[MinerTask, ...], *, task_id: UUID | None) -> tuple[MinerTask, ...]:
+def _select_batch_tasks(
+    tasks: tuple[MinerTask, ...], *, task_id: UUID | None
+) -> tuple[MinerTask, ...]:
     if task_id is None:
         return tasks
     selected = tuple(task for task in tasks if task.task_id == task_id)
@@ -1116,16 +1194,25 @@ def _build_target_artifact_spec(
     batch_context: SelectedBatchContext,
     target_bytes: bytes,
 ) -> ScriptArtifactSpec:
-    detail_batch = _require_mapping(batch_context.detail.get("batch"), label="batch detail batch")
-    raw_artifacts = _require_sequence(detail_batch.get("artifacts"), label="batch artifacts")
+    detail_batch = _require_mapping(
+        batch_context.detail.get("batch"), label="batch detail batch"
+    )
+    raw_artifacts = _require_sequence(
+        detail_batch.get("artifacts"), label="batch artifacts"
+    )
     recorded_uids = [
-        _require_int(_require_mapping(raw_artifact, label="batch artifact").get("uid"), label="batch artifact uid")
+        _require_int(
+            _require_mapping(raw_artifact, label="batch artifact").get("uid"),
+            label="batch artifact uid",
+        )
         for raw_artifact in raw_artifacts
     ]
     content_hash = agent_sha256(target_bytes)
     return ScriptArtifactSpec(
         uid=max(recorded_uids, default=0) + 1,
-        artifact_id=uuid5(NAMESPACE_URL, f"harnyx-local-eval:{batch_context.batch_id}:{content_hash}"),
+        artifact_id=uuid5(
+            NAMESPACE_URL, f"harnyx-local-eval:{batch_context.batch_id}:{content_hash}"
+        ),
         content_hash=content_hash,
         size_bytes=len(target_bytes),
     )
@@ -1135,7 +1222,9 @@ def _require_champion_artifact_id(detail: Mapping[str, object]) -> UUID:
     summary = _require_mapping(detail.get("summary"), label="batch summary")
     champion_artifact_id = summary.get("champion_artifact_id")
     if champion_artifact_id in (None, ""):
-        raise RuntimeError("selected batch does not expose a champion artifact; rerun with --mode target-only")
+        raise RuntimeError(
+            "selected batch does not expose a champion artifact; rerun with --mode target-only"
+        )
     return UUID(str(champion_artifact_id))
 
 
@@ -1175,7 +1264,9 @@ def _build_report(
     scoring_config: EvaluationScoringConfig,
     validator_version: str,
 ) -> dict[str, object]:
-    target_by_task = {submission.run.task_id: submission for submission in target_submissions}
+    target_by_task = {
+        submission.run.task_id: submission for submission in target_submissions
+    }
     champion_by_task = (
         {submission.run.task_id: submission for submission in champion_submissions}
         if champion_submissions is not None
@@ -1213,8 +1304,14 @@ def _build_report(
             "batch_id": str(batch_context.batch_id),
             "target_artifact_id": str(target_artifact.artifact_id),
             "target_uid": target_artifact.uid,
-            "champion_artifact_id": str(champion_artifact.artifact_id) if champion_artifact is not None else None,
-            "champion_uid": champion_artifact.uid if champion_artifact is not None else None,
+            "champion_artifact_id": (
+                str(champion_artifact.artifact_id)
+                if champion_artifact is not None
+                else None
+            ),
+            "champion_uid": (
+                champion_artifact.uid if champion_artifact is not None else None
+            ),
         },
         "evaluation_config": {
             "platform_base_url": platform_base_url,
@@ -1222,7 +1319,9 @@ def _build_report(
             "output_dir": str(output_dir),
             "validator_version": validator_version,
             "artifact_task_parallelism": _DEFAULT_LOCAL_ARTIFACT_TASK_PARALLELISM,
-            "artifact_evaluation_parallelism": 2 if champion_artifact is not None else 1,
+            "artifact_evaluation_parallelism": (
+                2 if champion_artifact is not None else 1
+            ),
             "execution_boundary": "docker-sandbox",
             "tool_host_mode": "ephemeral-local-http",
             "sandbox_image": sandbox_image,
@@ -1274,12 +1373,14 @@ def _build_report(
                 champion_artifact=champion_artifact,
                 champion_submissions=champion_submissions,
             ),
-            "head_to_head": _head_to_head_summary(
-                target_submissions=target_submissions,
-                champion_submissions=champion_submissions or (),
-            )
-            if champion_submissions is not None
-            else None,
+            "head_to_head": (
+                _head_to_head_summary(
+                    target_submissions=target_submissions,
+                    champion_submissions=champion_submissions or (),
+                )
+                if champion_submissions is not None
+                else None
+            ),
         },
         "recorded_platform_context": {
             "batch_detail": batch_context.detail,
@@ -1292,7 +1393,11 @@ def _build_report(
                 task=task,
                 target_submission=target_by_task.get(task.task_id),
                 champion_submission=champion_by_task.get(task.task_id),
-                recorded_rows=(recorded_rows.get(task.task_id, ()) if recorded_results.rows is not None else None),
+                recorded_rows=(
+                    recorded_rows.get(task.task_id, ())
+                    if recorded_results.rows is not None
+                    else None
+                ),
             )
             for task in tasks
         ],
@@ -1315,12 +1420,20 @@ def _task_report(
             "budget_usd": task.budget_usd,
         },
         "target": _submission_detail(target_submission),
-        "opponent": _submission_detail(champion_submission) if champion_submission is not None else None,
-        "recorded_platform_rows": list(recorded_rows) if recorded_rows is not None else None,
+        "opponent": (
+            _submission_detail(champion_submission)
+            if champion_submission is not None
+            else None
+        ),
+        "recorded_platform_rows": (
+            list(recorded_rows) if recorded_rows is not None else None
+        ),
     }
 
 
-def _serialize_recorded_results_status(batch_results: RecordedBatchResultsSnapshot) -> dict[str, object]:
+def _serialize_recorded_results_status(
+    batch_results: RecordedBatchResultsSnapshot,
+) -> dict[str, object]:
     if batch_results.error is None:
         return {
             "state": "available",
@@ -1337,7 +1450,9 @@ def _serialize_recorded_results_status(batch_results: RecordedBatchResultsSnapsh
     }
 
 
-def _serialize_recorded_results_scope(batch_results: RecordedBatchResultsSnapshot) -> dict[str, object] | None:
+def _serialize_recorded_results_scope(
+    batch_results: RecordedBatchResultsSnapshot,
+) -> dict[str, object] | None:
     if batch_results.scope is None:
         return None
     scope: dict[str, object] = {
@@ -1360,10 +1475,14 @@ def _log_recorded_results_status(
         return
     path = error.path if error.path is not None else "local-eval-recorded-context"
     status_code = str(error.status_code) if error.status_code is not None else "n/a"
-    progress.log(f"recorded platform results unavailable: path={path} status_code={status_code} detail={error.detail}")
+    progress.log(
+        f"recorded platform results unavailable: path={path} status_code={status_code} detail={error.detail}"
+    )
 
 
-def _submission_detail(submission: MinerTaskRunSubmission | None) -> dict[str, object] | None:
+def _submission_detail(
+    submission: MinerTaskRunSubmission | None,
+) -> dict[str, object] | None:
     if submission is None:
         return None
     run = submission.run
@@ -1376,12 +1495,18 @@ def _submission_detail(submission: MinerTaskRunSubmission | None) -> dict[str, o
         "cost_and_usage": {
             "cost_totals": _cost_totals_from_submission(submission),
             "token_usage": submission.usage.model_dump(mode="json"),
-            "provider_model_usage": _serialize_provider_model_usage(run.details.total_tool_usage.llm.providers),
+            "provider_model_usage": _serialize_provider_model_usage(
+                run.details.total_tool_usage.llm.providers
+            ),
         },
         "elapsed_ms": run.details.elapsed_ms,
         "attempt_count": submission.session.active_attempt,
         "session_status": submission.session.status.value,
-        "error": run.details.error.model_dump(mode="json") if run.details.error is not None else None,
+        "error": (
+            run.details.error.model_dump(mode="json")
+            if run.details.error is not None
+            else None
+        ),
     }
 
 
@@ -1409,7 +1534,9 @@ def _artifact_summary_entry(
         "task_count": len(submissions),
         "total_score": total_score,
         "avg_score": round(total_score / len(submissions), 6) if submissions else 0.0,
-        "error_count": sum(1 for submission in submissions if submission.run.details.error is not None),
+        "error_count": sum(
+            1 for submission in submissions if submission.run.details.error is not None
+        ),
         "cost_totals": cost_totals,
     }
 
@@ -1420,7 +1547,9 @@ def _sort_leaderboard(entries: Sequence[dict[str, object]]) -> list[dict[str, ob
         key=lambda entry: (
             -_require_float(entry.get("total_score"), label="leaderboard total score"),
             _require_float(
-                _require_mapping(entry.get("cost_totals"), label="leaderboard cost totals").get("total_cost_usd"),
+                _require_mapping(
+                    entry.get("cost_totals"), label="leaderboard cost totals"
+                ).get("total_cost_usd"),
                 label="leaderboard total cost usd",
             ),
             str(entry["label"]),
@@ -1448,7 +1577,10 @@ def _local_champion_selection_summary(
         artifact_uids[champion_artifact.artifact_id] = champion_artifact.uid
 
     aggregates = aggregate_ranking_rows(
-        tuple(_ranking_row_from_submission(submission) for submission in candidate_submissions)
+        tuple(
+            _ranking_row_from_submission(submission)
+            for submission in candidate_submissions
+        )
     )
     candidate_artifact_ids = [artifact.artifact_id for artifact in candidate_artifacts]
     selected_artifact_id = RankingCascade().decide(
@@ -1466,9 +1598,15 @@ def _local_champion_selection_summary(
             "validator_count": 1,
             "artifact_count": len(candidate_artifact_ids),
         },
-        "initial_incumbent_artifact_id": str(incumbent_artifact_id) if incumbent_artifact_id is not None else None,
-        "candidate_artifact_ids": [str(artifact_id) for artifact_id in candidate_artifact_ids],
-        "selected_artifact_id": str(selected_artifact_id) if selected_artifact_id is not None else None,
+        "initial_incumbent_artifact_id": (
+            str(incumbent_artifact_id) if incumbent_artifact_id is not None else None
+        ),
+        "candidate_artifact_ids": [
+            str(artifact_id) for artifact_id in candidate_artifact_ids
+        ],
+        "selected_artifact_id": (
+            str(selected_artifact_id) if selected_artifact_id is not None else None
+        ),
         "selected_label": artifact_labels.get(selected_artifact_id),
         "aggregates_by_label": {
             label: {
@@ -1488,7 +1626,9 @@ def _head_to_head_summary(
     target_submissions: Sequence[MinerTaskRunSubmission],
     champion_submissions: Sequence[MinerTaskRunSubmission],
 ) -> dict[str, object]:
-    champion_by_task = {submission.run.task_id: submission for submission in champion_submissions}
+    champion_by_task = {
+        submission.run.task_id: submission for submission in champion_submissions
+    }
     wins = 0
     losses = 0
     ties = 0
@@ -1522,7 +1662,9 @@ def _head_to_head_summary(
     }
 
 
-def _ranking_row_from_submission(submission: MinerTaskRunSubmission) -> ArtifactRankingRow:
+def _ranking_row_from_submission(
+    submission: MinerTaskRunSubmission,
+) -> ArtifactRankingRow:
     details = submission.run.details
     return ArtifactRankingRow(
         validator_id=_LOCAL_SELECTION_VALIDATOR_ID,
@@ -1534,7 +1676,9 @@ def _ranking_row_from_submission(submission: MinerTaskRunSubmission) -> Artifact
     )
 
 
-def _group_recorded_rows(results: Sequence[dict[str, object]]) -> dict[UUID, tuple[dict[str, object], ...]]:
+def _group_recorded_rows(
+    results: Sequence[dict[str, object]],
+) -> dict[UUID, tuple[dict[str, object], ...]]:
     grouped: dict[UUID, list[dict[str, object]]] = {}
     for row in results:
         task_id = UUID(str(row["task_id"]))
@@ -1542,7 +1686,9 @@ def _group_recorded_rows(results: Sequence[dict[str, object]]) -> dict[UUID, tup
     return {task_id: tuple(rows) for task_id, rows in grouped.items()}
 
 
-def _aggregate_cost_totals(submissions: Sequence[MinerTaskRunSubmission]) -> dict[str, object]:
+def _aggregate_cost_totals(
+    submissions: Sequence[MinerTaskRunSubmission],
+) -> dict[str, object]:
     total_llm_cost = 0.0
     total_search_cost = 0.0
     total_embedding_cost = 0.0
@@ -1573,7 +1719,9 @@ def _aggregate_cost_totals(submissions: Sequence[MinerTaskRunSubmission]) -> dic
     }
 
 
-def _cost_totals_from_submission(submission: MinerTaskRunSubmission) -> dict[str, object]:
+def _cost_totals_from_submission(
+    submission: MinerTaskRunSubmission,
+) -> dict[str, object]:
     return _aggregate_cost_totals((submission,))
 
 
@@ -1600,7 +1748,8 @@ def _serialize_provider_model_usage(
     serialized: dict[str, object] = {}
     for provider_name, models in providers.items():
         serialized[provider_name] = {
-            model_name: _serialize_model_usage_cost(model_usage) for model_name, model_usage in models.items()
+            model_name: _serialize_model_usage_cost(model_usage)
+            for model_name, model_usage in models.items()
         }
     return serialized
 
@@ -1619,12 +1768,22 @@ def _serialize_model_usage_cost(model_usage: LlmModelUsageCost) -> dict[str, obj
 
 
 def _render_markdown_report(report: Mapping[str, object]) -> str:
-    batch_metadata = _require_mapping(report.get("batch_metadata"), label="batch metadata")
+    batch_metadata = _require_mapping(
+        report.get("batch_metadata"), label="batch metadata"
+    )
     identifiers = _require_mapping(report.get("identifiers"), label="identifiers")
-    evaluation_config = _require_mapping(report.get("evaluation_config"), label="evaluation config")
-    scoring_context = _require_mapping(report.get("scoring_context"), label="scoring context")
-    local_result_summary = _require_mapping(report.get("local_result_summary"), label="local result summary")
-    leaderboard = _require_sequence(local_result_summary.get("leaderboard"), label="leaderboard")
+    evaluation_config = _require_mapping(
+        report.get("evaluation_config"), label="evaluation config"
+    )
+    scoring_context = _require_mapping(
+        report.get("scoring_context"), label="scoring context"
+    )
+    local_result_summary = _require_mapping(
+        report.get("local_result_summary"), label="local result summary"
+    )
+    leaderboard = _require_sequence(
+        local_result_summary.get("leaderboard"), label="leaderboard"
+    )
     local_champion_selection = _require_mapping(
         local_result_summary.get("local_champion_selection"),
         label="local champion selection",
@@ -1659,7 +1818,9 @@ def _render_markdown_report(report: Mapping[str, object]) -> str:
     )
     for index, raw_entry in enumerate(leaderboard, start=1):
         entry = _require_mapping(raw_entry, label="leaderboard entry")
-        costs = _require_mapping(entry.get("cost_totals"), label="leaderboard entry costs")
+        costs = _require_mapping(
+            entry.get("cost_totals"), label="leaderboard entry costs"
+        )
         lines.append(
             f"| {index} | {entry['label']} | {entry['total_score']} | {entry['avg_score']} | "
             f"{entry['error_count']} | {costs['total_cost_usd']} |"
@@ -1715,7 +1876,11 @@ def _render_markdown_report(report: Mapping[str, object]) -> str:
         lines.extend(_render_submission_markdown("Target", target))
         opponent = task.get("opponent")
         if opponent is not None:
-            lines.extend(_render_submission_markdown("Opponent", _require_mapping(opponent, label="task opponent")))
+            lines.extend(
+                _render_submission_markdown(
+                    "Opponent", _require_mapping(opponent, label="task opponent")
+                )
+            )
         lines.append(_render_recorded_rows_markdown(task))
     lines.append("")
     return "\n".join(lines)
@@ -1730,13 +1895,17 @@ def _render_recorded_platform_context_markdown(report: Mapping[str, object]) -> 
         recorded_context.get("results_status"),
         label="recorded results status",
     )
-    status = _require_str(results_status.get("state"), label="recorded results status state")
+    status = _require_str(
+        results_status.get("state"), label="recorded results status state"
+    )
     if status == "available":
         return (
             "- The JSON report contains the full batch detail and champion-artifact recorded monitoring rows "
             "for automated analysis."
         )
-    error = _require_mapping(results_status.get("error"), label="recorded results error")
+    error = _require_mapping(
+        results_status.get("error"), label="recorded results error"
+    )
     return (
         "- Recorded monitoring rows were unavailable for this run: "
         f"{_require_str(error.get('detail'), label='recorded results error detail')}"
@@ -1751,16 +1920,24 @@ def _render_recorded_rows_markdown(task: Mapping[str, object]) -> str:
     return f"- Recorded platform rows: {len(recorded_rows)}"
 
 
-def _render_submission_markdown(label: str, submission: Mapping[str, object]) -> list[str]:
-    cost_and_usage = _require_mapping(submission.get("cost_and_usage"), label=f"{label} cost and usage")
-    cost_totals = _require_mapping(cost_and_usage.get("cost_totals"), label=f"{label} cost totals")
+def _render_submission_markdown(
+    label: str, submission: Mapping[str, object]
+) -> list[str]:
+    cost_and_usage = _require_mapping(
+        submission.get("cost_and_usage"), label=f"{label} cost and usage"
+    )
+    cost_totals = _require_mapping(
+        cost_and_usage.get("cost_totals"), label=f"{label} cost totals"
+    )
     lines = [
         f"- {label} score: {submission['score']}",
         f"- {label} attempts: {submission['attempt_count']}",
         f"- {label} elapsed ms: {submission['elapsed_ms']}",
         f"- {label} total cost USD: {cost_totals['total_cost_usd']}",
     ]
-    lines.extend(_render_answer_markdown(label, submission.get("answer"), model_type=Response))
+    lines.extend(
+        _render_answer_markdown(label, submission.get("answer"), model_type=Response)
+    )
     return lines
 
 
@@ -1779,14 +1956,20 @@ def _render_answer_markdown(
     return lines
 
 
-def _render_citations_markdown(label: str, citations: tuple[AnswerCitation | None, ...] | None) -> list[str]:
+def _render_citations_markdown(
+    label: str, citations: tuple[AnswerCitation | None, ...] | None
+) -> list[str]:
     if citations is None:
         return []
     if not citations:
         return []
     lines = [f"- {label} citations:"]
     for citation in citations:
-        lines.append("  - (unresolved)" if citation is None else f"  - {_citation_markdown_line(citation)}")
+        lines.append(
+            "  - (unresolved)"
+            if citation is None
+            else f"  - {_citation_markdown_line(citation)}"
+        )
     return lines
 
 
@@ -1891,7 +2074,9 @@ def _configure_cli_logging() -> None:
     root = logging.getLogger()
     root.setLevel(os.getenv("LOG_LEVEL", "WARNING").upper())
     handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(ExtrasFormatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    handler.setFormatter(
+        ExtrasFormatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    )
     root.handlers = [handler]
     _reset_cli_package_loggers(root.level)
 

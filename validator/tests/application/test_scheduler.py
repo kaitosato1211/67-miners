@@ -37,7 +37,10 @@ from harnyx_validator.application.dto.evaluation import (
     TokenUsageSummary,
     ValidatorBatchFailureDetail,
 )
-from harnyx_validator.application.ports.progress import RunProgressPage, RunProgressSummary
+from harnyx_validator.application.ports.progress import (
+    RunProgressPage,
+    RunProgressSummary,
+)
 from harnyx_validator.application.ports.subtensor import ValidatorNodeInfo
 from harnyx_validator.application.scheduler import (
     EvaluationScheduler,
@@ -52,8 +55,12 @@ from validator.tests.fixtures.subtensor import FakeSubtensorClient
 
 pytestmark = pytest.mark.anyio("asyncio")
 _ASSIGNMENT_TOKEN = "assignment-token"  # noqa: S105 - fixed test-only assignment token
-_ASSIGNMENT_TOKEN_1 = "assignment-token-1"  # noqa: S105 - fixed test-only assignment token
-_ASSIGNMENT_TOKEN_2 = "assignment-token-2"  # noqa: S105 - fixed test-only assignment token
+_ASSIGNMENT_TOKEN_1 = (
+    "assignment-token-1"  # noqa: S105 - fixed test-only assignment token
+)
+_ASSIGNMENT_TOKEN_2 = (
+    "assignment-token-2"  # noqa: S105 - fixed test-only assignment token
+)
 
 
 def test_sandbox_failure_diagnostics_reads_docker_command_error_files(tmp_path) -> None:
@@ -75,8 +82,12 @@ def test_sandbox_failure_diagnostics_reads_docker_command_error_files(tmp_path) 
         '[{"Id":"container-id","State":{"Status":"exited","ExitCode":255,"OOMKilled":false,"Error":""}}]',
         encoding="utf-8",
     )
-    (tmp_path / "docker-pull-result.json").write_text('{"returncode":0}', encoding="utf-8")
-    (tmp_path / "docker-run-result.json").write_text('{"returncode":0}', encoding="utf-8")
+    (tmp_path / "docker-pull-result.json").write_text(
+        '{"returncode":0}', encoding="utf-8"
+    )
+    (tmp_path / "docker-run-result.json").write_text(
+        '{"returncode":0}', encoding="utf-8"
+    )
     (tmp_path / "error.txt").write_text("sandbox start failed", encoding="utf-8")
     (tmp_path / "docker-logs.txt").write_text("", encoding="utf-8")
     (tmp_path / "docker-inspect.json.error.txt").write_text(
@@ -125,7 +136,9 @@ class _AssignedWork:
     def mark_dispatch_ready(self) -> None:
         self.dispatch_ready = True
 
-    def claim_initial_for_dispatch(self, assignment: MinerTaskWorkAssignment) -> _ClaimedAssignedTaskFake:
+    def claim_initial_for_dispatch(
+        self, assignment: MinerTaskWorkAssignment
+    ) -> _ClaimedAssignedTaskFake:
         self.initial_claims.append(assignment)
         return _ClaimedAssignedTaskFake(self, assignment)
 
@@ -135,15 +148,21 @@ class _AssignedWork:
     def claim_nowait_for_dispatch(self) -> _ClaimedAssignedTaskFake:
         return _ClaimedAssignedTaskFake(self, self.queue.get_nowait())
 
-    def _mark_started(self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID) -> None:
+    def _mark_started(
+        self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID
+    ) -> None:
         self.started.append((assignment, validator_session_id))
 
-    def _fail_before_start(self, _assignment: MinerTaskWorkAssignment, _result: PlatformOwnedTaskResult) -> None:
+    def _fail_before_start(
+        self, _assignment: MinerTaskWorkAssignment, _result: PlatformOwnedTaskResult
+    ) -> None:
         return None
 
 
 class _ClaimedAssignedTaskFake:
-    def __init__(self, owner: _AssignedWork, assignment: MinerTaskWorkAssignment) -> None:
+    def __init__(
+        self, owner: _AssignedWork, assignment: MinerTaskWorkAssignment
+    ) -> None:
         self._owner = owner
         self._assignment = assignment
 
@@ -160,7 +179,9 @@ class _ClaimedAssignedTaskFake:
 
 @pytest.fixture
 def blocking_executor() -> ThreadPoolExecutor:
-    executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="test-validator-batch-blocking")
+    executor = ThreadPoolExecutor(
+        max_workers=1, thread_name_prefix="test-validator-batch-blocking"
+    )
     try:
         yield executor
     finally:
@@ -251,7 +272,9 @@ class DummyProgressRecorder:
             attempt.attempt_number,
         )
 
-    def next_attempt_number(self, _batch_id: UUID, artifact_id: UUID, task_id: UUID) -> int:
+    def next_attempt_number(
+        self, _batch_id: UUID, artifact_id: UUID, task_id: UUID
+    ) -> int:
         return self._latest_attempt_number_by_pair.get((artifact_id, task_id), 0) + 1
 
     def recorded_pairs(self, _batch_id: UUID) -> frozenset[tuple[UUID, UUID]]:
@@ -276,7 +299,9 @@ class DummyProgressRecorder:
         limit: int,
     ) -> RunProgressPage:
         latest_sequence = self._next_sequence - 1
-        sequences = tuple(range(after_sequence + 1, min(latest_sequence, after_sequence + limit) + 1))
+        sequences = tuple(
+            range(after_sequence + 1, min(latest_sequence, after_sequence + limit) + 1)
+        )
         items = []
         for sequence in sequences:
             pair = self._pair_by_sequence.get(sequence)
@@ -309,7 +334,9 @@ class DummyProgressRecorder:
     ) -> None:
         return None
 
-    def record_provider_call(self, *, session_id: UUID, provider: str, model: str) -> None:
+    def record_provider_call(
+        self, *, session_id: UUID, provider: str, model: str
+    ) -> None:
         return None
 
     def record_provider_failure(
@@ -322,7 +349,9 @@ class DummyProgressRecorder:
     ) -> None:
         return None
 
-    def consume_provider_failures(self, session_id: UUID) -> tuple[dict[str, object], ...]:
+    def consume_provider_failures(
+        self, session_id: UUID
+    ) -> tuple[dict[str, object], ...]:
         return ()
 
     def clear_task_session(self, session_id: UUID) -> None:
@@ -341,7 +370,6 @@ def _task(text: str, *, budget_usd: float = 0.05) -> MinerTask:
         reference_answer=ReferenceAnswer(text=f"reference {text}"),
         budget_usd=budget_usd,
     )
-
 
 
 async def test_scheduler_returns_platform_result_for_assigned_task_setup_failure(
@@ -367,7 +395,10 @@ async def test_scheduler_returns_platform_result_for_assigned_task_setup_failure
         receipt_log=receipt_log,
         blocking_executor=blocking_executor,
         orchestrator_factory=lambda _client: object(),
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: now,
         config=SchedulerConfig(
             token_secret_bytes=8,
@@ -418,10 +449,18 @@ async def test_scheduler_returns_platform_result_for_assigned_task_setup_failure
     assert result.result is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
     assert result.terminal_attempt.error_code == "sandbox_start_failed"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
     assert result.terminal_attempt.validator_session_id != UUID(int=0)
-    assert progress.next_attempt_number(batch_id, artifact.artifact_id, task.task_id) == 2
+    assert (
+        progress.next_attempt_number(batch_id, artifact.artifact_id, task.task_id) == 2
+    )
 
 
 async def test_scheduler_runs_multiple_platform_assignments_in_one_artifact_sandbox(
@@ -470,13 +509,18 @@ async def test_scheduler_runs_multiple_platform_assignments_in_one_artifact_sand
         receipt_log=receipt_log,
         blocking_executor=blocking_executor,
         orchestrator_factory=orchestrator_factory,
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: now,
         config=SchedulerConfig(token_secret_bytes=8, session_ttl=timedelta(minutes=5)),
         progress=DummyProgressRecorder(),
     )
 
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0
+    )
     batch_id = uuid4()
     assignments = tuple(
         MinerTaskWorkAssignment(
@@ -508,7 +552,8 @@ async def test_scheduler_runs_multiple_platform_assignments_in_one_artifact_sand
     assert {result.task_id for result in results} == {task.task_id for task in tasks}
     assert {result.attempt_number for result in results} == {1, 2}
     assert all(
-        result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
         for result in results
     )
 
@@ -527,12 +572,17 @@ async def test_scheduler_returns_pair_results_for_assigned_artifact_script_valid
         tasks=tasks,
         subtensor_client=subtensor,
         sandbox_manager=sandbox_manager,
-        session_manager=SessionManager(InMemorySessionRegistry(), InMemoryTokenRegistry()),
+        session_manager=SessionManager(
+            InMemorySessionRegistry(), InMemoryTokenRegistry()
+        ),
         evaluation_records=DummyEvaluationRecordStore(),
         receipt_log=DummyReceiptLog(),
         blocking_executor=blocking_executor,
         orchestrator_factory=lambda _client: object(),
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: now,
         config=SchedulerConfig(token_secret_bytes=8, session_ttl=timedelta(minutes=5)),
         progress=progress,
@@ -597,15 +647,18 @@ async def test_scheduler_returns_pair_results_for_assigned_artifact_script_valid
     assert all(
         result.result is not None
         and result.result.run.details.error is not None
-        and result.result.run.details.error.code == MinerTaskErrorCode.SCRIPT_VALIDATION_FAILED
+        and result.result.run.details.error.code
+        == MinerTaskErrorCode.SCRIPT_VALIDATION_FAILED
         for result in results
     )
     assert all(
-        result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
         for result in results
     )
     assert all(
-        result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
         for result in results
     )
 
@@ -621,17 +674,24 @@ async def test_scheduler_marks_assigned_work_dispatch_ready_before_runner(
         tasks=(task,),
         subtensor_client=subtensor,
         sandbox_manager=DummySandboxManager(),
-        session_manager=SessionManager(InMemorySessionRegistry(), InMemoryTokenRegistry()),
+        session_manager=SessionManager(
+            InMemorySessionRegistry(), InMemoryTokenRegistry()
+        ),
         evaluation_records=DummyEvaluationRecordStore(),
         receipt_log=DummyReceiptLog(),
         blocking_executor=blocking_executor,
         orchestrator_factory=lambda client: client,
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: datetime(2025, 10, 27, tzinfo=UTC),
         config=SchedulerConfig(token_secret_bytes=8, session_ttl=timedelta(minutes=5)),
         progress=DummyProgressRecorder(),
     )
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=uuid4(),
         artifact=artifact,
@@ -647,7 +707,9 @@ async def test_scheduler_marks_assigned_work_dispatch_ready_before_runner(
         nonlocal observed_dispatch_ready
         observed_dispatch_ready = kwargs["assigned_work"].dispatch_ready
 
-    monkeypatch.setattr(scheduler._runner, "evaluate_assigned_task_queue", fake_assigned_queue_runner)
+    monkeypatch.setattr(
+        scheduler._runner, "evaluate_assigned_task_queue", fake_assigned_queue_runner
+    )
 
     await scheduler.run_assigned_artifact_queue(
         batch_id=assignment.batch_id,
@@ -673,17 +735,24 @@ async def test_scheduler_stops_assigned_artifact_sandbox_when_queue_execution_is
         tasks=(task,),
         subtensor_client=subtensor,
         sandbox_manager=sandbox_manager,
-        session_manager=SessionManager(InMemorySessionRegistry(), InMemoryTokenRegistry()),
+        session_manager=SessionManager(
+            InMemorySessionRegistry(), InMemoryTokenRegistry()
+        ),
         evaluation_records=DummyEvaluationRecordStore(),
         receipt_log=DummyReceiptLog(),
         blocking_executor=blocking_executor,
         orchestrator_factory=lambda client: client,
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: datetime(2025, 10, 27, tzinfo=UTC),
         config=SchedulerConfig(token_secret_bytes=8, session_ttl=timedelta(minutes=5)),
         progress=DummyProgressRecorder(),
     )
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=uuid4(),
         artifact=artifact,
@@ -698,7 +767,9 @@ async def test_scheduler_stops_assigned_artifact_sandbox_when_queue_execution_is
         runner_started.set()
         await asyncio.Event().wait()
 
-    monkeypatch.setattr(scheduler._runner, "evaluate_assigned_task_queue", blocked_assigned_queue_runner)
+    monkeypatch.setattr(
+        scheduler._runner, "evaluate_assigned_task_queue", blocked_assigned_queue_runner
+    )
     execution = asyncio.create_task(
         scheduler.run_assigned_artifact_queue(
             batch_id=assignment.batch_id,
@@ -729,12 +800,17 @@ async def test_scheduler_returns_single_delivery_failure_for_assigned_artifact_s
         tasks=tasks,
         subtensor_client=FakeSubtensorClient(),
         sandbox_manager=DummySandboxManager(),
-        session_manager=SessionManager(InMemorySessionRegistry(), InMemoryTokenRegistry()),
+        session_manager=SessionManager(
+            InMemorySessionRegistry(), InMemoryTokenRegistry()
+        ),
         evaluation_records=DummyEvaluationRecordStore(),
         receipt_log=DummyReceiptLog(),
         blocking_executor=blocking_executor,
         orchestrator_factory=lambda _client: object(),
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: now,
         config=SchedulerConfig(token_secret_bytes=8, session_ttl=timedelta(minutes=5)),
         progress=progress,
@@ -805,9 +881,15 @@ async def test_scheduler_returns_single_delivery_failure_for_assigned_artifact_s
     assert result.task_id in {task.task_id for task in tasks}
     assert result.result is None
     assert result.terminal_attempt.error_code == "sandbox_start_failed"
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
     assert result.terminal_attempt.delivery_failure_detail == failure_detail
-    assert progress.next_attempt_number(batch_id, artifact.artifact_id, result.task_id) == 2
+    assert (
+        progress.next_attempt_number(batch_id, artifact.artifact_id, result.task_id)
+        == 2
+    )
 
 
 async def test_scheduler_assigned_setup_failure_survives_progress_write_failure(
@@ -820,12 +902,17 @@ async def test_scheduler_assigned_setup_failure_survives_progress_write_failure(
         tasks=(task,),
         subtensor_client=FakeSubtensorClient(),
         sandbox_manager=DummySandboxManager(),
-        session_manager=SessionManager(InMemorySessionRegistry(), InMemoryTokenRegistry()),
+        session_manager=SessionManager(
+            InMemorySessionRegistry(), InMemoryTokenRegistry()
+        ),
         evaluation_records=DummyEvaluationRecordStore(),
         receipt_log=DummyReceiptLog(),
         blocking_executor=blocking_executor,
         orchestrator_factory=lambda _client: object(),
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: now,
         config=SchedulerConfig(token_secret_bytes=8, session_ttl=timedelta(minutes=5)),
         progress=FailingTerminatedAttemptProgressRecorder(),
@@ -867,7 +954,10 @@ async def test_scheduler_assigned_setup_failure_survives_progress_write_failure(
 
     assert result.result is None
     assert result.terminal_attempt.error_code == "sandbox_start_failed"
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
 
 
 async def test_scheduler_assigned_results_survive_teardown_and_activity_failures(
@@ -923,18 +1013,25 @@ async def test_scheduler_assigned_results_survive_teardown_and_activity_failures
         tasks=(task,),
         subtensor_client=FakeSubtensorClient(),
         sandbox_manager=FailingStopSandboxManager(),
-        session_manager=SessionManager(InMemorySessionRegistry(), InMemoryTokenRegistry()),
+        session_manager=SessionManager(
+            InMemorySessionRegistry(), InMemoryTokenRegistry()
+        ),
         evaluation_records=DummyEvaluationRecordStore(),
         receipt_log=DummyReceiptLog(),
         blocking_executor=blocking_executor,
         orchestrator_factory=orchestrator_factory,
-        sandbox_options_factory=lambda artifact: {"uid": artifact.uid, "artifact_id": artifact.artifact_id},
+        sandbox_options_factory=lambda artifact: {
+            "uid": artifact.uid,
+            "artifact_id": artifact.artifact_id,
+        },
         clock=lambda: now,
         config=SchedulerConfig(token_secret_bytes=8, session_ttl=timedelta(minutes=5)),
         progress=DummyProgressRecorder(),
         activity=FailingActivity(),
     )
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="a", size_bytes=0
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=uuid4(),
         artifact=artifact,
@@ -958,8 +1055,10 @@ async def test_scheduler_assigned_results_survive_teardown_and_activity_failures
 
     result = result_queue.get_nowait()
     assert result.result is not None
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
-
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
 
 
 async def test_evaluation_runner_issues_session_with_task_budget(

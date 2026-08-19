@@ -31,7 +31,11 @@ from harnyx_commons.llm.schema import (
 from harnyx_commons.protocol_headers import SESSION_ID_HEADER
 from harnyx_commons.tools.dto import ToolInvocationRequest
 from harnyx_commons.tools.embedding_models import EmbedTextRequest
-from harnyx_commons.tools.executor import ToolExecutor, ToolInvocationContext, ToolInvocationOutput
+from harnyx_commons.tools.executor import (
+    ToolExecutor,
+    ToolInvocationContext,
+    ToolInvocationOutput,
+)
 from harnyx_commons.tools.ports import EmbeddingProviderResult
 from harnyx_commons.tools.runtime_invoker import RuntimeToolInvoker
 from harnyx_commons.tools.search_models import (
@@ -51,7 +55,10 @@ from harnyx_commons.tools.types import ToolName
 from harnyx_commons.tools.usage_tracker import UsageTracker
 from harnyx_validator.infrastructure.http.routes import ToolRouteDeps, add_tool_routes
 from harnyx_validator.infrastructure.state.run_progress import FileBackedRunProgress
-from harnyx_validator.runtime.bootstrap import ALLOWED_TOOL_MODELS, _ProviderTrackingToolExecutor
+from harnyx_validator.runtime.bootstrap import (
+    ALLOWED_TOOL_MODELS,
+    _ProviderTrackingToolExecutor,
+)
 from validator.tests.fixtures.fakes import FakeReceiptLog, FakeSessionRegistry
 
 DEMO_SESSION_TOKEN = uuid4().hex
@@ -68,7 +75,13 @@ def _invocation(tool: ToolName = "search_web") -> ToolInvocationRequest:
 
 
 def _mixed_invocations(count: int) -> list[ToolInvocationRequest]:
-    tools: tuple[ToolName, ...] = ("search_web", "fetch_page", "tooling_info", "test_tool", "llm_chat")
+    tools: tuple[ToolName, ...] = (
+        "search_web",
+        "fetch_page",
+        "tooling_info",
+        "test_tool",
+        "llm_chat",
+    )
     return [_invocation(tools[index % len(tools)]) for index in range(count)]
 
 
@@ -109,7 +122,9 @@ class RecordingToolInvoker:
 
 
 class RecordingToolConcurrencyLimiter(ToolConcurrencyLimiter):
-    def __init__(self, limits: ToolConcurrencyLimits = DEFAULT_TOOL_CONCURRENCY_LIMITS) -> None:
+    def __init__(
+        self, limits: ToolConcurrencyLimits = DEFAULT_TOOL_CONCURRENCY_LIMITS
+    ) -> None:
         super().__init__(limits)
         self.acquire_calls: list[tuple[str, ToolName]] = []
         self.release_calls: list[tuple[str, ToolName]] = []
@@ -225,7 +240,9 @@ class _SlowFetchPageProvider:
 
 
 class _SlowSearchProvider(_SlowFetchPageProvider):
-    async def search_web(self, request: SearchWebSearchRequest) -> SearchWebSearchResponse:
+    async def search_web(
+        self, request: SearchWebSearchRequest
+    ) -> SearchWebSearchResponse:
         await asyncio.sleep(1.0)
         return SearchWebSearchResponse(data=[])
 
@@ -235,7 +252,9 @@ class _SlowSearchProvider(_SlowFetchPageProvider):
 
 
 class _ProviderTimeoutSearchProvider:
-    async def search_web(self, request: SearchWebSearchRequest) -> SearchWebSearchResponse:
+    async def search_web(
+        self, request: SearchWebSearchRequest
+    ) -> SearchWebSearchResponse:
         raise TimeoutError("provider timed out")
 
     async def search_ai(self, request: SearchAiSearchRequest) -> SearchAiSearchResponse:
@@ -265,7 +284,9 @@ class TrackingDependencyProvider:
         self.session_registry = FakeSessionRegistry()
         self.receipt_log = FakeReceiptLog()
         self.tokens = InMemoryTokenRegistry()
-        self._progress_storage = tempfile.TemporaryDirectory(prefix="harnyx-test-run-progress-")
+        self._progress_storage = tempfile.TemporaryDirectory(
+            prefix="harnyx-test-run-progress-"
+        )
         self.progress_tracker = FileBackedRunProgress(
             storage_root=Path(self._progress_storage.name) / "run-progress"
         )
@@ -297,18 +318,26 @@ class TrackingDependencyProvider:
             ai_search_client=web_search_client,
             web_search_provider_name="desearch",
             web_search_provider_resolver=(
-                (lambda _provider, _context: web_search_client) if web_search_client is not None else None
+                (lambda _provider, _context: web_search_client)
+                if web_search_client is not None
+                else None
             ),
             ai_search_provider_resolver=(
-                (lambda _provider, _context: web_search_client) if web_search_client is not None else None
+                (lambda _provider, _context: web_search_client)
+                if web_search_client is not None
+                else None
             ),
             llm_provider=resolved_llm_provider,
             llm_provider_name=llm_provider_name,
             llm_provider_resolver=lambda _provider, _context: resolved_llm_provider,
             embedding_provider=embedding_provider,
-            embedding_provider_name="chutes" if embedding_provider is not None else None,
+            embedding_provider_name=(
+                "chutes" if embedding_provider is not None else None
+            ),
             embedding_provider_resolver=(
-                (lambda _provider, _context: embedding_provider) if embedding_provider is not None else None
+                (lambda _provider, _context: embedding_provider)
+                if embedding_provider is not None
+                else None
             ),
             allowed_models=ALLOWED_TOOL_MODELS,
         )
@@ -367,8 +396,12 @@ def test_execute_tool_endpoint_records_receipt() -> None:
     session_snapshot = provider.session_registry.get(provider.session.session_id)
     assert session_snapshot is not None
     assert session_snapshot.usage.total_cost_usd == pytest.approx(0.005)
-    assert provider.tool_concurrency_limiter.acquire_calls == [(DEMO_SESSION_TOKEN, "search_web")]
-    assert provider.tool_concurrency_limiter.release_calls == [(DEMO_SESSION_TOKEN, "search_web")]
+    assert provider.tool_concurrency_limiter.acquire_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
+    assert provider.tool_concurrency_limiter.release_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
     assert provider.tool_concurrency_limiter.in_flight(_invocation("search_web")) == 0
 
 
@@ -391,8 +424,12 @@ def test_execute_tool_endpoint_accepts_neutral_headers() -> None:
     )
 
     assert response.status_code == 200
-    assert provider.tool_concurrency_limiter.acquire_calls == [(DEMO_SESSION_TOKEN, "search_web")]
-    assert provider.tool_concurrency_limiter.release_calls == [(DEMO_SESSION_TOKEN, "search_web")]
+    assert provider.tool_concurrency_limiter.acquire_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
+    assert provider.tool_concurrency_limiter.release_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
 
 
 def test_execute_tool_endpoint_releases_semaphore_on_failure() -> None:
@@ -418,7 +455,9 @@ def test_execute_tool_endpoint_releases_semaphore_on_failure() -> None:
     )
 
     assert response.status_code == 400
-    assert provider.tool_concurrency_limiter.release_calls == [(DEMO_SESSION_TOKEN, "search_web")]
+    assert provider.tool_concurrency_limiter.release_calls == [
+        (DEMO_SESSION_TOKEN, "search_web")
+    ]
     assert provider.tool_concurrency_limiter.in_flight(_invocation("search_web")) == 0
 
 
@@ -481,7 +520,10 @@ def test_execute_tool_endpoint_waits_for_same_token_permit_then_succeeds() -> No
     request_thread.start()
     try:
         deadline = time.monotonic() + 1.0
-        while len(provider.tool_concurrency_limiter.acquire_calls) < 21 and time.monotonic() < deadline:
+        while (
+            len(provider.tool_concurrency_limiter.acquire_calls) < 21
+            and time.monotonic() < deadline
+        ):
             time.sleep(0.01)
         assert len(provider.tool_concurrency_limiter.acquire_calls) == 21
         assert not done.is_set()
@@ -499,7 +541,9 @@ def test_execute_tool_endpoint_waits_for_same_token_permit_then_succeeds() -> No
     assert provider.tool_concurrency_limiter.in_flight(_invocation("search_web")) == 0
 
 
-def test_execute_tool_endpoint_invalid_llm_payload_does_not_record_provider_call() -> None:
+def test_execute_tool_endpoint_invalid_llm_payload_does_not_record_provider_call() -> (
+    None
+):
     provider = TrackingDependencyProvider()
     app = create_test_app(provider)
     client = TestClient(app)
@@ -524,7 +568,9 @@ def test_execute_tool_endpoint_invalid_llm_payload_does_not_record_provider_call
     assert provider.progress_tracker.provider_evidence(provider.batch_id) == ()
 
 
-def test_execute_tool_endpoint_rejects_non_string_llm_model_without_provider_call() -> None:
+def test_execute_tool_endpoint_rejects_non_string_llm_model_without_provider_call() -> (
+    None
+):
     provider = TrackingDependencyProvider()
     app = create_test_app(provider)
     client = TestClient(app, raise_server_exceptions=False)
@@ -549,7 +595,9 @@ def test_execute_tool_endpoint_rejects_non_string_llm_model_without_provider_cal
     assert provider.progress_tracker.provider_evidence(provider.batch_id) == ()
 
 
-def test_execute_tool_endpoint_records_openrouter_missing_key_as_failed_receipt() -> None:
+def test_execute_tool_endpoint_records_openrouter_missing_key_as_failed_receipt() -> (
+    None
+):
     provider = TrackingDependencyProvider(
         llm_provider=OpenRouterLlmProvider(
             openrouter_api_key=SecretStr(""),
@@ -588,7 +636,9 @@ def test_execute_tool_endpoint_records_openrouter_missing_key_as_failed_receipt(
         "openai/gpt-oss-120b"
     )
     assert receipts[0].details.extra["error_message"] == expected_failure_reason
-    assert receipts[0].details.extra["error_cause_type"] == "LlmProviderConfigurationError"
+    assert (
+        receipts[0].details.extra["error_cause_type"] == "LlmProviderConfigurationError"
+    )
     assert receipts[0].details.extra["error_cause_message"] == expected_failure_reason
     expected_provider_failure = {
         "provider": "openrouter",
@@ -600,9 +650,9 @@ def test_execute_tool_endpoint_records_openrouter_missing_key_as_failed_receipt(
     assert provider.progress_tracker.provider_evidence(provider.batch_id) == (
         expected_provider_failure,
     )
-    assert provider.progress_tracker.consume_provider_failures(provider.session.session_id) == (
-        expected_provider_failure,
-    )
+    assert provider.progress_tracker.consume_provider_failures(
+        provider.session.session_id
+    ) == (expected_provider_failure,)
 
 
 def test_execute_tool_endpoint_records_provider_call_on_live_llm_success() -> None:
@@ -638,7 +688,9 @@ def test_execute_tool_endpoint_records_provider_call_on_live_llm_success() -> No
     )
 
 
-def test_execute_tool_endpoint_records_openrouter_provider_call_for_non_default_model() -> None:
+def test_execute_tool_endpoint_records_openrouter_provider_call_for_non_default_model() -> (
+    None
+):
     provider = TrackingDependencyProvider(
         llm_provider=_SuccessfulLlmProvider(),
         llm_provider_name="openrouter",
@@ -674,7 +726,9 @@ def test_execute_tool_endpoint_records_openrouter_provider_call_for_non_default_
     )
 
 
-def test_execute_tool_endpoint_records_provider_failure_on_live_llm_provider_error() -> None:
+def test_execute_tool_endpoint_records_provider_failure_on_live_llm_provider_error() -> (
+    None
+):
     provider = TrackingDependencyProvider(llm_provider=_RetryExhaustedLlmProvider())
     app = create_test_app(provider)
     client = TestClient(app)
@@ -732,7 +786,9 @@ def test_execute_tool_endpoint_records_provider_failure_reason_from_cause() -> N
     )
 
     assert response.status_code == 400
-    assert provider.progress_tracker.consume_provider_failures(provider.session.session_id) == (
+    assert provider.progress_tracker.consume_provider_failures(
+        provider.session.session_id
+    ) == (
         {
             "provider": "openrouter",
             "model": ALLOWED_TOOL_MODELS[0],
@@ -743,7 +799,9 @@ def test_execute_tool_endpoint_records_provider_failure_reason_from_cause() -> N
     )
 
 
-def test_execute_tool_endpoint_does_not_record_provider_failure_for_fetch_page_timeout() -> None:
+def test_execute_tool_endpoint_does_not_record_provider_failure_for_fetch_page_timeout() -> (
+    None
+):
     provider = TrackingDependencyProvider(web_search_client=_SlowFetchPageProvider())
     app = create_test_app(provider)
     client = TestClient(app)
@@ -753,7 +811,11 @@ def test_execute_tool_endpoint_does_not_record_provider_failure_for_fetch_page_t
         json={
             "tool": "fetch_page",
             "args": [],
-            "kwargs": {"provider": "desearch", "url": "https://example.com", "timeout": 0.01},
+            "kwargs": {
+                "provider": "desearch",
+                "url": "https://example.com",
+                "timeout": 0.01,
+            },
         },
         headers={
             "x-platform-token": DEMO_SESSION_TOKEN,
@@ -764,14 +826,20 @@ def test_execute_tool_endpoint_does_not_record_provider_failure_for_fetch_page_t
     assert response.status_code == 400
     assert response.json() == {"detail": "tool execution failed"}
     assert provider.progress_tracker.provider_evidence(provider.batch_id) == ()
-    assert provider.progress_tracker.consume_provider_failures(provider.session.session_id) == ()
+    assert (
+        provider.progress_tracker.consume_provider_failures(provider.session.session_id)
+        == ()
+    )
 
 
 @pytest.mark.parametrize(
-        ("tool", "kwargs"),
-        [
-            ("search_web", {"provider": "desearch", "search_queries": ["harnyx"], "timeout": 0.01}),
-            (
+    ("tool", "kwargs"),
+    [
+        (
+            "search_web",
+            {"provider": "desearch", "search_queries": ["harnyx"], "timeout": 0.01},
+        ),
+        (
             "llm_chat",
             {
                 "provider": "openrouter",
@@ -809,7 +877,10 @@ def test_execute_tool_endpoint_does_not_record_provider_failure_for_tool_timeout
     assert response.status_code == 400
     assert response.json() == {"detail": "tool execution failed"}
     assert provider.progress_tracker.provider_evidence(provider.batch_id) == ()
-    assert provider.progress_tracker.consume_provider_failures(provider.session.session_id) == ()
+    assert (
+        provider.progress_tracker.consume_provider_failures(provider.session.session_id)
+        == ()
+    )
 
 
 @pytest.mark.parametrize(

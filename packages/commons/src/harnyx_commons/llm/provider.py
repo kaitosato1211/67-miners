@@ -199,7 +199,9 @@ class BaseLlmProvider(ABC, LlmProviderPort):
         self._llm_logger = logger or logging.getLogger(self._LOGGER_NAME)
         self._retry_policy = ExternalClientRetrySettings().retry_policy
         self._semaphore: asyncio.Semaphore | None = (
-            asyncio.Semaphore(max_concurrent) if max_concurrent and max_concurrent > 0 else None
+            asyncio.Semaphore(max_concurrent)
+            if max_concurrent and max_concurrent > 0
+            else None
         )
 
     async def invoke(self, request: AbstractLlmRequest) -> LlmResponse:
@@ -271,7 +273,9 @@ class BaseLlmProvider(ABC, LlmProviderPort):
                     }
                     if request.include_payloads_in_observability:
                         error_metadata["error"] = repr(exc)
-                        raw_error_payload = _error_raw_payload_metadata(request=request, exc=exc)
+                        raw_error_payload = _error_raw_payload_metadata(
+                            request=request, exc=exc
+                        )
                         if raw_error_payload is not None:
                             error_metadata["raw"] = raw_error_payload
                     update_generation_best_effort(
@@ -304,7 +308,9 @@ class BaseLlmProvider(ABC, LlmProviderPort):
                 usage = response.usage or LlmUsage()
                 web_search_calls = int(usage.web_search_calls or 0)
                 response_metadata = (
-                    _instrumentation_response_metadata(response) if request.include_payloads_in_observability else {}
+                    _instrumentation_response_metadata(response)
+                    if request.include_payloads_in_observability
+                    else {}
                 )
                 reasoning_metadata = (
                     _build_reasoning_metadata(
@@ -347,12 +353,16 @@ class BaseLlmProvider(ABC, LlmProviderPort):
                         "llm.wait_ms": round(wait_ms, 2),
                         "llm.usage.total_tokens": int(usage.total_tokens or 0),
                         "llm.usage.prompt_tokens": int(usage.prompt_tokens or 0),
-                        "llm.usage.completion_tokens": int(usage.completion_tokens or 0),
+                        "llm.usage.completion_tokens": int(
+                            usage.completion_tokens or 0
+                        ),
                         "llm.usage.web_search_calls": web_search_calls,
                     }
                 )
                 if usage.reasoning_tokens is not None:
-                    span.set_attribute("llm.usage.reasoning_tokens", int(usage.reasoning_tokens))
+                    span.set_attribute(
+                        "llm.usage.reasoning_tokens", int(usage.reasoning_tokens)
+                    )
 
                 data |= {
                     "elapsed_ms": elapsed,
@@ -373,7 +383,9 @@ class BaseLlmProvider(ABC, LlmProviderPort):
                 update_generation_best_effort(
                     generation,
                     output=(
-                        build_generation_output_payload(response) if request.include_payloads_in_observability else None
+                        build_generation_output_payload(response)
+                        if request.include_payloads_in_observability
+                        else None
                     ),
                     usage=usage,
                     metadata=build_generation_metadata(
@@ -423,16 +435,22 @@ class BaseLlmProvider(ABC, LlmProviderPort):
 
         for attempt in range(policy.attempts):
             # Phase 1: Attempt
-            response = await self._try_call(attempt, ctx, current_request, call_coro, classify_exception)
+            response = await self._try_call(
+                attempt, ctx, current_request, call_coro, classify_exception
+            )
             if response is None:
                 continue
 
             # Phase 2: Verify
-            if not await self._try_verify(attempt, ctx, current_request, response, verifier):
+            if not await self._try_verify(
+                attempt, ctx, current_request, response, verifier
+            ):
                 continue
 
             # Phase 3: Postprocess
-            processed, retry, next_request = await self._try_postprocess(attempt, ctx, current_request, response)
+            processed, retry, next_request = await self._try_postprocess(
+                attempt, ctx, current_request, response
+            )
             if retry:
                 current_request = next_request or current_request
                 continue
@@ -465,7 +483,9 @@ class BaseLlmProvider(ABC, LlmProviderPort):
         except Exception as exc:
             latency_ms = (time.perf_counter() - start) * 1000
             ctx.total_latency_ms += latency_ms
-            retryable, reason = classify_exception(exc) if classify_exception else (False, str(exc))
+            retryable, reason = (
+                classify_exception(exc) if classify_exception else (False, str(exc))
+            )
             await self._handle_failure(
                 attempt,
                 ctx,
@@ -663,7 +683,9 @@ class BaseLlmProvider(ABC, LlmProviderPort):
         self._log_retry_complete(request=request, response=response, ctx=ctx)
         return self._build_accumulated_response(response, ctx, processed)
 
-    def _build_response_for_error(self, response: LlmResponse | None, ctx: RetryContext) -> LlmResponse | None:
+    def _build_response_for_error(
+        self, response: LlmResponse | None, ctx: RetryContext
+    ) -> LlmResponse | None:
         if response is None:
             return None
         return self._build_accumulated_response(response, ctx, response.postprocessed)
@@ -696,7 +718,9 @@ class BaseLlmProvider(ABC, LlmProviderPort):
             finish_reason=response.finish_reason,
         )
 
-    def _log_retry_complete(self, *, request: AbstractLlmRequest, response: LlmResponse, ctx: RetryContext) -> None:
+    def _log_retry_complete(
+        self, *, request: AbstractLlmRequest, response: LlmResponse, ctx: RetryContext
+    ) -> None:
         json_fields = (
             {
                 "request": _request_snapshot(request),
@@ -735,7 +759,11 @@ class BaseLlmProvider(ABC, LlmProviderPort):
             "provider": self._provider_label,
             "model": request.model,
             "attempt": attempt + 1,
-            "reason": (failure.reason if request.include_payloads_in_observability else "provider_retry"),
+            "reason": (
+                failure.reason
+                if request.include_payloads_in_observability
+                else "provider_retry"
+            ),
             "backoff_ms": backoff_ms(attempt, policy),
         }
         if request.use_case is not None:
@@ -749,7 +777,11 @@ class BaseLlmProvider(ABC, LlmProviderPort):
         if request.include_payloads_in_observability and failure.cause_chain:
             data["cause_chain"] = failure.cause_chain
         message = f"llm.retry.{phase}"
-        if request.include_payloads_in_observability and phase == "exception" and failure.exception_type is not None:
+        if (
+            request.include_payloads_in_observability
+            and phase == "exception"
+            and failure.exception_type is not None
+        ):
             message = f"{message}: {failure.exception_type}: {failure.exception_message or failure.reason}"
         self._llm_logger.warning(
             message,
@@ -844,7 +876,9 @@ def _provider_response_payload(
     raw_response = response_metadata.get("raw_response")
     if isinstance(raw_response, Mapping):
         return dict(raw_response)
-    if isinstance(raw_response, Sequence) and not isinstance(raw_response, (str, bytes, bytearray)):
+    if isinstance(raw_response, Sequence) and not isinstance(
+        raw_response, (str, bytes, bytearray)
+    ):
         return list(raw_response)
     return response.payload
 
@@ -1008,7 +1042,9 @@ class _VertexRawResponse(BaseModel):
     candidates: list[_VertexRawCandidate] = Field(default_factory=list)
 
 
-def _vertex_reasoning_details_from_raw_response(raw_response: object) -> tuple[tuple[str, ...], bool]:
+def _vertex_reasoning_details_from_raw_response(
+    raw_response: object,
+) -> tuple[tuple[str, ...], bool]:
     raw_payload = _validated_model(_VertexRawResponse, raw_response)
     if raw_payload is None:
         return (), False
@@ -1029,7 +1065,9 @@ def _vertex_reasoning_details_from_raw_response(raw_response: object) -> tuple[t
     return tuple(thought_text_parts), has_thought_signature
 
 
-def _chutes_reasoning_details_from_raw_response(raw_response: object) -> tuple[tuple[str, ...], bool]:
+def _chutes_reasoning_details_from_raw_response(
+    raw_response: object,
+) -> tuple[tuple[str, ...], bool]:
     raw_payload = _validated_model(_ChutesRawResponse, raw_response)
     if raw_payload is None:
         return (), False
@@ -1050,7 +1088,9 @@ def _chutes_reasoning_details_from_raw_response(raw_response: object) -> tuple[t
             return thought_text_parts, reasoning_payload.has_thought_signature
 
         fallback_text = reasoning_payload.reasoning_text
-        return ((fallback_text,) if fallback_text is not None else ()), reasoning_payload.has_thought_signature
+        return (
+            (fallback_text,) if fallback_text is not None else ()
+        ), reasoning_payload.has_thought_signature
 
     return (), False
 
@@ -1083,7 +1123,9 @@ def _failed_response_message(response: LlmResponse) -> LlmMessage | None:
     return LlmMessage(role=role, content=text_parts)
 
 
-def _feedback_role(*, request: AbstractLlmRequest, response: LlmResponse) -> Literal["user", "tool"]:
+def _feedback_role(
+    *, request: AbstractLlmRequest, response: LlmResponse
+) -> Literal["user", "tool"]:
     if not response.choices:
         return "user"
     response_role = response.choices[0].message.role
@@ -1094,7 +1136,9 @@ def _feedback_role(*, request: AbstractLlmRequest, response: LlmResponse) -> Lit
     return "user"
 
 
-def _base_messages_for_feedback_retry(request: AbstractLlmRequest) -> tuple[LlmMessage, ...]:
+def _base_messages_for_feedback_retry(
+    request: AbstractLlmRequest,
+) -> tuple[LlmMessage, ...]:
     metadata = request.internal_metadata or {}
     if not metadata.get("postprocess_feedback_retry"):
         return tuple(request.messages)
@@ -1125,7 +1169,9 @@ def _build_grounding_metadata(
     return payload
 
 
-def _extract_web_search_queries(response_metadata: Mapping[str, object]) -> tuple[str, ...]:
+def _extract_web_search_queries(
+    response_metadata: Mapping[str, object],
+) -> tuple[str, ...]:
     raw_queries = response_metadata.get("web_search_queries")
     if isinstance(raw_queries, str):
         normalized = raw_queries.strip()

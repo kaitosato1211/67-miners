@@ -8,7 +8,10 @@ import pytest
 import harnyx_commons.tools.desearch as desearch_module
 from harnyx_commons.errors import ToolProviderError, ToolProviderFailureCode
 from harnyx_commons.tools.desearch import DeSearchClient
-from harnyx_commons.tools.search_models import SearchWebSearchRequest, SearchXSearchRequest
+from harnyx_commons.tools.search_models import (
+    SearchWebSearchRequest,
+    SearchXSearchRequest,
+)
 
 pytestmark = pytest.mark.anyio("asyncio")
 
@@ -52,7 +55,9 @@ async def test_desearch_client_can_suppress_request_and_raw_response_logs(
 
     await client._post("/search", {"prompt": "private-query"})
 
-    record = next(record for record in caplog.records if record.msg == "desearch.request.complete")
+    record = next(
+        record for record in caplog.records if record.msg == "desearch.request.complete"
+    )
     assert not hasattr(record, "json_fields")
     assert "private-query" not in str(record.__dict__)
     assert "raw-provider-envelope" not in str(record.__dict__)
@@ -80,7 +85,9 @@ async def test_desearch_payload_suppression_disables_automatic_otel_exception_re
             return SpanScope()
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(403, json={"error": "raw-provider-envelope"}, request=request)
+        return httpx.Response(
+            403, json={"error": "raw-provider-envelope"}, request=request
+        )
 
     monkeypatch.setattr(desearch_module.trace, "get_tracer", lambda _: Tracer())
     client = DeSearchClient(
@@ -102,7 +109,9 @@ async def test_desearch_payload_suppression_disables_automatic_otel_exception_re
 
 async def test_desearch_403_is_typed_as_authentication_failure() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(403, json={"error": "raw-provider-envelope"}, request=request)
+        return httpx.Response(
+            403, json={"error": "raw-provider-envelope"}, request=request
+        )
 
     client = DeSearchClient(
         base_url="https://desearch.example",
@@ -169,7 +178,9 @@ async def test_iter_search_links_twitter_pages_adds_max_id_and_stops_on_empty() 
         await client.aclose()
 
 
-async def test_iter_search_links_twitter_pages_stops_if_max_id_ignored(caplog: pytest.LogCaptureFixture) -> None:
+async def test_iter_search_links_twitter_pages_stops_if_max_id_ignored(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.INFO, logger="harnyx_commons.tools.desearch.calls")
 
     queries: list[str] = []
@@ -209,14 +220,17 @@ async def test_iter_search_links_twitter_pages_stops_if_max_id_ignored(caplog: p
         stop_records = [
             record
             for record in caplog.records
-            if record.msg == "desearch.search_links_twitter.pagination.stopped_max_id_ignored"
+            if record.msg
+            == "desearch.search_links_twitter.pagination.stopped_max_id_ignored"
         ]
         assert len(stop_records) == 1
     finally:
         await client.aclose()
 
 
-async def test_iter_search_links_web_pages_increments_start_and_stops_on_repeat_first_link() -> None:
+async def test_iter_search_links_web_pages_increments_start_and_stops_on_repeat_first_link() -> (
+    None
+):
     starts: list[int] = []
     queries: list[str] = []
 
@@ -257,7 +271,9 @@ async def test_iter_search_links_web_pages_increments_start_and_stops_on_repeat_
     try:
         pages = []
         async for page in client.iter_search_links_web_pages(
-            SearchWebSearchRequest(provider="desearch", search_queries=("alpha phrase", "beta"), num=100)
+            SearchWebSearchRequest(
+                provider="desearch", search_queries=("alpha phrase", "beta"), num=100
+            )
         ):
             pages.append(page)
         assert len(pages) == 1

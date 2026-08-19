@@ -85,7 +85,9 @@ def test_empty_schema_selects_structured_mode() -> None:
         {"prefixItems": [{"type": "string"}], "$ref": "#/prefixItems/-1"},
     ],
 )
-def test_query_rejects_wrong_dialect_and_external_references(schema: dict[str, object]) -> None:
+def test_query_rejects_wrong_dialect_and_external_references(
+    schema: dict[str, object],
+) -> None:
     with pytest.raises(ValidationError):
         Query(text="question", output_schema=schema)
 
@@ -134,8 +136,12 @@ def test_response_accepts_every_non_null_json_value(output: object) -> None:
     assert response.text is None
 
 
-@pytest.mark.parametrize("payload", [{}, {"output": None}, {"text": "answer", "output": {} }])
-def test_response_requires_exactly_one_non_null_answer(payload: dict[str, object]) -> None:
+@pytest.mark.parametrize(
+    "payload", [{}, {"output": None}, {"text": "answer", "output": {}}]
+)
+def test_response_requires_exactly_one_non_null_answer(
+    payload: dict[str, object],
+) -> None:
     with pytest.raises(ValidationError):
         Response.model_validate(payload)
 
@@ -221,7 +227,10 @@ def test_response_rejects_more_than_four_hundred_materialized_segments() -> None
                     {
                         "receipt_id": "receipt-1",
                         "result_id": "result-1",
-                        "slices": [{"start": index * 100, "end": (index + 1) * 100} for index in range(401)],
+                        "slices": [
+                            {"start": index * 100, "end": (index + 1) * 100}
+                            for index in range(401)
+                        ],
                     }
                 ],
             }

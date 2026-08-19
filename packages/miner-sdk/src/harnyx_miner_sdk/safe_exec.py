@@ -24,7 +24,9 @@ def safe_exec(code: str, variables: dict[str, JsonValue] | None = None) -> JsonV
 
     source = _validate_code(code)
     namespace = _new_namespace(_detach_variables(variables))
-    exec(source, namespace, namespace)  # noqa: S102 - execution is this helper's contract
+    exec(
+        source, namespace, namespace
+    )  # noqa: S102 - execution is this helper's contract
     if "result" not in namespace:
         raise SafeExecError("code must assign result")
     return _detach_json_value(namespace["result"], boundary="result")

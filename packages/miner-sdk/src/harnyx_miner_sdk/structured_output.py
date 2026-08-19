@@ -63,7 +63,9 @@ def validate_output_against_schema(output: JsonValue, schema: JsonObject) -> Non
         registry = _build_schema_registry(schema)
         Draft202012Validator(schema, registry=registry).validate(output)
     except (ValidationError, Unresolvable) as exc:
-        raise ValueError(f"response output does not match output schema: {exc}") from exc
+        raise ValueError(
+            f"response output does not match output schema: {exc}"
+        ) from exc
 
 
 def _build_schema_registry(schema: JsonObject) -> Registry[JsonValue]:
@@ -107,10 +109,14 @@ def _validate_json_pointer_array_indices(contents: JsonValue, reference: str) ->
     for raw_token in fragment[1:].split("/"):
         token = raw_token.replace("~1", "/").replace("~0", "~")
         if isinstance(current, list):
-            if not token.isascii() or not token.isdecimal() or (
-                len(token) > 1 and token.startswith("0")
+            if (
+                not token.isascii()
+                or not token.isdecimal()
+                or (len(token) > 1 and token.startswith("0"))
             ):
-                raise ValueError(f"output schema reference does not resolve: {reference}")
+                raise ValueError(
+                    f"output schema reference does not resolve: {reference}"
+                )
             index = int(token)
             if index >= len(current):
                 return

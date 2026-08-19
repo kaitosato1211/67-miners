@@ -14,7 +14,12 @@ from uuid import UUID, uuid4
 from harnyx_commons.application.ports.receipt_log import ReceiptLogPort
 from harnyx_commons.application.ports.session_registry import SessionRegistryPort
 from harnyx_commons.application.ports.token_registry import TokenRegistryPort
-from harnyx_commons.domain.session import ProviderCredentialSource, Session, SessionFailureCode, SessionStatus
+from harnyx_commons.domain.session import (
+    ProviderCredentialSource,
+    Session,
+    SessionFailureCode,
+    SessionStatus,
+)
 from harnyx_commons.domain.tool_call import (
     SearchToolResult,
     StartedToolCall,
@@ -77,7 +82,9 @@ _TOOLS_WITHOUT_USAGE: set[ToolName] = {
     "tooling_info",
 }
 
-_PROVIDER_BACKED_TOOL_NAMES: frozenset[ToolName] = frozenset({*LLM_TOOLS, *SEARCH_TOOLS, *EMBEDDING_TOOLS})
+_PROVIDER_BACKED_TOOL_NAMES: frozenset[ToolName] = frozenset(
+    {*LLM_TOOLS, *SEARCH_TOOLS, *EMBEDDING_TOOLS}
+)
 
 _SEARCH_RESULT_FIELDS: dict[SearchToolName, tuple[str, str, str]] = {
     "search_web": ("link", "snippet", "title"),
@@ -118,7 +125,9 @@ class ToolInvocationContext:
     receipt_started_at: datetime | None = None
     receipt_issued_at: datetime | None = None
     miner_hotkey_ss58: str | None = None
-    provider_credential_source: ProviderCredentialSource = ProviderCredentialSource.MINER
+    provider_credential_source: ProviderCredentialSource = (
+        ProviderCredentialSource.MINER
+    )
 
 
 ToolCallObserver = Callable[[Session, ToolCall], Awaitable[None]]
@@ -157,7 +166,9 @@ class ToolExecutor:
             }
         )
         debug_call_id = str(uuid4())
-        tool_logger.info("tool call started", extra={**log_context, "event": "tool_call_start"})
+        tool_logger.info(
+            "tool call started", extra={**log_context, "event": "tool_call_start"}
+        )
         _debug_tool_event(
             "miner_tool_call.started",
             lambda: _tool_call_debug_data(
@@ -212,7 +223,9 @@ class ToolExecutor:
         self,
         request: ToolInvocationRequest,
     ) -> JsonObject:
-        return (await self._invoke_tool_output_async(request, context=None)).public_payload
+        return (
+            await self._invoke_tool_output_async(request, context=None)
+        ).public_payload
 
     async def _invoke_tool_output_async(
         self,
@@ -345,9 +358,13 @@ class ToolExecutor:
         request_payload: JsonValue | None,
         invocation_context: ToolInvocationContext,
     ) -> _ExecutionResult:
-        invocation_output = await self._invoke_tool_output_async(request, context=invocation_context)
+        invocation_output = await self._invoke_tool_output_async(
+            request, context=invocation_context
+        )
         finished_at = self._clock()
-        results, result_policy = self._build_results(request, invocation_output.public_payload)
+        results, result_policy = self._build_results(
+            request, invocation_output.public_payload
+        )
         llm_tokens, usage_details = self._extract_usage(
             request,
             invocation_output.public_payload,
@@ -359,10 +376,14 @@ class ToolExecutor:
             actual_cost_provider=invocation_output.actual_cost_provider,
             actual_cost_evidence=invocation_output.actual_cost_evidence,
         )
-        cost_unavailable = settled_cost_usd is None and request.tool in _PROVIDER_BACKED_TOOL_NAMES
+        cost_unavailable = (
+            settled_cost_usd is None and request.tool in _PROVIDER_BACKED_TOOL_NAMES
+        )
         receipt_extra: JsonObject = {}
         if invocation_output.actual_cost_evidence is not None:
-            receipt_extra["actual_cost_evidence"] = invocation_output.actual_cost_evidence
+            receipt_extra["actual_cost_evidence"] = (
+                invocation_output.actual_cost_evidence
+            )
         if cost_unavailable:
             receipt_extra["actual_cost_settlement_source"] = "unavailable"
         receipt = started_call.materialize(
@@ -393,7 +414,9 @@ class ToolExecutor:
             ),
         )
         if completion is None:
-            raise RuntimeError("tool completion arrived after pending receipt was abandoned")
+            raise RuntimeError(
+                "tool completion arrived after pending receipt was abandoned"
+            )
         updated_session, should_raise_budget_exhausted = completion
         await self._observe_tool_call(updated_session, receipt)
         budget_snapshot = _build_budget_snapshot(updated_session)
@@ -422,7 +445,9 @@ class ToolExecutor:
             ),
         )
         if should_raise_budget_exhausted:
-            raise BudgetExceededError(f"session {session.session_id} exhausted during tool accounting")
+            raise BudgetExceededError(
+                f"session {session.session_id} exhausted during tool accounting"
+            )
 
         return result
 
@@ -484,7 +509,9 @@ class ToolExecutor:
         try:
             await self._tool_call_observer(session, tool_call)
         except Exception:
-            self._sessions.mutate(session.session_id, lambda current: current.mark_error())
+            self._sessions.mutate(
+                session.session_id, lambda current: current.mark_error()
+            )
             raise
 
     def _settle_usage(
@@ -504,7 +531,9 @@ class ToolExecutor:
             nonlocal budget_exhausted_by_this_call
 
             if current.status not in {SessionStatus.ACTIVE, SessionStatus.EXHAUSTED}:
-                raise RuntimeError(f"session {session_id} became {current.status.value} during tool accounting")
+                raise RuntimeError(
+                    f"session {session_id} became {current.status.value} during tool accounting"
+                )
 
             was_already_exhausted = current.status is SessionStatus.EXHAUSTED
             session_for_accounting = _session_for_usage_accounting(current)
@@ -518,16 +547,24 @@ class ToolExecutor:
                 actual_cost_provider,
             )
             exhausted = _mark_session_exhausted_if_needed(updated)
-            if exhausted.status is SessionStatus.EXHAUSTED and not was_already_exhausted:
+            if (
+                exhausted.status is SessionStatus.EXHAUSTED
+                and not was_already_exhausted
+            ):
                 budget_exhausted_by_this_call = True
-            if was_already_exhausted and exhausted.status is not SessionStatus.EXHAUSTED:
+            if (
+                was_already_exhausted
+                and exhausted.status is not SessionStatus.EXHAUSTED
+            ):
                 return exhausted.mark_exhausted()
             return exhausted
 
         updated_session = self._sessions.mutate(session_id, mutate)
         return updated_session, budget_exhausted_by_this_call
 
-    def _log_success(self, log_context: dict[str, object], result: _ExecutionResult) -> None:
+    def _log_success(
+        self, log_context: dict[str, object], result: _ExecutionResult
+    ) -> None:
         log_fields = {
             **log_context,
             "event": "tool_call_success",
@@ -535,7 +572,10 @@ class ToolExecutor:
             "llm_tokens": result.llm_tokens,
             "usage": asdict(result.usage_details) if result.usage_details else None,
         }
-        if log_context.get("provider_credential_source") == ProviderCredentialSource.PLATFORM.value:
+        if (
+            log_context.get("provider_credential_source")
+            == ProviderCredentialSource.PLATFORM.value
+        ):
             tool_logger.info("tool call completed", extra=log_fields)
             return
 
@@ -554,7 +594,10 @@ class ToolExecutor:
         )
 
     def _log_failure(self, log_context: dict[str, object], exc: Exception) -> None:
-        platform_credentials = log_context.get("provider_credential_source") == ProviderCredentialSource.PLATFORM.value
+        platform_credentials = (
+            log_context.get("provider_credential_source")
+            == ProviderCredentialSource.PLATFORM.value
+        )
         tool_logger.error(
             "tool call failed",
             extra={
@@ -597,7 +640,9 @@ def _normalize_invocation_output(value: object) -> ToolInvocationOutput:
     if isinstance(value, ToolInvocationOutput):
         return value
     if not isinstance(value, Mapping):
-        raise ValueError("tool invoker must return a JSON object or ToolInvocationOutput")
+        raise ValueError(
+            "tool invoker must return a JSON object or ToolInvocationOutput"
+        )
     public_payload = _normalize_payload(value)
     if not isinstance(public_payload, dict):
         raise ValueError("tool invoker JSON object normalized to a non-object payload")
@@ -622,7 +667,9 @@ def _settled_success_cost(
         ):
             return None
         raise ValueError(f"{tool_name} succeeded without actual_cost_usd")
-    if isinstance(actual_cost_usd, bool) or not isinstance(actual_cost_usd, int | float):
+    if isinstance(actual_cost_usd, bool) or not isinstance(
+        actual_cost_usd, int | float
+    ):
         raise ValueError("actual_cost_usd must be numeric")
     if not math.isfinite(actual_cost_usd):
         raise ValueError("actual_cost_usd must be finite")
@@ -754,12 +801,16 @@ def _build_tool_results(
 ) -> tuple[ToolResult, ...]:
     if policy is ToolResultPolicy.REFERENCEABLE:
         if not is_search_tool(tool_name):
-            raise ValueError(f"REFERENCEABLE result policy not supported for tool {tool_name!r}")
+            raise ValueError(
+                f"REFERENCEABLE result policy not supported for tool {tool_name!r}"
+            )
         return _build_search_results(tool_name, payload)
     return _build_log_only_results(payload)
 
 
-def _build_search_results(tool_name: SearchToolName, payload: object) -> tuple[ToolResult, ...]:
+def _build_search_results(
+    tool_name: SearchToolName, payload: object
+) -> tuple[ToolResult, ...]:
     parsed_payload = _parse_search_tool_payload(tool_name, payload)
     results: list[SearchToolResult] = []
     for entry in parsed_payload.entries:
@@ -809,7 +860,9 @@ class _SearchResultPayload:
     title: str | None
 
 
-def _parse_search_tool_payload(tool_name: SearchToolName, payload: object) -> _SearchToolPayload:
+def _parse_search_tool_payload(
+    tool_name: SearchToolName, payload: object
+) -> _SearchToolPayload:
     payload_mapping = _mapping_with_string_keys(payload)
     if payload_mapping is None:
         return _SearchToolPayload(entries=())
@@ -820,7 +873,9 @@ def _parse_search_tool_payload(tool_name: SearchToolName, payload: object) -> _S
     url_key, note_key, title_key = _SEARCH_RESULT_FIELDS[tool_name]
     entries: list[_SearchResultPayload] = []
     for entry in data:
-        parsed_entry = _parse_search_result_payload(entry, url_key=url_key, note_key=note_key, title_key=title_key)
+        parsed_entry = _parse_search_result_payload(
+            entry, url_key=url_key, note_key=note_key, title_key=title_key
+        )
         if parsed_entry is not None:
             entries.append(parsed_entry)
     return _SearchToolPayload(entries=tuple(entries))
@@ -875,7 +930,10 @@ def _extract_llm_usage(
 
     usage_obj = parsed_payload.llm_response.usage
     if usage_obj is None:
-        keys = ", ".join(str(key) for key in sorted(parsed_payload.payload_mapping.keys())) or "none"
+        keys = (
+            ", ".join(str(key) for key in sorted(parsed_payload.payload_mapping.keys()))
+            or "none"
+        )
         raise ValueError(
             f"llm tool response missing 'usage' field (payload keys: {keys})",
         )
@@ -948,7 +1006,9 @@ def _extract_llm_model(
 
 
 def _parse_llm_usage_payload(payload: object) -> _LlmUsagePayload:
-    payload_mapping = _require_string_key_mapping(payload, label="llm tool response must be a mapping")
+    payload_mapping = _require_string_key_mapping(
+        payload, label="llm tool response must be a mapping"
+    )
     llm_response = LlmResponse.from_payload(payload_mapping)
     return _LlmUsagePayload(payload_mapping=payload_mapping, llm_response=llm_response)
 
@@ -964,7 +1024,9 @@ SENSITIVE_KEY_SUBSTRINGS = (
 )
 
 
-def _debug_tool_event(event: str, data_factory: Callable[[], dict[str, JsonValue]]) -> None:
+def _debug_tool_event(
+    event: str, data_factory: Callable[[], dict[str, JsonValue]]
+) -> None:
     if not tool_logger.isEnabledFor(logging.DEBUG):
         return
     tool_logger.debug(event, extra={"data": data_factory()})
@@ -1028,7 +1090,9 @@ def _is_sensitive_key(key: str) -> bool:
     return any(fragment in lowered for fragment in SENSITIVE_KEY_SUBSTRINGS)
 
 
-def _build_tool_log_context(request: ToolInvocationRequest, session: Session) -> dict[str, object]:
+def _build_tool_log_context(
+    request: ToolInvocationRequest, session: Session
+) -> dict[str, object]:
     context: dict[str, object] = {
         "tool_name": request.tool,
         "session_id": str(session.session_id),
@@ -1077,4 +1141,9 @@ async def execute_tool_with_concurrency_permit(
         limiter.release(invocation)
 
 
-__all__ = ["ToolExecutor", "ToolInvoker", "ToolCallUsage", "execute_tool_with_concurrency_permit"]
+__all__ = [
+    "ToolExecutor",
+    "ToolInvoker",
+    "ToolCallUsage",
+    "execute_tool_with_concurrency_permit",
+]

@@ -18,7 +18,11 @@ from uuid import UUID, uuid4
 
 import httpx
 
-from harnyx_commons.application.dto.session import SessionEnvelope, SessionIssued, SessionTokenRequest
+from harnyx_commons.application.dto.session import (
+    SessionEnvelope,
+    SessionIssued,
+    SessionTokenRequest,
+)
 from harnyx_commons.application.ports.receipt_log import ReceiptLogPort
 from harnyx_commons.application.session_manager import SessionManager
 from harnyx_commons.domain.judge_usage import JudgeUsageSummary
@@ -45,7 +49,11 @@ from harnyx_commons.miner_task_failure_policy import (
     is_uncaught_platform_tool_proxy_timeout_sandbox_invocation,
 )
 from harnyx_commons.tools.types import is_search_tool
-from harnyx_validator.application.assigned_work import AssignedArtifactWork, ClaimedAssignedTask, PhaseRecorder
+from harnyx_validator.application.assigned_work import (
+    AssignedArtifactWork,
+    ClaimedAssignedTask,
+    PhaseRecorder,
+)
 from harnyx_validator.application.dto.evaluation import (
     MinerTaskAttemptAuditRecord,
     MinerTaskAttemptDiagnostics,
@@ -64,12 +72,17 @@ from harnyx_validator.application.dto.evaluation import (
     TokenUsageSummary,
     ValidatorBatchFailureDetail,
 )
-from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator, UsageSummarizer
+from harnyx_validator.application.evaluate_task_run import (
+    TaskRunOrchestrator,
+    UsageSummarizer,
+)
 from harnyx_validator.application.invoke_entrypoint import (
     MinerResponseValidationError,
     SandboxInvocationError,
 )
-from harnyx_validator.application.platform_tool_proxy import PlatformToolProxyScopeRegistry
+from harnyx_validator.application.platform_tool_proxy import (
+    PlatformToolProxyScopeRegistry,
+)
 from harnyx_validator.application.ports.evaluation_record import EvaluationRecordPort
 from harnyx_validator.application.ports.progress import ProgressRecorder
 from harnyx_validator.application.ports.subtensor import SubtensorClientPort
@@ -79,7 +92,9 @@ if TYPE_CHECKING:
     from harnyx_validator.application.scheduler import SchedulerConfig
 
 Clock = Callable[[], datetime]
-SubmissionFactory = Callable[[MinerTask, SessionIssued], Awaitable[MinerTaskRunSubmission]]
+SubmissionFactory = Callable[
+    [MinerTask, SessionIssued], Awaitable[MinerTaskRunSubmission]
+]
 SessionStartedCallback = Callable[[UUID], None]
 TaskSessionLimiter = AbstractAsyncContextManager[None]
 
@@ -95,7 +110,9 @@ VALIDATOR_OWNED_PLATFORM_TOOL_PROXY_CONTROL_ERROR_CODES = frozenset(
 
 
 @asynccontextmanager
-async def _limited_task_session(limiter: TaskSessionLimiter | None) -> AsyncIterator[None]:
+async def _limited_task_session(
+    limiter: TaskSessionLimiter | None,
+) -> AsyncIterator[None]:
     if limiter is None:
         yield
         return
@@ -352,7 +369,9 @@ class _AssignedAttemptStartContext:
                 phase_recorder=self.lifecycle.phase_recorder,
             )
             self.lifecycle.issued = issued
-            issued = self.lifecycle.runner._begin_session_attempt(issued.session.session_id)
+            issued = self.lifecycle.runner._begin_session_attempt(
+                issued.session.session_id
+            )
             self.lifecycle.issued = issued
             attempt_started_at = self.lifecycle.runner._clock()
             self.lifecycle.claimed.mark_started(
@@ -507,7 +526,9 @@ class EvaluationRunner:
             )
             _log_session_finished(
                 batch_id=batch_id,
-                session_id=issued.session.session_id if issued is not None else UUID(int=0),
+                session_id=(
+                    issued.session.session_id if issued is not None else UUID(int=0)
+                ),
                 artifact_id=artifact.artifact_id,
                 task_id=task.task_id,
                 uid=artifact.uid,
@@ -637,7 +658,9 @@ class EvaluationRunner:
         initial_assignments: Sequence[MinerTaskWorkAssignment],
         assigned_work: AssignedArtifactWork,
         close_requested: asyncio.Event,
-        result_queue: asyncio.Queue[PlatformOwnedTaskResult | PlatformOwnedTaskExecution],
+        result_queue: asyncio.Queue[
+            PlatformOwnedTaskResult | PlatformOwnedTaskExecution
+        ],
         orchestrator: TaskRunOrchestrator,
     ) -> None:
         active: dict[asyncio.Task[_AssignedAttemptRunOutcome], _ActiveAssignedTask] = {}
@@ -658,7 +681,10 @@ class EvaluationRunner:
                 exc=exc,
             )
             claimed.fail_before_start(result)
-            return result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+            return (
+                result.terminal_attempt.terminal_effect
+                is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+            )
 
         def start_assignment(claimed: ClaimedAssignedTask) -> bool:
             assignment = claimed.assignment
@@ -696,7 +722,10 @@ class EvaluationRunner:
                 result = outcome.result_to_queue
                 if result is None:
                     continue
-                if result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE:
+                if (
+                    result.terminal_attempt.terminal_effect
+                    is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+                ):
                     delivery_failure_seen = True
                 if outcome.result_already_queued:
                     continue
@@ -742,12 +771,16 @@ class EvaluationRunner:
                 wait_for: set[asyncio.Task[object]] = set(active)
                 if not close_requested.is_set():
                     if queue_waiter is None:
-                        queue_waiter = asyncio.create_task(assigned_work.claim_for_dispatch())
+                        queue_waiter = asyncio.create_task(
+                            assigned_work.claim_for_dispatch()
+                        )
                     wait_for.add(queue_waiter)
                     wait_for.add(close_waiter)
                 elif not active:
                     break
-                done, _pending = await asyncio.wait(wait_for, return_when=asyncio.FIRST_COMPLETED)
+                done, _pending = await asyncio.wait(
+                    wait_for, return_when=asyncio.FIRST_COMPLETED
+                )
 
                 if await drain_completed_active(done):
                     close_requested.set()
@@ -766,7 +799,9 @@ class EvaluationRunner:
             if claim_to_start is not None:
                 fail_unstarted_claim(
                     claim_to_start,
-                    RuntimeError("assigned work cancelled before validator session start"),
+                    RuntimeError(
+                        "assigned work cancelled before validator session start"
+                    ),
                 )
             if queue_waiter is not None and not queue_waiter.done():
                 queue_waiter.cancel()
@@ -1129,7 +1164,9 @@ class EvaluationRunner:
         diagnostics: MinerTaskAttemptDiagnostics | None = None,
     ) -> PlatformOwnedTaskResult:
         session_id = issued.session.session_id if issued is not None else uuid4()
-        execution_log = tuple(self._receipts.for_session(session_id)) if issued is not None else ()
+        execution_log = (
+            tuple(self._receipts.for_session(session_id)) if issued is not None else ()
+        )
         error_code = str(MinerTaskErrorCode.UNEXPECTED_VALIDATOR_FAILURE)
         retry_decision = MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
         terminal_effect = MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
@@ -1220,12 +1257,16 @@ class EvaluationRunner:
         ]
         await asyncio.gather(*workers)
         completed_submissions = tuple(
-            submission for submission in dispatch.submissions_by_index if submission is not None
+            submission
+            for submission in dispatch.submissions_by_index
+            if submission is not None
         )
         all_completed_submissions = (*earlier_submissions, *completed_submissions)
         if dispatch.validator_failure is not None:
             remaining_tasks = tuple(
-                task for index, task in indexed_tasks if dispatch.submissions_by_index[index] is None
+                task
+                for index, task in indexed_tasks
+                if dispatch.submissions_by_index[index] is None
             )
             raise ValidatorBatchFailedError(
                 error_code=dispatch.validator_failure.error_code,
@@ -1236,7 +1277,9 @@ class EvaluationRunner:
             ) from dispatch.validator_failure
         if dispatch.unexpected_failure is not None:
             remaining_tasks = tuple(
-                task for index, task in indexed_tasks if dispatch.submissions_by_index[index] is None
+                task
+                for index, task in indexed_tasks
+                if dispatch.submissions_by_index[index] is None
             )
             raise UnexpectedArtifactExecutionError(
                 cause=dispatch.unexpected_failure,
@@ -1259,7 +1302,10 @@ class EvaluationRunner:
         task_session_limiter: TaskSessionLimiter | None = None,
     ) -> None:
         while True:
-            if dispatch.validator_failure is not None or dispatch.unexpected_failure is not None:
+            if (
+                dispatch.validator_failure is not None
+                or dispatch.unexpected_failure is not None
+            ):
                 return
             try:
                 task_index, task = pending_tasks.get_nowait()
@@ -1283,23 +1329,31 @@ class EvaluationRunner:
                         and is_delivery_disqualifying_validator_pair_error(error_code)
                         and dispatch.validator_failure is None
                     ):
-                        dispatch.validator_failure = _validator_batch_failed_from_existing_submission(
-                            submission=submission,
-                            artifact=artifact,
-                            task=task,
-                            occurred_at=self._clock(),
-                    )
+                        dispatch.validator_failure = (
+                            _validator_batch_failed_from_existing_submission(
+                                submission=submission,
+                                artifact=artifact,
+                                task=task,
+                                occurred_at=self._clock(),
+                            )
+                        )
                     continue
 
                 if decision.kind is AttemptControlKind.VALIDATOR_BATCH_FAILURE:
                     if dispatch.validator_failure is None:
-                        dispatch.validator_failure = _require_validator_failure(decision)
+                        dispatch.validator_failure = _require_validator_failure(
+                            decision
+                        )
                     continue
 
-                raise RuntimeError("unexpected non-terminal decision from task retry loop")
+                raise RuntimeError(
+                    "unexpected non-terminal decision from task retry loop"
+                )
             except ValidatorBatchFailedError as exc:
                 if exc.completed_submissions:
-                    dispatch.submissions_by_index[task_index] = _require_single_completed_submission(exc)
+                    dispatch.submissions_by_index[task_index] = (
+                        _require_single_completed_submission(exc)
+                    )
                 if dispatch.validator_failure is None:
                     dispatch.validator_failure = exc
             except Exception as exc:
@@ -1520,7 +1574,9 @@ class EvaluationRunner:
         finally:
             _log_session_finished(
                 batch_id=batch_id,
-                session_id=issued.session.session_id if issued is not None else UUID(int=0),
+                session_id=(
+                    issued.session.session_id if issued is not None else UUID(int=0)
+                ),
                 artifact_id=artifact.artifact_id,
                 task_id=task.task_id,
                 uid=artifact.uid,
@@ -1557,15 +1613,21 @@ class EvaluationRunner:
             task=task,
         )
         try:
-            if phase_recorder is None or not _orchestrator_accepts_phase_recorder(orchestrator):
+            if phase_recorder is None or not _orchestrator_accepts_phase_recorder(
+                orchestrator
+            ):
                 outcome = await orchestrator.evaluate(request)
             else:
-                outcome = await orchestrator.evaluate(request, phase_recorder=phase_recorder)
+                outcome = await orchestrator.evaluate(
+                    request, phase_recorder=phase_recorder
+                )
         except SessionBudgetExhaustedError as exc:
-            control_failure_decision = self._platform_tool_proxy_control_failure_decision(
-                artifact=artifact,
-                task=task,
-                session_id=issued.session.session_id,
+            control_failure_decision = (
+                self._platform_tool_proxy_control_failure_decision(
+                    artifact=artifact,
+                    task=task,
+                    session_id=issued.session.session_id,
+                )
             )
             if control_failure_decision is not None:
                 return control_failure_decision
@@ -1594,10 +1656,12 @@ class EvaluationRunner:
                 detail_exception=exc.detail_exception,
             ):
                 return _review_timeout_decision(exc)
-            control_failure_decision = self._platform_tool_proxy_control_failure_decision(
-                artifact=artifact,
-                task=task,
-                session_id=issued.session.session_id,
+            control_failure_decision = (
+                self._platform_tool_proxy_control_failure_decision(
+                    artifact=artifact,
+                    task=task,
+                    session_id=issued.session.session_id,
+                )
             )
             if control_failure_decision is not None:
                 return control_failure_decision
@@ -1629,10 +1693,12 @@ class EvaluationRunner:
                 )
             )
         except Exception as exc:
-            control_failure_decision = self._platform_tool_proxy_control_failure_decision(
-                artifact=artifact,
-                task=task,
-                session_id=issued.session.session_id,
+            control_failure_decision = (
+                self._platform_tool_proxy_control_failure_decision(
+                    artifact=artifact,
+                    task=task,
+                    session_id=issued.session.session_id,
+                )
             )
             if control_failure_decision is not None:
                 return control_failure_decision
@@ -1695,12 +1761,16 @@ class EvaluationRunner:
             if phase_recorder is None:
                 outcome = await orchestrator.execute(request)
             else:
-                outcome = await orchestrator.execute(request, phase_recorder=phase_recorder)
+                outcome = await orchestrator.execute(
+                    request, phase_recorder=phase_recorder
+                )
         except SessionBudgetExhaustedError as exc:
-            control_failure_decision = self._platform_tool_proxy_control_failure_decision(
-                artifact=artifact,
-                task=task,
-                session_id=issued.session.session_id,
+            control_failure_decision = (
+                self._platform_tool_proxy_control_failure_decision(
+                    artifact=artifact,
+                    task=task,
+                    session_id=issued.session.session_id,
+                )
             )
             if control_failure_decision is not None:
                 return control_failure_decision
@@ -1729,10 +1799,12 @@ class EvaluationRunner:
                 detail_exception=exc.detail_exception,
             ):
                 return _review_timeout_decision(exc)
-            control_failure_decision = self._platform_tool_proxy_control_failure_decision(
-                artifact=artifact,
-                task=task,
-                session_id=issued.session.session_id,
+            control_failure_decision = (
+                self._platform_tool_proxy_control_failure_decision(
+                    artifact=artifact,
+                    task=task,
+                    session_id=issued.session.session_id,
+                )
             )
             if control_failure_decision is not None:
                 return control_failure_decision
@@ -1764,10 +1836,12 @@ class EvaluationRunner:
                 )
             )
         except Exception as exc:
-            control_failure_decision = self._platform_tool_proxy_control_failure_decision(
-                artifact=artifact,
-                task=task,
-                session_id=issued.session.session_id,
+            control_failure_decision = (
+                self._platform_tool_proxy_control_failure_decision(
+                    artifact=artifact,
+                    task=task,
+                    session_id=issued.session.session_id,
+                )
             )
             if control_failure_decision is not None:
                 return control_failure_decision
@@ -1800,7 +1874,9 @@ class EvaluationRunner:
         error_code: MinerTaskErrorCode,
         error_message: str,
     ) -> list[MinerTaskRunSubmission]:
-        async def create_submission(task: MinerTask, issued: SessionIssued) -> MinerTaskRunSubmission:
+        async def create_submission(
+            task: MinerTask, issued: SessionIssued
+        ) -> MinerTaskRunSubmission:
             return self._record_failure(
                 batch_id=batch_id,
                 session_id=issued.session.session_id,
@@ -1865,7 +1941,9 @@ class EvaluationRunner:
         started_at: datetime,
         outcome: TaskExecutionOutcome,
     ) -> PlatformOwnedTaskExecution:
-        envelope = self._sessions.mark_status(issued.session.session_id, SessionStatus.COMPLETED)
+        envelope = self._sessions.mark_status(
+            issued.session.session_id, SessionStatus.COMPLETED
+        )
         return PlatformOwnedTaskExecution(
             batch_id=batch_id,
             artifact=artifact,
@@ -2070,13 +2148,20 @@ class EvaluationRunner:
         session_id = envelope.session.session_id
         completed_at = self._clock()
         summarized_usage, summarized_tool_usage = self._summarize_session(envelope)
-        receipt_log = tuple(self._receipts.for_session(session_id)) if execution_log is None else execution_log
+        receipt_log = (
+            tuple(self._receipts.for_session(session_id))
+            if execution_log is None
+            else execution_log
+        )
         details = EvaluationDetails(
             error=EvaluationError(code=error_code, message=error_message),
             scoring_judge_usage=scoring_judge_usage,
             trace=trace,
             total_tool_usage=total_tool_usage or summarized_tool_usage,
-            elapsed_ms=elapsed_ms or _elapsed_ms(issued_at=envelope.session.issued_at, completed_at=completed_at),
+            elapsed_ms=elapsed_ms
+            or _elapsed_ms(
+                issued_at=envelope.session.issued_at, completed_at=completed_at
+            ),
         )
         run = MinerTaskRun(
             session_id=session_id,
@@ -2155,8 +2240,13 @@ class EvaluationRunner:
             task=task,
             error_code=error_code,
             error_message=error_message,
-            scoring_judge_usage=scoring_judge_usage or getattr(exc, "judge_usage", None),
-            trace=evaluation_trace if isinstance(evaluation_trace, EvaluationTrace) else None,
+            scoring_judge_usage=scoring_judge_usage
+            or getattr(exc, "judge_usage", None),
+            trace=(
+                evaluation_trace
+                if isinstance(evaluation_trace, EvaluationTrace)
+                else None
+            ),
         )
 
     def _record_terminal_timeout_submission(
@@ -2237,7 +2327,9 @@ class EvaluationRunner:
         exc: SandboxInvocationError,
         final_attempt: bool,
     ) -> TaskAttemptDecision | None:
-        latest_receipt = self._latest_current_attempt_platform_tool_proxy_receipt(session_id)
+        latest_receipt = self._latest_current_attempt_platform_tool_proxy_receipt(
+            session_id
+        )
         if latest_receipt is None:
             return None
         if not is_uncaught_platform_tool_proxy_timeout_sandbox_invocation(
@@ -2265,7 +2357,9 @@ class EvaluationRunner:
             timeout_owner="platform_tool_proxy_execute",
         )
 
-    def _latest_current_attempt_platform_tool_proxy_receipt(self, session_id: UUID) -> ToolCall | None:
+    def _latest_current_attempt_platform_tool_proxy_receipt(
+        self, session_id: UUID
+    ) -> ToolCall | None:
         envelope = self._sessions.inspect(session_id)
         current_attempt_receipts = self._current_attempt_receipts(
             session_id=session_id,
@@ -2316,7 +2410,9 @@ class EvaluationRunner:
                 )
             )
 
-        if isinstance(exc, SandboxInvocationError) and is_script_validation_sandbox_invocation(
+        if isinstance(
+            exc, SandboxInvocationError
+        ) and is_script_validation_sandbox_invocation(
             detail_code=exc.detail_code,
         ):
             return _submission_decision(
@@ -2332,7 +2428,10 @@ class EvaluationRunner:
                 )
             )
 
-        if isinstance(exc, SandboxInvocationError) and exc.detail_code == SANDBOX_DETAIL_CODE_UNHANDLED_EXCEPTION:
+        if (
+            isinstance(exc, SandboxInvocationError)
+            and exc.detail_code == SANDBOX_DETAIL_CODE_UNHANDLED_EXCEPTION
+        ):
             return _submission_decision(
                 self._build_task_failure(
                     batch_id=batch_id,
@@ -2416,10 +2515,19 @@ class EvaluationRunner:
             if is_platform_tool_proxy_timeout_receipt(receipt):
                 continue
             error_code = extra.get("platform_tool_proxy_error_code")
-            if error_code not in VALIDATOR_OWNED_PLATFORM_TOOL_PROXY_CONTROL_ERROR_CODES:
+            if (
+                error_code
+                not in VALIDATOR_OWNED_PLATFORM_TOOL_PROXY_CONTROL_ERROR_CODES
+            ):
                 continue
-            error_message = extra.get("error_message") or f"platform tool proxy error: {error_code}"
-            occurred_at = receipt.details.execution.finished_at if receipt.details.execution is not None else None
+            error_message = (
+                extra.get("error_message") or f"platform tool proxy error: {error_code}"
+            )
+            occurred_at = (
+                receipt.details.execution.finished_at
+                if receipt.details.execution is not None
+                else None
+            )
             return _PlatformToolProxyControlFailure(
                 error_code=error_code,
                 error_message=error_message,
@@ -2481,7 +2589,10 @@ class EvaluationRunner:
                 error_code=error_code,
             )
 
-        if decision.kind is AttemptControlKind.REVIEW_TIMEOUT and attempt_number >= max_attempts:
+        if (
+            decision.kind is AttemptControlKind.REVIEW_TIMEOUT
+            and attempt_number >= max_attempts
+        ):
             timeout_resolution = self._build_terminal_timeout_decision(
                 batch_id=batch_id,
                 artifact=artifact,
@@ -2519,7 +2630,10 @@ class EvaluationRunner:
                 error_code=error_code,
             )
 
-        if decision.kind in {AttemptControlKind.RETRY, AttemptControlKind.REVIEW_TIMEOUT}:
+        if decision.kind in {
+            AttemptControlKind.RETRY,
+            AttemptControlKind.REVIEW_TIMEOUT,
+        }:
             terminal_outcome = decision.kind.value
             error_code = _attempt_error_code(
                 decision,
@@ -2670,7 +2784,9 @@ class EvaluationRunner:
                     "artifact_id": str(artifact.artifact_id),
                     "task_id": str(task.task_id),
                     "uid": artifact.uid,
-                    "validator_session_id": str(result.terminal_attempt.validator_session_id),
+                    "validator_session_id": str(
+                        result.terminal_attempt.validator_session_id
+                    ),
                     "attempt_number": result.attempt_number,
                     "max_attempts": result.terminal_attempt.max_attempts,
                     "error_code": result.terminal_attempt.error_code,
@@ -2735,7 +2851,10 @@ class EvaluationRunner:
             self._receipts.for_session(issued.session.session_id)
         )
         error_code = _attempt_error_code(decision, execution_log=attempt_receipts)
-        if decision.submission is not None and decision.submission.run.details.error is None:
+        if (
+            decision.submission is not None
+            and decision.submission.run.details.error is None
+        ):
             status = MinerTaskAttemptStatus.SUCCEEDED
             error_code = None
         record = MinerTaskAttemptAuditRecord(
@@ -2781,7 +2900,9 @@ class EvaluationRunner:
             exc_info=exc,
         )
 
-    def _summarize_session(self, envelope: SessionEnvelope) -> tuple[TokenUsageSummary, ToolUsageSummary]:
+    def _summarize_session(
+        self, envelope: SessionEnvelope
+    ) -> tuple[TokenUsageSummary, ToolUsageSummary]:
         receipts = tuple(self._receipts.for_session(envelope.session.session_id))
         return self._usage.summarize(envelope.session, receipts)
 
@@ -2789,7 +2910,9 @@ class EvaluationRunner:
         self._progress.record(submission)
         self._evaluation_records.record(submission)
 
-    def _consume_provider_failures(self, session_id: UUID) -> tuple[ProviderFailureEvidence, ...]:
+    def _consume_provider_failures(
+        self, session_id: UUID
+    ) -> tuple[ProviderFailureEvidence, ...]:
         return self._progress.consume_provider_failures(session_id)
 
     def _clear_task_session(self, session_id: UUID) -> None:
@@ -2847,7 +2970,9 @@ class EvaluationRunner:
                     extra={
                         "batch_id": str(batch_id),
                         "session_id": str(issued.session.session_id),
-                        "artifact_id": str(artifact_id) if artifact_id is not None else None,
+                        "artifact_id": (
+                            str(artifact_id) if artifact_id is not None else None
+                        ),
                         "task_id": str(task.task_id),
                     },
                 )
@@ -2899,7 +3024,8 @@ class EvaluationRunner:
             receipt
             for receipt in self._receipts.for_session(session_id)
             if receipt.details.extra is not None
-            and receipt.details.extra.get("session_active_attempt") == str(active_attempt)
+            and receipt.details.extra.get("session_active_attempt")
+            == str(active_attempt)
         )
 
     def _summarize_receipts(
@@ -2925,7 +3051,9 @@ def _usage_from_receipts(receipts: tuple[ToolCall, ...]) -> SessionUsage:
         if session_cost is not None:
             provider = _receipt_session_cost_provider(receipt)
             total_cost_usd += session_cost
-            cost_by_provider[provider] = cost_by_provider.get(provider, 0.0) + session_cost
+            cost_by_provider[provider] = (
+                cost_by_provider.get(provider, 0.0) + session_cost
+            )
         actual_total_cost_usd = _accumulate_receipt_actual_cost(
             actual_total_cost_usd,
             receipt=receipt,
@@ -3036,17 +3164,25 @@ def _receipt_llm_provider(receipt: ToolCall) -> str:
 
 
 def _receipt_actual_cost(receipt: ToolCall) -> float | None:
-    return None if receipt.details.actual_cost_usd is None else float(receipt.details.actual_cost_usd)
+    return (
+        None
+        if receipt.details.actual_cost_usd is None
+        else float(receipt.details.actual_cost_usd)
+    )
 
 
 def _receipt_session_cost(receipt: ToolCall) -> float | None:
-    cost_usd = None if receipt.details.cost_usd is None else float(receipt.details.cost_usd)
+    cost_usd = (
+        None if receipt.details.cost_usd is None else float(receipt.details.cost_usd)
+    )
     actual_cost_usd = _receipt_actual_cost(receipt)
     if cost_usd is None:
         if actual_cost_usd is not None:
             raise ValueError("receipt actual_cost_usd requires matching cost_usd")
         return None
-    if actual_cost_usd is not None and not isclose(actual_cost_usd, cost_usd, rel_tol=0.0, abs_tol=1e-12):
+    if actual_cost_usd is not None and not isclose(
+        actual_cost_usd, cost_usd, rel_tol=0.0, abs_tol=1e-12
+    ):
         raise ValueError("receipt cost_usd and actual_cost_usd must match")
     return cost_usd
 
@@ -3061,7 +3197,8 @@ def _accumulate_receipt_actual_cost(
         if (
             receipt.is_successful()
             and receipt.details.extra is not None
-            and receipt.details.extra.get("actual_cost_settlement_source") == "unavailable"
+            and receipt.details.extra.get("actual_cost_settlement_source")
+            == "unavailable"
         ):
             return None
         return current
@@ -3123,12 +3260,18 @@ def _submission_decision(
     return TaskAttemptDecision(
         kind=AttemptControlKind.SUBMISSION,
         submission=submission,
-        attempt_execution_log=submission.execution_log if attempt_execution_log is None else attempt_execution_log,
+        attempt_execution_log=(
+            submission.execution_log
+            if attempt_execution_log is None
+            else attempt_execution_log
+        ),
         timeout_owner=timeout_owner,
     )
 
 
-def _retry_decision(exc: Exception, *, timeout_owner: str | None = None) -> TaskAttemptDecision:
+def _retry_decision(
+    exc: Exception, *, timeout_owner: str | None = None
+) -> TaskAttemptDecision:
     return TaskAttemptDecision(
         kind=AttemptControlKind.RETRY,
         timeout_owner=timeout_owner,
@@ -3175,7 +3318,9 @@ def _require_retry_exc(decision: TaskAttemptDecision) -> Exception:
     return decision.retry_exc
 
 
-def _require_validator_failure(decision: TaskAttemptDecision) -> ValidatorBatchFailedError:
+def _require_validator_failure(
+    decision: TaskAttemptDecision,
+) -> ValidatorBatchFailedError:
     if decision.validator_failure is None:
         raise RuntimeError("attempt decision requires validator batch failure")
     return decision.validator_failure
@@ -3186,7 +3331,9 @@ def _require_single_completed_submission(
 ) -> MinerTaskRunSubmission:
     completed_submissions = validator_failure.completed_submissions
     if completed_submissions is None or len(completed_submissions) != 1:
-        raise RuntimeError("validator batch failure must provide exactly one completed submission")
+        raise RuntimeError(
+            "validator batch failure must provide exactly one completed submission"
+        )
     return completed_submissions[0]
 
 
@@ -3210,7 +3357,9 @@ def _submission_error_message(submission: MinerTaskRunSubmission) -> str:
     return error.message
 
 
-def _submission_error_code_or_none(submission: MinerTaskRunSubmission) -> MinerTaskErrorCode | None:
+def _submission_error_code_or_none(
+    submission: MinerTaskRunSubmission,
+) -> MinerTaskErrorCode | None:
     error = submission.run.details.error
     if error is None:
         return None
@@ -3234,12 +3383,16 @@ def _attempt_error_code(
         return str(decision.attempt_error_code)
     if decision.retry_exc is not None:
         if isinstance(decision.retry_exc, SandboxInvocationError):
-            return decision.retry_exc.detail_code or str(MinerTaskErrorCode.SANDBOX_INVOCATION_FAILED)
+            return decision.retry_exc.detail_code or str(
+                MinerTaskErrorCode.SANDBOX_INVOCATION_FAILED
+            )
         if isinstance(decision.retry_exc, httpx.TimeoutException):
             return str(MinerTaskErrorCode.VALIDATOR_INTERNAL_TIMEOUT)
         return type(decision.retry_exc).__name__[:128]
     if decision.timeout_exc is not None:
-        return decision.timeout_exc.detail_code or str(MinerTaskErrorCode.TIMEOUT_MINER_OWNED)
+        return decision.timeout_exc.detail_code or str(
+            MinerTaskErrorCode.TIMEOUT_MINER_OWNED
+        )
     return None
 
 
@@ -3252,7 +3405,8 @@ def _timeout_owner_from_decision(decision: TaskAttemptDecision) -> str | None:
         return "validator_internal"
     if (
         decision.validator_failure is not None
-        and decision.validator_failure.error_code is MinerTaskErrorCode.VALIDATOR_INTERNAL_TIMEOUT
+        and decision.validator_failure.error_code
+        is MinerTaskErrorCode.VALIDATOR_INTERNAL_TIMEOUT
     ):
         return "validator_internal"
     return None
@@ -3279,7 +3433,9 @@ def _orchestrator_accepts_phase_recorder(orchestrator: TaskRunOrchestrator) -> b
     )
 
 
-def _platform_tool_proxy_error_code_or_none(execution_log: Sequence[ToolCall]) -> str | None:
+def _platform_tool_proxy_error_code_or_none(
+    execution_log: Sequence[ToolCall],
+) -> str | None:
     for receipt in reversed(tuple(execution_log)):
         extra = receipt.details.extra
         if extra is None:
@@ -3309,7 +3465,9 @@ def _validator_batch_failed_from_existing_submission(
             task_id=task.task_id,
             uid=artifact.uid,
             exception_type=(
-                "SandboxInvocationError" if error_code == MinerTaskErrorCode.SANDBOX_INVOCATION_FAILED else None
+                "SandboxInvocationError"
+                if error_code == MinerTaskErrorCode.SANDBOX_INVOCATION_FAILED
+                else None
             ),
         ),
         completed_submissions=(submission,),

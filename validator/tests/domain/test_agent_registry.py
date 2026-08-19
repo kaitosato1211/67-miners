@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from harnyx_validator.domain.agent import AgentRegistry, AgentStatus, SandboxSpec, ToolDescriptor
+from harnyx_validator.domain.agent import (
+    AgentRegistry,
+    AgentStatus,
+    SandboxSpec,
+    ToolDescriptor,
+)
 
 
 def test_agent_registry_mark_synced_updates_metadata() -> None:
@@ -17,7 +22,7 @@ def test_agent_registry_mark_synced_updates_metadata() -> None:
         sandbox=SandboxSpec(
             runtime_image="harnyx/sandbox:0.1.0",
             sdk_version="0.1.0",
-                tools=(ToolDescriptor(name="search_web", description="Search"),),
+            tools=(ToolDescriptor(name="search_web", description="Search"),),
         ),
     )
 
@@ -46,7 +51,9 @@ def test_agent_registry_mark_error_sets_status() -> None:
         last_synced_at=datetime(2025, 10, 11, tzinfo=UTC),
     )
 
-    errored = record.mark_error("failed checksum", at=datetime(2025, 10, 13, tzinfo=UTC))
+    errored = record.mark_error(
+        "failed checksum", at=datetime(2025, 10, 13, tzinfo=UTC)
+    )
 
     assert errored.status is AgentStatus.ERRORED
     assert errored.sync_error == "failed checksum"

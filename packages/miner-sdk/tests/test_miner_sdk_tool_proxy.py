@@ -6,7 +6,11 @@ from pydantic import ValidationError
 import harnyx_miner_sdk.api as miner_api
 from harnyx_miner_sdk.tools.http_models import ToolExecuteRequestDTO
 from harnyx_miner_sdk.tools.proxy import DEFAULT_TOOL_PROXY_TIMEOUT_SECONDS
-from harnyx_miner_sdk.tools.search_models import FetchPageRequest, SearchAiSearchRequest, SearchWebSearchRequest
+from harnyx_miner_sdk.tools.search_models import (
+    FetchPageRequest,
+    SearchAiSearchRequest,
+    SearchWebSearchRequest,
+)
 from harnyx_miner_sdk.tools.types import SEARCH_TOOLS, TOOL_NAMES, parse_tool_name
 
 
@@ -27,16 +31,25 @@ def test_search_ai_is_not_available_to_miners() -> None:
 
 
 def test_firecrawl_is_available_only_for_ordinary_web_tools() -> None:
-    assert SearchWebSearchRequest(
-        provider="firecrawl",
-        search_queries=("harnyx",),
-    ).provider == "firecrawl"
-    assert FetchPageRequest(provider="firecrawl", url="https://example.com").provider == "firecrawl"
+    assert (
+        SearchWebSearchRequest(
+            provider="firecrawl",
+            search_queries=("harnyx",),
+        ).provider
+        == "firecrawl"
+    )
+    assert (
+        FetchPageRequest(provider="firecrawl", url="https://example.com").provider
+        == "firecrawl"
+    )
 
     with pytest.raises(ValidationError):
         SearchAiSearchRequest(provider="firecrawl", prompt="harnyx")  # type: ignore[arg-type]
 
-    assert SearchAiSearchRequest(provider="parallel", prompt="harnyx").provider == "parallel"
+    assert (
+        SearchAiSearchRequest(provider="parallel", prompt="harnyx").provider
+        == "parallel"
+    )
 
 
 def test_firecrawl_search_rejects_combined_query_over_provider_limit() -> None:

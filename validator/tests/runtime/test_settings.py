@@ -93,14 +93,18 @@ def test_settings_rejects_non_positive_run_progress_retention(monkeypatch) -> No
         Settings.load()
 
 
-def test_settings_rejects_non_positive_run_progress_cleanup_interval(monkeypatch) -> None:
+def test_settings_rejects_non_positive_run_progress_cleanup_interval(
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("VALIDATOR_RUN_PROGRESS_CLEANUP_INTERVAL_SECONDS", "0")
 
     with pytest.raises(ValidationError):
         Settings.load()
 
 
-def test_settings_accepts_validator_env_names_when_empty_values_set_first(monkeypatch) -> None:
+def test_settings_accepts_validator_env_names_when_empty_values_set_first(
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("VALIDATOR_HOST", "")
     monkeypatch.setenv("VALIDATOR_PORT", "")
     monkeypatch.setenv("VALIDATOR_HOST", "127.0.0.1")
@@ -112,12 +116,16 @@ def test_settings_accepts_validator_env_names_when_empty_values_set_first(monkey
     assert settings.rpc_port == 9001
 
 
-def test_settings_honor_sandbox_image_override_from_dotenv(tmp_path, monkeypatch) -> None:
+def test_settings_honor_sandbox_image_override_from_dotenv(
+    tmp_path, monkeypatch
+) -> None:
     """Settings honor validator sandbox overrides from a local .env file."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("TOOL_LLM_PROVIDER", "chutes")
     monkeypatch.delenv("SANDBOX_IMAGE", raising=False)
-    (tmp_path / ".env").write_text("SANDBOX_IMAGE=dotenv-sandbox:latest\n", encoding="utf-8")
+    (tmp_path / ".env").write_text(
+        "SANDBOX_IMAGE=dotenv-sandbox:latest\n", encoding="utf-8"
+    )
 
     settings = Settings.load()
 

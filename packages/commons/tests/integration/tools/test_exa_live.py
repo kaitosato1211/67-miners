@@ -7,7 +7,11 @@ from harnyx_commons.config.llm import LlmSettings
 from harnyx_commons.tools.exa import ExaClient
 from harnyx_commons.tools.search_models import FetchPageRequest, SearchWebSearchRequest
 
-pytestmark = [pytest.mark.integration, pytest.mark.expensive, pytest.mark.anyio("asyncio")]
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.expensive,
+    pytest.mark.anyio("asyncio"),
+]
 
 
 async def test_exa_live_search_and_contents_contract() -> None:
@@ -21,7 +25,9 @@ async def test_exa_live_search_and_contents_contract() -> None:
     )
     try:
         search = await client.search_web(
-            SearchWebSearchRequest(provider="exa", search_queries=("Example Domain IANA",), num=3)
+            SearchWebSearchRequest(
+                provider="exa", search_queries=("Example Domain IANA",), num=3
+            )
         )
         fetch = await client.fetch_page(
             FetchPageRequest(provider="exa", url="https://example.com")

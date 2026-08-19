@@ -93,9 +93,13 @@ def _settings() -> Settings:
         ("scoring_llm_provider", "SCORING_LLM_PROVIDER='bedrock' is not supported"),
     ],
 )
-def test_validator_runtime_rejects_unsupported_bedrock_surfaces(field: str, message: str) -> None:
+def test_validator_runtime_rejects_unsupported_bedrock_surfaces(
+    field: str, message: str
+) -> None:
     settings = _settings()
-    settings = settings.model_copy(update={"llm": settings.llm.model_copy(update={field: "bedrock"})})
+    settings = settings.model_copy(
+        update={"llm": settings.llm.model_copy(update={field: "bedrock"})}
+    )
 
     with pytest.raises(ValueError, match=message):
         _build_llm_clients(settings)
@@ -105,13 +109,17 @@ def test_validator_runtime_ignores_tool_bedrock_for_proxy_backed_tooling(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = _settings()
-    settings = settings.model_copy(update={"llm": settings.llm.model_copy(update={"tool_llm_provider": "bedrock"})})
+    settings = settings.model_copy(
+        update={"llm": settings.llm.model_copy(update={"tool_llm_provider": "bedrock"})}
+    )
 
     class _FakeRegistry:
         def resolve(self, name: str) -> str:
             return f"provider:{name}"
 
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry())
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry()
+    )
 
     clients = _build_llm_clients(settings)
 
@@ -120,9 +128,13 @@ def test_validator_runtime_ignores_tool_bedrock_for_proxy_backed_tooling(
 
 def test_local_tool_invocation_clients_still_reject_bedrock_tool_provider() -> None:
     settings = _settings()
-    settings = settings.model_copy(update={"llm": settings.llm.model_copy(update={"tool_llm_provider": "bedrock"})})
+    settings = settings.model_copy(
+        update={"llm": settings.llm.model_copy(update={"tool_llm_provider": "bedrock"})}
+    )
 
-    with pytest.raises(ValueError, match="TOOL_LLM_PROVIDER='bedrock' is not supported"):
+    with pytest.raises(
+        ValueError, match="TOOL_LLM_PROVIDER='bedrock' is not supported"
+    ):
         build_tool_invocation_clients(
             llm_settings=settings.llm,
             bedrock_settings=settings.bedrock,
@@ -138,7 +150,9 @@ def test_validator_runtime_ignores_tool_override_to_bedrock_for_proxy_backed_too
         update={
             "llm": settings.llm.model_copy(
                 update={
-                    "llm_model_provider_overrides_json": json.dumps({"tool": {"sample-tool-model": "bedrock"}}),
+                    "llm_model_provider_overrides_json": json.dumps(
+                        {"tool": {"sample-tool-model": "bedrock"}}
+                    ),
                 }
             )
         }
@@ -148,7 +162,9 @@ def test_validator_runtime_ignores_tool_override_to_bedrock_for_proxy_backed_too
         def resolve(self, name: str) -> str:
             return f"provider:{name}"
 
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry())
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry()
+    )
 
     clients = _build_llm_clients(settings)
 
@@ -161,13 +177,17 @@ def test_local_tool_invocation_clients_still_reject_tool_override_to_bedrock() -
         update={
             "llm": settings.llm.model_copy(
                 update={
-                    "llm_model_provider_overrides_json": json.dumps({"tool": {"sample-tool-model": "bedrock"}}),
+                    "llm_model_provider_overrides_json": json.dumps(
+                        {"tool": {"sample-tool-model": "bedrock"}}
+                    ),
                 }
             )
         }
     )
 
-    with pytest.raises(ValueError, match="TOOL_LLM_PROVIDER='bedrock' is not supported"):
+    with pytest.raises(
+        ValueError, match="TOOL_LLM_PROVIDER='bedrock' is not supported"
+    ):
         build_tool_invocation_clients(
             llm_settings=settings.llm,
             bedrock_settings=settings.bedrock,
@@ -176,7 +196,9 @@ def test_local_tool_invocation_clients_still_reject_tool_override_to_bedrock() -
 
 
 @pytest.mark.anyio("asyncio")
-@pytest.mark.parametrize("explicit_model", ("moonshotai/Kimi-K2.5-TEE", "zai-org/GLM-5-TEE"))
+@pytest.mark.parametrize(
+    "explicit_model", ("moonshotai/Kimi-K2.5-TEE", "zai-org/GLM-5-TEE")
+)
 async def test_validator_runtime_routes_explicit_scoring_request_to_bedrock(
     monkeypatch: pytest.MonkeyPatch,
     explicit_model: str,
@@ -186,13 +208,17 @@ async def test_validator_runtime_routes_explicit_scoring_request_to_bedrock(
         update={
             "llm": settings.llm.model_copy(
                 update={
-                    "llm_model_provider_overrides_json": json.dumps({"scoring": {explicit_model: "bedrock"}}),
+                    "llm_model_provider_overrides_json": json.dumps(
+                        {"scoring": {explicit_model: "bedrock"}}
+                    ),
                 }
             )
         }
     )
     registry = _FakeRegistry()
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: registry)
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: registry
+    )
 
     clients = _build_llm_clients(settings)
     response = await clients.scoring_llm_provider.invoke(
@@ -225,7 +251,9 @@ def test_validator_runtime_routes_configured_scoring_entries_to_custom_endpoints
         update={
             "llm": settings.llm.model_copy(
                 update={
-                    "llm_model_provider_overrides_json": json.dumps({"scoring": scoring_routes}),
+                    "llm_model_provider_overrides_json": json.dumps(
+                        {"scoring": scoring_routes}
+                    ),
                     "openai_compatible_endpoints_json": json.dumps(
                         [
                             {
@@ -237,7 +265,7 @@ def test_validator_runtime_routes_configured_scoring_entries_to_custom_endpoints
                                 "id": "qwen36-cloud-run",
                                 "base_url": "https://qwen3-6-27b-obbrpx3ppa-uc.a.run.app/v1",
                                 "auth": {"type": "none"},
-                            }
+                            },
                         ]
                     ),
                 }
@@ -245,7 +273,9 @@ def test_validator_runtime_routes_configured_scoring_entries_to_custom_endpoints
         }
     )
 
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry())
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry()
+    )
 
     clients = _build_llm_clients(settings)
 
@@ -290,7 +320,9 @@ async def test_validator_runtime_routes_primary_similarity_model_to_custom_endpo
     )
 
     registry = _FakeRegistry()
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: registry)
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: registry
+    )
 
     clients = _build_llm_clients(settings)
     response = await clients.similarity_llm_provider.invoke(
@@ -307,10 +339,16 @@ async def test_validator_runtime_routes_primary_similarity_model_to_custom_endpo
     assert clients.similarity_route.provider == similarity_route_target
     assert clients.similarity_route.model == bootstrap._DUPLICATION_DETECTION_LLM_MODEL
     assert registry.provider.requests[0].provider == similarity_route_target
-    assert registry.provider.requests[0].model == bootstrap._DUPLICATION_DETECTION_LLM_MODEL
+    assert (
+        registry.provider.requests[0].model
+        == bootstrap._DUPLICATION_DETECTION_LLM_MODEL
+    )
     assert response.metadata is not None
     assert response.metadata["selected_provider"] == similarity_route_target
-    assert response.metadata["selected_model"] == bootstrap._DUPLICATION_DETECTION_LLM_MODEL
+    assert (
+        response.metadata["selected_model"]
+        == bootstrap._DUPLICATION_DETECTION_LLM_MODEL
+    )
 
 
 def test_validator_runtime_routes_similarity_default_provider_independently_from_scoring(
@@ -329,7 +367,9 @@ def test_validator_runtime_routes_similarity_default_provider_independently_from
         }
     )
 
-    monkeypatch.setattr(bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry())
+    monkeypatch.setattr(
+        bootstrap, "build_cached_llm_provider_registry", lambda **_: _FakeRegistry()
+    )
 
     clients = _build_llm_clients(settings)
 

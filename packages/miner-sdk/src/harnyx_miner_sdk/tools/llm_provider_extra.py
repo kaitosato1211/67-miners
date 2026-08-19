@@ -4,10 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    field_validator,
+    model_validator,
+)
 
 
-def _normalize_non_empty_string_sequence(value: object, *, label: str) -> tuple[str, ...]:
+def _normalize_non_empty_string_sequence(
+    value: object, *, label: str
+) -> tuple[str, ...]:
     if not isinstance(value, list | tuple):
         raise ValueError(f"{label} must be a JSON array")
     if not value:
@@ -35,12 +44,16 @@ class OpenRouterProviderSelection(BaseModel):
     @field_validator("only", mode="before")
     @classmethod
     def _normalize_only(cls, value: object) -> tuple[str, ...]:
-        return _normalize_non_empty_string_sequence(value, label="OpenRouter provider.only")
+        return _normalize_non_empty_string_sequence(
+            value, label="OpenRouter provider.only"
+        )
 
     @model_validator(mode="after")
     def _validate_provider_preference(self) -> OpenRouterProviderSelection:
         if self.only is None and self.allow_fallbacks is None:
-            raise ValueError("OpenRouter provider_extra.provider must include only or allow_fallbacks")
+            raise ValueError(
+                "OpenRouter provider_extra.provider must include only or allow_fallbacks"
+            )
         return self
 
     def to_provider_payload(self) -> dict[str, Any]:
@@ -73,7 +86,9 @@ class AiGatewayProviderSelection(BaseModel):
     @field_validator("only", mode="before")
     @classmethod
     def _normalize_only(cls, value: object) -> tuple[str, ...]:
-        return _normalize_non_empty_string_sequence(value, label="AI Gateway provider.only")
+        return _normalize_non_empty_string_sequence(
+            value, label="AI Gateway provider.only"
+        )
 
     def to_provider_payload(self) -> dict[str, Any]:
         return {"only": list(self.only)}
@@ -115,20 +130,30 @@ class AiGatewayExtra(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
     provider: AiGatewayProviderSelection | None = None
-    provider_options: AiGatewayProviderOptions | None = Field(default=None, alias="providerOptions")
+    provider_options: AiGatewayProviderOptions | None = Field(
+        default=None, alias="providerOptions"
+    )
 
     @model_validator(mode="after")
     def _validate_selection_shape(self) -> AiGatewayExtra:
         if self.provider is None and self.provider_options is None:
-            raise ValueError("AI Gateway provider_extra must include provider or providerOptions")
+            raise ValueError(
+                "AI Gateway provider_extra must include provider or providerOptions"
+            )
         provider_only = self.provider.only if self.provider is not None else None
         options_only = (
             self.provider_options.gateway.only
             if self.provider_options is not None
             else None
         )
-        if provider_only is not None and options_only is not None and provider_only != options_only:
-            raise ValueError("AI Gateway provider and providerOptions.gateway selections must match")
+        if (
+            provider_only is not None
+            and options_only is not None
+            and provider_only != options_only
+        ):
+            raise ValueError(
+                "AI Gateway provider and providerOptions.gateway selections must match"
+            )
         return self
 
     def to_request_extra(self) -> dict[str, Any]:
@@ -147,7 +172,9 @@ _AI_GATEWAY_EXTRA_ADAPTER = TypeAdapter(AiGatewayExtra)
 ProviderExtra = OpenRouterExtra | AiGatewayExtra
 
 
-def validate_provider_extra(*, provider: str, provider_extra: object) -> ProviderExtra | None:
+def validate_provider_extra(
+    *, provider: str, provider_extra: object
+) -> ProviderExtra | None:
     if provider_extra is None:
         return None
     if provider == "openrouter":

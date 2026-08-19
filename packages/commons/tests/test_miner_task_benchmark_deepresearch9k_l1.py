@@ -31,11 +31,15 @@ def test_load_deepresearch9k_l1_snapshot_preserves_source_item_indices() -> None
 
 def test_deepresearch9k_l1_manifest_checksum_matches_versioned_packaged_csv() -> None:
     snapshot = load_deepresearch9k_l1_snapshot()
-    version_dir = files("harnyx_commons.miner_task_benchmark.deepresearch9k_l1.data").joinpath(
+    version_dir = files(
+        "harnyx_commons.miner_task_benchmark.deepresearch9k_l1.data"
+    ).joinpath(
         "versions",
         f"{snapshot.manifest.dataset_version}__{snapshot.manifest.scoring_version}",
     )
-    checksum = sha256(version_dir.joinpath(snapshot.manifest.file_name).read_bytes()).hexdigest()
+    checksum = sha256(
+        version_dir.joinpath(snapshot.manifest.file_name).read_bytes()
+    ).hexdigest()
 
     assert checksum == snapshot.manifest.sha256
 
@@ -90,11 +94,16 @@ def test_deepresearch9k_l1_sampling_uses_fixed_snapshot_panel() -> None:
         8538,
     ]
     assert all(item.item_index % 3 == 0 for item in sampled)
-    assert [item.item_index for item in sampled] == sorted(item.item_index for item in sampled)
-    assert str(
-        benchmark_task_id_for_item(
-            suite_slug=snapshot.manifest.suite_slug,
-            run_id=run_id,
-            item_index=sampled[0].item_index,
+    assert [item.item_index for item in sampled] == sorted(
+        item.item_index for item in sampled
+    )
+    assert (
+        str(
+            benchmark_task_id_for_item(
+                suite_slug=snapshot.manifest.suite_slug,
+                run_id=run_id,
+                item_index=sampled[0].item_index,
+            )
         )
-    ) == "73f844b6-5f73-5c37-a6cf-decf1a2580ed"
+        == "73f844b6-5f73-5c37-a6cf-decf1a2580ed"
+    )

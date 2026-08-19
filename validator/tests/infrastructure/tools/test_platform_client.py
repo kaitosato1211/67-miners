@@ -14,7 +14,11 @@ from harnyx_commons.bittensor import build_canonical_request
 from harnyx_commons.domain.miner_task import EvaluationDetails, Response, ScoreBreakdown
 from harnyx_commons.domain.session import Session, SessionStatus
 from harnyx_commons.domain.tool_call import ToolCall, ToolCallDetails, ToolCallOutcome
-from harnyx_commons.errors import BudgetExceededError, ToolInvocationTimeoutError, ToolProviderError
+from harnyx_commons.errors import (
+    BudgetExceededError,
+    ToolInvocationTimeoutError,
+    ToolProviderError,
+)
 from harnyx_validator.application.dto.evaluation import (
     MinerTaskAttemptAuditRecord,
     MinerTaskAttemptRetryDecision,
@@ -43,7 +47,9 @@ from harnyx_validator.infrastructure.tools.platform_client import (
     PlatformToolProxyToolTimeoutError,
 )
 
-_HEADER_PATTERN = re.compile(r'^Bittensor\s+ss58="(?P<ss58>[^"]+)",\s*sig="(?P<sig>[0-9a-f]+)"$')
+_HEADER_PATTERN = re.compile(
+    r'^Bittensor\s+ss58="(?P<ss58>[^"]+)",\s*sig="(?P<sig>[0-9a-f]+)"$'
+)
 _ASSIGNMENT_TOKEN = "assignment-token"  # noqa: S105 - fixed test-only assignment token
 
 
@@ -167,14 +173,18 @@ def test_get_champion_weights_maps_weights_unavailable_response() -> None:
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(PlatformWeightsUnavailableError, match="participant emission unavailable"):
+    with pytest.raises(
+        PlatformWeightsUnavailableError, match="participant emission unavailable"
+    ):
         client.get_champion_weights()
 
     assert [request.url.path for request in seen_requests] == ["/v1/weights"]
 
 
 @pytest.mark.anyio("asyncio")
-async def test_request_miner_task_work_posts_active_attempts_and_parses_assignments() -> None:
+async def test_request_miner_task_work_posts_active_attempts_and_parses_assignments() -> (
+    None
+):
     keypair = _keypair()
     batch_id = uuid4()
     artifact_id = uuid4()
@@ -316,7 +326,10 @@ def test_submit_miner_task_work_results_posts_audit_only_retry_attempt() -> None
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal seen_body
         _assert_signed(request, keypair)
-        if request.method == "POST" and request.url.path == "/v2/miner-task-work/results":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v2/miner-task-work/results"
+        ):
             seen_body = json.loads(request.content)
             return httpx.Response(
                 status_code=200,
@@ -368,7 +381,9 @@ def test_submit_miner_task_work_results_posts_audit_only_retry_attempt() -> None
                     retry_decision=MinerTaskAttemptRetryDecision.WILL_RETRY,
                     terminal_effect=None,
                     max_attempts=2,
-                    execution_log=(_tool_call(session_id=session_id, issued_at=started_at),),
+                    execution_log=(
+                        _tool_call(session_id=session_id, issued_at=started_at),
+                    ),
                 ),
             ),
         )
@@ -398,7 +413,10 @@ def test_submit_miner_task_work_results_posts_delivery_failure_detail() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal seen_body
         _assert_signed(request, keypair)
-        if request.method == "POST" and request.url.path == "/v2/miner-task-work/results":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v2/miner-task-work/results"
+        ):
             seen_body = json.loads(request.content)
             return httpx.Response(
                 status_code=200,
@@ -471,12 +489,12 @@ def test_submit_miner_task_work_results_posts_delivery_failure_detail() -> None:
     attempt = seen_body["results"][0]["terminal_attempt"]  # type: ignore[index]
     assert attempt["delivery_failure_detail"]["error_message"] == "sandbox start failed"
     assert attempt["delivery_failure_detail"]["sandbox_diagnostics"]["exit_code"] == 255
-    assert attempt["delivery_failure_detail"]["sandbox_diagnostics"]["docker_inspect_error_tail"] == (
-        "command=docker inspect stderr=No such container"
-    )
-    assert attempt["delivery_failure_detail"]["sandbox_diagnostics"]["docker_logs_error_tail"] == (
-        "command=docker logs stderr=daemon unavailable"
-    )
+    assert attempt["delivery_failure_detail"]["sandbox_diagnostics"][
+        "docker_inspect_error_tail"
+    ] == ("command=docker inspect stderr=No such container")
+    assert attempt["delivery_failure_detail"]["sandbox_diagnostics"][
+        "docker_logs_error_tail"
+    ] == ("command=docker logs stderr=daemon unavailable")
 
 
 def test_submit_miner_task_work_results_omits_run_execution_log() -> None:
@@ -491,7 +509,10 @@ def test_submit_miner_task_work_results_omits_run_execution_log() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal seen_body
         _assert_signed(request, keypair)
-        if request.method == "POST" and request.url.path == "/v2/miner-task-work/results":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v2/miner-task-work/results"
+        ):
             seen_body = json.loads(request.content)
             return httpx.Response(
                 status_code=200,
@@ -585,7 +606,9 @@ def test_submit_miner_task_work_results_omits_run_execution_log() -> None:
     assert acknowledgements[0].canonical is True
 
 
-def test_submit_miner_task_work_executions_does_not_send_platform_owned_attempt_budget() -> None:
+def test_submit_miner_task_work_executions_does_not_send_platform_owned_attempt_budget() -> (
+    None
+):
     keypair = _keypair()
     batch_id = uuid4()
     artifact_id = uuid4()
@@ -597,7 +620,10 @@ def test_submit_miner_task_work_executions_does_not_send_platform_owned_attempt_
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal seen_body
         _assert_signed(request, keypair)
-        if request.method == "POST" and request.url.path == "/v2/miner-task-work/executions":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v2/miner-task-work/executions"
+        ):
             seen_body = json.loads(request.content)
             return httpx.Response(
                 status_code=200,
@@ -650,7 +676,9 @@ def test_submit_miner_task_work_executions_does_not_send_platform_owned_attempt_
                 response=Response(text="answer"),
                 session=session,
                 usage=TokenUsageSummary.empty(),
-                execution_log=(_tool_call(session_id=session_id, issued_at=started_at),),
+                execution_log=(
+                    _tool_call(session_id=session_id, issued_at=started_at),
+                ),
                 trace=None,
             ),
         )
@@ -677,7 +705,10 @@ def test_request_scoreable_miner_task_work_executions_posts_limit() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal seen_body
         _assert_signed(request, keypair)
-        if request.method == "POST" and request.url.path == "/v2/miner-task-work/scoreable-executions":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v2/miner-task-work/scoreable-executions"
+        ):
             seen_body = json.loads(request.content)
             return httpx.Response(
                 status_code=200,
@@ -730,7 +761,10 @@ def test_request_scoreable_miner_task_work_executions_parses_wire_payload() -> N
 
     def handler(request: httpx.Request) -> httpx.Response:
         _assert_signed(request, keypair)
-        if request.method == "POST" and request.url.path == "/v2/miner-task-work/scoreable-executions":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v2/miner-task-work/scoreable-executions"
+        ):
             return httpx.Response(
                 status_code=200,
                 json={
@@ -764,7 +798,9 @@ def test_request_scoreable_miner_task_work_executions_parses_wire_payload() -> N
                                 "uid": 7,
                                 "status": "completed",
                                 "issued_at": started_at.isoformat(),
-                                "expires_at": (started_at + timedelta(minutes=5)).isoformat(),
+                                "expires_at": (
+                                    started_at + timedelta(minutes=5)
+                                ).isoformat(),
                             },
                             "usage": {
                                 "total_prompt_tokens": 5,
@@ -852,7 +888,9 @@ def test_request_scoreable_miner_task_work_executions_parses_wire_payload() -> N
         transport=httpx.MockTransport(handler),
     )
 
-    executions = client.request_scoreable_miner_task_work_executions(limit=1, active_scoring=())
+    executions = client.request_scoreable_miner_task_work_executions(
+        limit=1, active_scoring=()
+    )
 
     assert len(executions) == 1
     execution = executions[0]
@@ -871,7 +909,10 @@ def test_request_scoreable_miner_task_work_executions_parses_wire_payload() -> N
     assert execution.session.budget_usd == 0.05
     assert execution.usage.by_provider["chutes"]["model-a"].total_tokens == 12
     assert execution.total_tool_usage.search_tool.call_count == 1
-    assert execution.total_tool_usage.llm.providers["chutes"]["model-a"].usage.total_tokens == 12
+    assert (
+        execution.total_tool_usage.llm.providers["chutes"]["model-a"].usage.total_tokens
+        == 12
+    )
     assert execution.execution_log == ()
     assert execution.trace is not None
     assert execution.trace.scoring_judge_selected_routes == ("primary",)
@@ -897,7 +938,10 @@ async def test_platform_tool_proxy_grant_posts_attempt_number() -> None:
         }
         return httpx.Response(
             status_code=200,
-            json={"token": "platform-tool-proxy-token", "expires_at": "2026-05-30T12:15:00+00:00"},
+            json={
+                "token": "platform-tool-proxy-token",
+                "expires_at": "2026-05-30T12:15:00+00:00",
+            },
         )
 
     keypair = _keypair()
@@ -916,11 +960,15 @@ async def test_platform_tool_proxy_grant_posts_attempt_number() -> None:
         assignment_token=_ASSIGNMENT_TOKEN,
     )
 
-    assert grant.token == "platform-tool-proxy-token"  # noqa: S105 - fixed test-only proxy token
+    assert (
+        grant.token == "platform-tool-proxy-token"
+    )  # noqa: S105 - fixed test-only proxy token
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_grant_retries_transient_connect_timeout_then_succeeds() -> None:
+async def test_platform_tool_proxy_grant_retries_transient_connect_timeout_then_succeeds() -> (
+    None
+):
     requests: list[httpx.Request] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -929,7 +977,10 @@ async def test_platform_tool_proxy_grant_retries_transient_connect_timeout_then_
             raise httpx.ConnectTimeout("grant connect timed out", request=request)
         return httpx.Response(
             status_code=200,
-            json={"token": "platform-tool-proxy-token", "expires_at": "2026-05-30T12:15:00+00:00"},
+            json={
+                "token": "platform-tool-proxy-token",
+                "expires_at": "2026-05-30T12:15:00+00:00",
+            },
         )
 
     client = AsyncPlatformToolProxyPlatformClient(
@@ -948,7 +999,9 @@ async def test_platform_tool_proxy_grant_retries_transient_connect_timeout_then_
         assignment_token=_ASSIGNMENT_TOKEN,
     )
 
-    assert grant.token == "platform-tool-proxy-token"  # noqa: S105 - fixed test-only proxy token
+    assert (
+        grant.token == "platform-tool-proxy-token"
+    )  # noqa: S105 - fixed test-only proxy token
     assert [request.url.path for request in requests] == [
         "/v1/platform-tool-proxy/grants",
         "/v1/platform-tool-proxy/grants",
@@ -957,16 +1010,23 @@ async def test_platform_tool_proxy_grant_retries_transient_connect_timeout_then_
 
 @pytest.mark.anyio("asyncio")
 @pytest.mark.parametrize("status_code", [429, 500, 502, 503, 504])
-async def test_platform_tool_proxy_grant_retries_transient_status_then_succeeds(status_code: int) -> None:
+async def test_platform_tool_proxy_grant_retries_transient_status_then_succeeds(
+    status_code: int,
+) -> None:
     requests: list[httpx.Request] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         if len(requests) == 1:
-            return httpx.Response(status_code=status_code, json={"error_code": "temporary_platform_error"})
+            return httpx.Response(
+                status_code=status_code, json={"error_code": "temporary_platform_error"}
+            )
         return httpx.Response(
             status_code=200,
-            json={"token": "platform-tool-proxy-token", "expires_at": "2026-05-30T12:15:00+00:00"},
+            json={
+                "token": "platform-tool-proxy-token",
+                "expires_at": "2026-05-30T12:15:00+00:00",
+            },
         )
 
     client = AsyncPlatformToolProxyPlatformClient(
@@ -985,7 +1045,9 @@ async def test_platform_tool_proxy_grant_retries_transient_status_then_succeeds(
         assignment_token=_ASSIGNMENT_TOKEN,
     )
 
-    assert grant.token == "platform-tool-proxy-token"  # noqa: S105 - fixed test-only proxy token
+    assert (
+        grant.token == "platform-tool-proxy-token"
+    )  # noqa: S105 - fixed test-only proxy token
     assert [request.url.path for request in requests] == [
         "/v1/platform-tool-proxy/grants",
         "/v1/platform-tool-proxy/grants",
@@ -993,7 +1055,9 @@ async def test_platform_tool_proxy_grant_retries_transient_status_then_succeeds(
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_grant_retry_exhaustion_maps_to_grant_failed() -> None:
+async def test_platform_tool_proxy_grant_retry_exhaustion_maps_to_grant_failed() -> (
+    None
+):
     requests: list[httpx.Request] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -1027,12 +1091,16 @@ async def test_platform_tool_proxy_grant_retry_exhaustion_maps_to_grant_failed()
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_grant_transient_status_retry_exhaustion_maps_to_grant_failed() -> None:
+async def test_platform_tool_proxy_grant_transient_status_retry_exhaustion_maps_to_grant_failed() -> (
+    None
+):
     requests: list[httpx.Request] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
-        return httpx.Response(status_code=503, json={"error_code": "temporary_platform_error"})
+        return httpx.Response(
+            status_code=503, json={"error_code": "temporary_platform_error"}
+        )
 
     client = AsyncPlatformToolProxyPlatformClient(
         base_url="https://mock.local",
@@ -1061,14 +1129,19 @@ async def test_platform_tool_proxy_grant_transient_status_retry_exhaustion_maps_
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_grant_does_not_retry_deterministic_response() -> None:
+async def test_platform_tool_proxy_grant_does_not_retry_deterministic_response() -> (
+    None
+):
     requests: list[httpx.Request] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         return httpx.Response(
             status_code=403,
-            json={"error_code": "platform_tool_proxy_denied", "message": "grant denied"},
+            json={
+                "error_code": "platform_tool_proxy_denied",
+                "message": "grant denied",
+            },
         )
 
     client = AsyncPlatformToolProxyPlatformClient(
@@ -1105,7 +1178,10 @@ async def test_platform_tool_proxy_grant_preserves_proxy_error_code(
     status_code: int,
 ) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/grants":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/grants"
+        ):
             return httpx.Response(
                 status_code=status_code,
                 json={"error_code": error_code, "message": f"{error_code} message"},
@@ -1146,7 +1222,10 @@ async def test_platform_tool_proxy_grant_unknown_error_response_preserves_grant_
     response: httpx.Response,
 ) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/grants":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/grants"
+        ):
             return response
         return httpx.Response(status_code=404)
 
@@ -1183,7 +1262,10 @@ async def test_platform_tool_proxy_grant_invalid_success_response_preserves_gran
     response: httpx.Response,
 ) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/grants":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/grants"
+        ):
             return response
         return httpx.Response(status_code=404)
 
@@ -1213,7 +1295,10 @@ async def test_platform_tool_proxy_execute_preserves_actual_cost_evidence() -> N
 
     async def handler(request: httpx.Request) -> httpx.Response:
         nonlocal seen_body
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             seen_body = json.loads(request.content)
             return httpx.Response(
                 status_code=200,
@@ -1250,7 +1335,11 @@ async def test_platform_tool_proxy_execute_preserves_actual_cost_evidence() -> N
         receipt_issued_at=receipt_issued_at,
         tool="llm_chat",
         args=(),
-        kwargs={"provider": "openrouter", "model": "openai/gpt-oss-20b", "messages": []},
+        kwargs={
+            "provider": "openrouter",
+            "model": "openai/gpt-oss-20b",
+            "messages": [],
+        },
         transport_timeout_seconds=11.0,
     )
 
@@ -1264,15 +1353,23 @@ async def test_platform_tool_proxy_execute_preserves_actual_cost_evidence() -> N
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_execute_maps_tool_timeout_error_code_to_timeout_exception() -> None:
+async def test_platform_tool_proxy_execute_maps_tool_timeout_error_code_to_timeout_exception() -> (
+    None
+):
     requests: list[httpx.Request] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             return httpx.Response(
                 status_code=408,
-                json={"error_code": "tool_timeout", "message": "search_web timed out after 1 second"},
+                json={
+                    "error_code": "tool_timeout",
+                    "message": "search_web timed out after 1 second",
+                },
             )
         return httpx.Response(status_code=404)
 
@@ -1282,7 +1379,9 @@ async def test_platform_tool_proxy_execute_maps_tool_timeout_error_code_to_timeo
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(PlatformToolProxyToolTimeoutError, match="search_web timed out") as exc_info:
+    with pytest.raises(
+        PlatformToolProxyToolTimeoutError, match="search_web timed out"
+    ) as exc_info:
         await client.execute_platform_tool_proxy_tool(
             token="proxy-token",  # noqa: S106 - fixed test-only proxy token
             uid=7,
@@ -1306,7 +1405,10 @@ async def test_platform_tool_proxy_execute_maps_tool_timeout_error_code_to_timeo
 @pytest.mark.anyio("asyncio")
 async def test_platform_tool_proxy_execute_maps_read_timeout_to_tool_timeout() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             raise httpx.ReadTimeout("platform execution timed out", request=request)
         return httpx.Response(status_code=404)
 
@@ -1316,7 +1418,9 @@ async def test_platform_tool_proxy_execute_maps_read_timeout_to_tool_timeout() -
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(PlatformToolProxyToolTimeoutError, match="awaiting tool result") as exc_info:
+    with pytest.raises(
+        PlatformToolProxyToolTimeoutError, match="awaiting tool result"
+    ) as exc_info:
         await client.execute_platform_tool_proxy_tool(
             token="proxy-token",  # noqa: S106 - fixed test-only proxy token
             uid=7,
@@ -1349,7 +1453,10 @@ async def test_platform_tool_proxy_execute_maps_response_side_interruption_to_pl
     message: str,
 ) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             raise exception_type(message, request=request)
         return httpx.Response(status_code=404)
 
@@ -1359,7 +1466,9 @@ async def test_platform_tool_proxy_execute_maps_response_side_interruption_to_pl
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(PlatformToolProxyInterruptedError, match="interrupted before a response") as exc_info:
+    with pytest.raises(
+        PlatformToolProxyInterruptedError, match="interrupted before a response"
+    ) as exc_info:
         await client.execute_platform_tool_proxy_tool(
             token="proxy-token",  # noqa: S106 - fixed test-only proxy token
             uid=7,
@@ -1379,9 +1488,14 @@ async def test_platform_tool_proxy_execute_maps_response_side_interruption_to_pl
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_execute_maps_platform_interrupted_error_code_to_interrupted_error() -> None:
+async def test_platform_tool_proxy_execute_maps_platform_interrupted_error_code_to_interrupted_error() -> (
+    None
+):
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             return httpx.Response(
                 status_code=400,
                 json={
@@ -1397,7 +1511,9 @@ async def test_platform_tool_proxy_execute_maps_platform_interrupted_error_code_
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(PlatformToolProxyInterruptedError, match="interrupted before completion") as exc_info:
+    with pytest.raises(
+        PlatformToolProxyInterruptedError, match="interrupted before completion"
+    ) as exc_info:
         await client.execute_platform_tool_proxy_tool(
             token="proxy-token",  # noqa: S106 - fixed test-only proxy token
             uid=7,
@@ -1432,7 +1548,10 @@ async def test_platform_tool_proxy_execute_keeps_pre_response_start_failures_val
 
     async def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             raise exception_type(message, request=request)
         return httpx.Response(status_code=404)
 
@@ -1463,9 +1582,14 @@ async def test_platform_tool_proxy_execute_keeps_pre_response_start_failures_val
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_execute_maps_provider_failed_to_tool_provider_error() -> None:
+async def test_platform_tool_proxy_execute_maps_provider_failed_to_tool_provider_error() -> (
+    None
+):
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             return httpx.Response(
                 status_code=502,
                 json={"error_code": "provider_failed", "message": "provider rejected"},
@@ -1478,7 +1602,9 @@ async def test_platform_tool_proxy_execute_maps_provider_failed_to_tool_provider
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(PlatformToolProxyProviderError, match="provider rejected") as exc_info:
+    with pytest.raises(
+        PlatformToolProxyProviderError, match="provider rejected"
+    ) as exc_info:
         await client.execute_platform_tool_proxy_tool(
             token="proxy-token",  # noqa: S106 - fixed test-only proxy token
             uid=7,
@@ -1499,12 +1625,20 @@ async def test_platform_tool_proxy_execute_maps_provider_failed_to_tool_provider
 
 
 @pytest.mark.anyio("asyncio")
-async def test_platform_tool_proxy_execute_maps_budget_exhausted_to_budget_error() -> None:
+async def test_platform_tool_proxy_execute_maps_budget_exhausted_to_budget_error() -> (
+    None
+):
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             return httpx.Response(
                 status_code=400,
-                json={"error_code": "budget_exhausted", "message": "grant budget exhausted"},
+                json={
+                    "error_code": "budget_exhausted",
+                    "message": "grant budget exhausted",
+                },
             )
         return httpx.Response(status_code=404)
 
@@ -1514,7 +1648,9 @@ async def test_platform_tool_proxy_execute_maps_budget_exhausted_to_budget_error
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(PlatformToolProxyBudgetExceededError, match="grant budget exhausted") as exc_info:
+    with pytest.raises(
+        PlatformToolProxyBudgetExceededError, match="grant budget exhausted"
+    ) as exc_info:
         await client.execute_platform_tool_proxy_tool(
             token="proxy-token",  # noqa: S106 - fixed test-only proxy token
             uid=7,
@@ -1553,7 +1689,10 @@ async def test_platform_tool_proxy_execute_maps_proxy_policy_errors_to_non_provi
     error_code: str,
 ) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             return httpx.Response(
                 status_code=400,
                 json={"error_code": error_code, "message": f"{error_code} message"},
@@ -1598,7 +1737,10 @@ async def test_platform_tool_proxy_execute_unknown_error_response_preserves_plat
     response: httpx.Response,
 ) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             return response
         return httpx.Response(status_code=404)
 
@@ -1639,7 +1781,10 @@ async def test_platform_tool_proxy_execute_invalid_success_response_preserves_pl
     response: httpx.Response,
 ) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path == "/v1/platform-tool-proxy/tools/execute":
+        if (
+            request.method == "POST"
+            and request.url.path == "/v1/platform-tool-proxy/tools/execute"
+        ):
             return response
         return httpx.Response(status_code=404)
 
@@ -1692,7 +1837,6 @@ def test_get_champion_weights_retries_transient_connect_timeout() -> None:
         _assert_signed(request, keypair)
 
 
-
 def test_fetch_artifact_retries_transient_connect_timeout() -> None:
     batch_id = uuid4()
     artifact_id = uuid4()
@@ -1718,7 +1862,6 @@ def test_fetch_artifact_retries_transient_connect_timeout() -> None:
     ]
     for request in transport.requests:
         _assert_signed(request, keypair)
-
 
 
 def test_get_champion_weights_does_not_retry_non_connect_transport_failure() -> None:

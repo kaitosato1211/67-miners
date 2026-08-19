@@ -72,11 +72,15 @@ class _WrongOutputRunner:
             actual_total_cost_usd=0.75,
             actual_cost_by_provider={"vertex": 0.75},
         )
-        return StageRunResult(AuditResult(status="pass", explanation="wrong boundary"), 1.0, usage)
+        return StageRunResult(
+            AuditResult(status="pass", explanation="wrong boundary"), 1.0, usage
+        )
 
 
 class _RepairAcquisitionRunner(_Runner):
-    def __init__(self, outputs: Sequence[BaseModel], workspace: SourceWorkspace) -> None:
+    def __init__(
+        self, outputs: Sequence[BaseModel], workspace: SourceWorkspace
+    ) -> None:
         super().__init__(outputs)
         self.workspace = workspace
 
@@ -128,12 +132,18 @@ def _workspace() -> SourceWorkspace:
         )
     )
     lines = workspace.lines(source)
-    workspace.register_evidence(claim="Alpha", start_line_id=lines[1].line_id, end_line_id=lines[1].line_id)
-    workspace.register_evidence(claim="Beta", start_line_id=lines[2].line_id, end_line_id=lines[2].line_id)
+    workspace.register_evidence(
+        claim="Alpha", start_line_id=lines[1].line_id, end_line_id=lines[1].line_id
+    )
+    workspace.register_evidence(
+        claim="Beta", start_line_id=lines[2].line_id, end_line_id=lines[2].line_id
+    )
     return workspace
 
 
-def _dossier(*, question: str = "Which named row has the larger value?") -> GroundedQuestionDossier:
+def _dossier(
+    *, question: str = "Which named row has the larger value?"
+) -> GroundedQuestionDossier:
     return GroundedQuestionDossier(
         status="ready",
         subject="Published comparison",
@@ -159,8 +169,18 @@ def _proof() -> ReferenceProof:
         citation_evidence_ids=("E1", "E2"),
         answers=(ReferenceAnswerSelection(answer_id="A1"),),
         proof_steps=(
-            ProofStep(step_id="S1", statement="Alpha is 1200.", kind="supported", evidence_ids=("E1",)),
-            ProofStep(step_id="S2", statement="Beta is 900.", kind="supported", evidence_ids=("E2",)),
+            ProofStep(
+                step_id="S1",
+                statement="Alpha is 1200.",
+                kind="supported",
+                evidence_ids=("E1",),
+            ),
+            ProofStep(
+                step_id="S2",
+                statement="Beta is 900.",
+                kind="supported",
+                evidence_ids=("E2",),
+            ),
             ProofStep(
                 step_id="S3",
                 statement="Alpha is the larger value.",
@@ -188,13 +208,17 @@ def _structured_dossier() -> GroundedQuestionDossier:
 
 
 def _structured_proof(*, value: int = 1200) -> ReferenceProof:
-    return _proof().model_copy(update={"answer_text": None, "structured_answer_json": f'{{"value":{value}}}'})
+    return _proof().model_copy(
+        update={"answer_text": None, "structured_answer_json": f'{{"value":{value}}}'}
+    )
 
 
 @pytest.mark.anyio
 async def test_single_question_generation_call_owns_question_and_dossier() -> None:
     """Future failure: QG must not regress to a source-form-conditioned second agent call."""
-    runner = _Runner((_dossier(), _proof(), AuditResult(status="pass", explanation="complete")))
+    runner = _Runner(
+        (_dossier(), _proof(), AuditResult(status="pass", explanation="complete"))
+    )
     outcome = await CandidatePipeline(
         runner=runner,  # type: ignore[arg-type]
         source_fetcher=_UnusedFetcher(),
@@ -205,8 +229,14 @@ async def test_single_question_generation_call_owns_question_and_dossier() -> No
     )
 
     assert isinstance(outcome, DomainTweakFinalizedTask)
-    assert [call["stage"] for call in runner.calls] == ["question_generation", "reference", "audit"]
-    assert all(call["timeout_seconds"] == AGENT_STAGE_TIMEOUT_SECONDS for call in runner.calls)
+    assert [call["stage"] for call in runner.calls] == [
+        "question_generation",
+        "reference",
+        "audit",
+    ]
+    assert all(
+        call["timeout_seconds"] == AGENT_STAGE_TIMEOUT_SECONDS for call in runner.calls
+    )
     assert "source_form" not in str(runner.calls[0]["prompt"])
     audit_tools = runner.calls[2]["tool_set"].allowed_tools  # type: ignore[union-attr]
     assert audit_tools == (
@@ -217,10 +247,16 @@ async def test_single_question_generation_call_owns_question_and_dossier() -> No
 
 
 @pytest.mark.anyio
-async def test_capability_preference_does_not_gate_candidate_selected_response_mode() -> None:
+async def test_capability_preference_does_not_gate_candidate_selected_response_mode() -> (
+    None
+):
     """Future failure: preference drift must not become a hidden candidate rejection or retry trigger."""
     structured_runner = _Runner(
-        (_structured_dossier(), _structured_proof(), AuditResult(status="pass", explanation="complete"))
+        (
+            _structured_dossier(),
+            _structured_proof(),
+            AuditResult(status="pass", explanation="complete"),
+        )
     )
     structured = await CandidatePipeline(
         runner=structured_runner,  # type: ignore[arg-type]
@@ -230,7 +266,9 @@ async def test_capability_preference_does_not_gate_candidate_selected_response_m
         PortfolioAllocation(slot=0, ecosystems=("a", "b", "c", "d", "e")),
         capability_preference="evidence_grounded_calculation_or_proof",
     )
-    plain_runner = _Runner((_dossier(), _proof(), AuditResult(status="pass", explanation="complete")))
+    plain_runner = _Runner(
+        (_dossier(), _proof(), AuditResult(status="pass", explanation="complete"))
+    )
     plain = await CandidatePipeline(
         runner=plain_runner,  # type: ignore[arg-type]
         source_fetcher=_UnusedFetcher(),
@@ -245,14 +283,29 @@ async def test_capability_preference_does_not_gate_candidate_selected_response_m
     assert structured.task.reference_answer.text == '{"value":1200}'
     assert isinstance(plain, DomainTweakFinalizedTask)
     assert plain.task.query.output_schema is None
-    assert [call["stage"] for call in structured_runner.calls] == ["question_generation", "reference", "audit"]
-    assert [call["stage"] for call in plain_runner.calls] == ["question_generation", "reference", "audit"]
-    reference_call = next(call for call in structured_runner.calls if call["stage"] == "reference")
+    assert [call["stage"] for call in structured_runner.calls] == [
+        "question_generation",
+        "reference",
+        "audit",
+    ]
+    assert [call["stage"] for call in plain_runner.calls] == [
+        "question_generation",
+        "reference",
+        "audit",
+    ]
+    reference_call = next(
+        call for call in structured_runner.calls if call["stage"] == "reference"
+    )
     reference_payload = json.loads(str(reference_call["prompt"]).split("\n", 1)[1])
-    assert reference_payload["dossier_hypothesis"]["output_schema_json"] == _structured_dossier().output_schema_json
+    assert (
+        reference_payload["dossier_hypothesis"]["output_schema_json"]
+        == _structured_dossier().output_schema_json
+    )
 
 
-def test_question_generation_contract_reports_invalid_structured_payload_before_reference() -> None:
+def test_question_generation_contract_reports_invalid_structured_payload_before_reference() -> (
+    None
+):
     """Future failure: public schema/value defects must be visible QG feedback, not late task failures."""
     wrong_dialect = _structured_dossier().model_copy(
         update={
@@ -261,11 +314,14 @@ def test_question_generation_contract_reports_invalid_structured_payload_before_
     )
 
     assert any(
-        "Draft 2020-12" in defect for defect in _question_generation_contract_defects(wrong_dialect, _workspace())
+        "Draft 2020-12" in defect
+        for defect in _question_generation_contract_defects(wrong_dialect, _workspace())
     )
 
 
-def test_question_generation_contract_reports_json_numeric_limit_as_candidate_defect() -> None:
+def test_question_generation_contract_reports_json_numeric_limit_as_candidate_defect() -> (
+    None
+):
     """Future failure: one model-authored numeric literal must not terminate the complete batch."""
     numeric_limit = _structured_dossier().model_copy(
         update={"structured_answer_json": '{"value":' + ("9" * 5_000) + "}"}
@@ -303,11 +359,16 @@ async def test_answer_disclosing_structured_schema_cannot_finalize_candidate() -
     assert outcome.terminal_stage == "reference"
     assert outcome.failure_reason is not None
     assert "must not disclose the answer" in outcome.failure_reason
-    assert [call["stage"] for call in runner.calls] == ["question_generation", "reference"]
+    assert [call["stage"] for call in runner.calls] == [
+        "question_generation",
+        "reference",
+    ]
 
 
 @pytest.mark.anyio
-async def test_semantic_schema_disclosure_rejected_by_audit_cannot_finalize_candidate() -> None:
+async def test_semantic_schema_disclosure_rejected_by_audit_cannot_finalize_candidate() -> (
+    None
+):
     """Future failure: semantic schema leakage must reach audit and never silently finalize."""
     leaking_dossier = _structured_dossier().model_copy(
         update={
@@ -317,13 +378,17 @@ async def test_semantic_schema_disclosure_rejected_by_audit_cannot_finalize_cand
             "structured_answer_json": '{"answer1200":1200}',
         }
     )
-    leaking_proof = _structured_proof().model_copy(update={"structured_answer_json": '{"answer1200":1200}'})
+    leaking_proof = _structured_proof().model_copy(
+        update={"structured_answer_json": '{"answer1200":1200}'}
+    )
     audit_reject = AuditResult(
         status="reject",
         defects=("The public property name reveals the canonical value.",),
         explanation="The exact public schema discloses the answer.",
     )
-    runner = _Runner((leaking_dossier, leaking_proof, audit_reject, leaking_proof, audit_reject))
+    runner = _Runner(
+        (leaking_dossier, leaking_proof, audit_reject, leaking_proof, audit_reject)
+    )
 
     outcome = await CandidatePipeline(
         runner=runner,  # type: ignore[arg-type]
@@ -366,17 +431,25 @@ async def test_audit_execution_failure_cannot_finalize_candidate() -> None:
     assert outcome.terminal_stage == "audit"
     assert outcome.stage_summaries[-1].stage == "audit"
     assert outcome.stage_summaries[-1].outcome == "transient_provider"
-    assert [call["stage"] for call in runner.calls] == ["question_generation", "reference", "audit"]
+    assert [call["stage"] for call in runner.calls] == [
+        "question_generation",
+        "reference",
+        "audit",
+    ]
 
 
 @pytest.mark.anyio
-async def test_audit_rejection_gets_one_reference_repair_and_second_read_only_audit() -> None:
+async def test_audit_rejection_gets_one_reference_repair_and_second_read_only_audit() -> (
+    None
+):
     """Future failure: a correctable proof defect must get one material repair and no silent pass."""
     runner = _Runner(
         (
             _dossier(),
             _proof(),
-            AuditResult(status="reject", defects=("bind the second operand",), explanation="gap"),
+            AuditResult(
+                status="reject", defects=("bind the second operand",), explanation="gap"
+            ),
             _proof(),
             AuditResult(status="pass", explanation="complete"),
         )
@@ -404,13 +477,19 @@ async def test_audit_rejection_gets_one_reference_repair_and_second_read_only_au
 
 
 @pytest.mark.anyio
-async def test_structured_repair_receives_immutable_contract_and_replaces_rejected_value() -> None:
+async def test_structured_repair_receives_immutable_contract_and_replaces_rejected_value() -> (
+    None
+):
     """Future failure: structured repair must not infer or mutate the fixed public schema."""
     runner = _Runner(
         (
             _structured_dossier(),
             _structured_proof(value=1200),
-            AuditResult(status="reject", defects=("value should be 1300",), explanation="stale value"),
+            AuditResult(
+                status="reject",
+                defects=("value should be 1300",),
+                explanation="stale value",
+            ),
             _structured_proof(value=1300),
             AuditResult(status="pass", explanation="complete"),
         )
@@ -428,14 +507,21 @@ async def test_structured_repair_receives_immutable_contract_and_replaces_reject
     assert isinstance(outcome, DomainTweakFinalizedTask)
     assert outcome.repaired
     assert outcome.task.reference_answer.text == '{"value":1300}'
-    repair_call = next(call for call in runner.calls if call["stage"] == "reference_repair")
+    repair_call = next(
+        call for call in runner.calls if call["stage"] == "reference_repair"
+    )
     payload = json.loads(str(repair_call["prompt"]).split("\n", 1)[1])
     assert payload["immutable_response_mode"] == "structured"
-    assert payload["immutable_output_schema_json"] == _structured_dossier().output_schema_json
+    assert (
+        payload["immutable_output_schema_json"]
+        == _structured_dossier().output_schema_json
+    )
 
 
 @pytest.mark.anyio
-async def test_reference_repair_can_acquire_stronger_source_and_owns_final_citations() -> None:
+async def test_reference_repair_can_acquire_stronger_source_and_owns_final_citations() -> (
+    None
+):
     """Future failure: accepted rendering must not retain evidence rejected before source-upgrading repair."""
     workspace = _workspace()
     initial = ReferenceProof(
@@ -456,7 +542,11 @@ async def test_reference_repair_can_acquire_stronger_source_and_owns_final_citat
         (
             _dossier(),
             initial,
-            AuditResult(status="reject", defects=("upgrade the source",), explanation="weak source"),
+            AuditResult(
+                status="reject",
+                defects=("upgrade the source",),
+                explanation="weak source",
+            ),
             AuditResult(status="pass", explanation="complete"),
         ),
         workspace,
@@ -472,9 +562,9 @@ async def test_reference_repair_can_acquire_stronger_source_and_owns_final_citat
 
     assert isinstance(outcome, DomainTweakFinalizedTask)
     assert outcome.task.reference_answer.citations is not None
-    assert tuple(item.url for item in outcome.task.reference_answer.citations if item is not None) == (
-        "https://example.org/stronger-report",
-    )
+    assert tuple(
+        item.url for item in outcome.task.reference_answer.citations if item is not None
+    ) == ("https://example.org/stronger-report",)
 
 
 @pytest.mark.anyio
@@ -554,7 +644,9 @@ async def test_wrong_internal_stage_output_becomes_batch_terminal() -> None:
 
 
 @pytest.mark.anyio
-async def test_unexpected_pipeline_exception_becomes_typed_batch_terminal_fault() -> None:
+async def test_unexpected_pipeline_exception_becomes_typed_batch_terminal_fault() -> (
+    None
+):
     pipeline = CandidatePipeline(
         runner=_UnexpectedRunner(),  # type: ignore[arg-type]
         source_fetcher=_UnusedFetcher(),
@@ -569,10 +661,18 @@ async def test_unexpected_pipeline_exception_becomes_typed_batch_terminal_fault(
 
 
 @pytest.mark.anyio
-async def test_public_question_over_ordinary_audit_target_reaches_finalized_task() -> None:
+async def test_public_question_over_ordinary_audit_target_reaches_finalized_task() -> (
+    None
+):
     """Future failure: the production pipeline must not impose a smaller reference-only query limit."""
     question = "Q" * 128_001
-    runner = _Runner((_dossier(question=question), _proof(), AuditResult(status="pass", explanation="complete")))
+    runner = _Runner(
+        (
+            _dossier(question=question),
+            _proof(),
+            AuditResult(status="pass", explanation="complete"),
+        )
+    )
     outcome = await CandidatePipeline(
         runner=runner,  # type: ignore[arg-type]
         source_fetcher=_UnusedFetcher(),

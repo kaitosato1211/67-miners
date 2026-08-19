@@ -24,7 +24,9 @@ def benchmark_backing_batch_id_for_run(*, suite_slug: str, run_id: UUID) -> UUID
     return uuid5(_BENCHMARK_BACKING_BATCH_NAMESPACE, f"{suite_slug}:{run_id}")
 
 
-def benchmark_task_id_for_item(*, suite_slug: str, run_id: UUID, item_index: int) -> UUID:
+def benchmark_task_id_for_item(
+    *, suite_slug: str, run_id: UUID, item_index: int
+) -> UUID:
     return uuid5(_BENCHMARK_TASK_NAMESPACE, f"{suite_slug}:{run_id}:{item_index}")
 
 

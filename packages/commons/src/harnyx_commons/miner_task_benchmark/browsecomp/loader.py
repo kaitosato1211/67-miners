@@ -63,7 +63,10 @@ def load_browsecomp_snapshot(
     if expected_version is None:
         expected_version = _current_browsecomp_version()
     for snapshot in list_browsecomp_snapshots():
-        snapshot_version = (snapshot.manifest.dataset_version, snapshot.manifest.scoring_version)
+        snapshot_version = (
+            snapshot.manifest.dataset_version,
+            snapshot.manifest.scoring_version,
+        )
         if snapshot_version == expected_version:
             return snapshot
     raise RuntimeError(
@@ -103,11 +106,15 @@ def _load_snapshot_from_dir(snapshot_dir: Traversable) -> BenchmarkDatasetSnapsh
     raw_source = csv_path.read_bytes()
     checksum = sha256(raw_source).hexdigest()
     if checksum != manifest.sha256:
-        raise RuntimeError(f"BrowseComp checksum mismatch: expected {manifest.sha256} got {checksum}")
+        raise RuntimeError(
+            f"BrowseComp checksum mismatch: expected {manifest.sha256} got {checksum}"
+        )
 
     rows = _parse_rows(raw_source)
     if len(rows) != manifest.row_count:
-        raise RuntimeError(f"BrowseComp row count mismatch: expected {manifest.row_count} got {len(rows)}")
+        raise RuntimeError(
+            f"BrowseComp row count mismatch: expected {manifest.row_count} got {len(rows)}"
+        )
     items = tuple(
         BenchmarkDatasetItem(
             item_index=item_index,
@@ -137,14 +144,18 @@ def _parse_rows(raw_source: bytes) -> tuple[_BrowseCompSourceRow, ...]:
     for row_number, row in enumerate(reader, start=2):
         if None in row:
             raise RuntimeError(f"BrowseComp row {row_number} has an extra cell")
-        missing_fields = tuple(name for name in _EXPECTED_HEADER if row.get(name) is None)
+        missing_fields = tuple(
+            name for name in _EXPECTED_HEADER if row.get(name) is None
+        )
         if missing_fields:
             raise RuntimeError(
                 f"BrowseComp row {row_number} has a missing cell for {missing_fields[0]}"
             )
         empty_fields = tuple(name for name in _EXPECTED_HEADER if not row[name])
         if empty_fields:
-            raise RuntimeError(f"BrowseComp row {row_number} has empty {empty_fields[0]}")
+            raise RuntimeError(
+                f"BrowseComp row {row_number} has empty {empty_fields[0]}"
+            )
         rows.append(
             _BrowseCompSourceRow(
                 problem=row["problem"],
@@ -165,11 +176,15 @@ def _decrypt_required(encoded: str, canary: str, *, field: str) -> str:
         raise RuntimeError(f"BrowseComp {field} has empty ciphertext")
 
     key = sha256(canary.encode("utf-8")).digest()
-    decrypted = bytes(value ^ key[index % len(key)] for index, value in enumerate(ciphertext))
+    decrypted = bytes(
+        value ^ key[index % len(key)] for index, value in enumerate(ciphertext)
+    )
     try:
         plaintext = decrypted.decode("utf-8", errors="strict")
     except UnicodeDecodeError as exc:
-        raise RuntimeError(f"BrowseComp {field} does not decrypt to valid UTF-8") from exc
+        raise RuntimeError(
+            f"BrowseComp {field} does not decrypt to valid UTF-8"
+        ) from exc
     if not plaintext:
         raise RuntimeError(f"BrowseComp {field} decrypts to empty plaintext")
     return plaintext
@@ -203,7 +218,9 @@ def _expected_version(
     if dataset_version is None and scoring_version is None:
         return None
     if dataset_version is None or scoring_version is None:
-        raise RuntimeError("BrowseComp snapshot lookup requires both dataset_version and scoring_version")
+        raise RuntimeError(
+            "BrowseComp snapshot lookup requires both dataset_version and scoring_version"
+        )
     return dataset_version, scoring_version
 
 

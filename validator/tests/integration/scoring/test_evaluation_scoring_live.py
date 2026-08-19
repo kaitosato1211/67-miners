@@ -7,10 +7,22 @@ from uuid import uuid4
 
 import pytest
 
-from harnyx_commons.config.llm import LlmSettings, OpenAiCompatibleGoogleIdTokenAuthConfig
-from harnyx_commons.domain.miner_task import AnswerCitation, MinerTask, Query, ReferenceAnswer, Response
+from harnyx_commons.config.llm import (
+    LlmSettings,
+    OpenAiCompatibleGoogleIdTokenAuthConfig,
+)
+from harnyx_commons.domain.miner_task import (
+    AnswerCitation,
+    MinerTask,
+    Query,
+    ReferenceAnswer,
+    Response,
+)
 from harnyx_commons.llm.provider import LlmProviderPort
-from harnyx_commons.llm.provider_factory import build_cached_llm_provider_registry, build_routed_llm_provider
+from harnyx_commons.llm.provider_factory import (
+    build_cached_llm_provider_registry,
+    build_routed_llm_provider,
+)
 from harnyx_commons.llm.schema import AbstractLlmRequest, LlmResponse
 from harnyx_commons.miner_task_scoring import (
     EvaluationScoringConfig,
@@ -21,7 +33,11 @@ from harnyx_miner_sdk.structured_output import validate_output_against_schema
 from harnyx_validator.runtime import bootstrap
 from harnyx_validator.runtime.settings import Settings
 
-pytestmark = [pytest.mark.integration, pytest.mark.expensive, pytest.mark.anyio("asyncio")]
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.expensive,
+    pytest.mark.anyio("asyncio"),
+]
 _GEMMA_MODEL = "google/gemma-4-31B-turbo-TEE"
 _GEMMA_ENDPOINT_ID = "gemma4-cloud-run-turbo"
 _GEMMA_ROUTE_TARGET = "custom-openai-compatible:gemma4-cloud-run-turbo"
@@ -230,12 +246,26 @@ async def test_evaluation_scoring_live_uses_real_structured_runtime_flow(
 
     assert len(llm_provider.requests) == 2
     assert all(request.output_mode == "structured" for request in llm_provider.requests)
-    assert all(request.provider == settings.llm.scoring_llm_provider for request in llm_provider.requests)
-    assert all(request.model == scoring_route.model for request in llm_provider.requests)
-    assert all('"output_contract"' in request.messages[1].content[0].text for request in llm_provider.requests)
+    assert all(
+        request.provider == settings.llm.scoring_llm_provider
+        for request in llm_provider.requests
+    )
+    assert all(
+        request.model == scoring_route.model for request in llm_provider.requests
+    )
+    assert all(
+        '"output_contract"' in request.messages[1].content[0].text
+        for request in llm_provider.requests
+    )
     assert all(response.metadata is not None for response in llm_provider.responses)
-    assert all(response.metadata["selected_provider"] == scoring_route.provider for response in llm_provider.responses)
-    assert all(response.metadata["selected_model"] == scoring_route.model for response in llm_provider.responses)
+    assert all(
+        response.metadata["selected_provider"] == scoring_route.provider
+        for response in llm_provider.responses
+    )
+    assert all(
+        response.metadata["selected_model"] == scoring_route.model
+        for response in llm_provider.responses
+    )
     assert score.scoring_version == "v1"
     assert 0.0 <= score.comparison_score <= 1.0
     assert score.total_score == pytest.approx(score.comparison_score)
@@ -365,7 +395,9 @@ async def test_evaluation_scoring_live_accepts_fallback_candidate_route(
         update={
             "llm": base_settings.llm.model_copy(
                 update={
-                    "llm_model_provider_overrides_json": json.dumps({"scoring": {model: route_target}}),
+                    "llm_model_provider_overrides_json": json.dumps(
+                        {"scoring": {model: route_target}}
+                    ),
                 }
             ),
         }
@@ -416,11 +448,22 @@ async def test_evaluation_scoring_live_accepts_fallback_candidate_route(
 
     assert len(llm_provider.requests) == 2
     assert all(request.output_mode == "structured" for request in llm_provider.requests)
-    assert all(request.provider == settings.llm.scoring_llm_provider for request in llm_provider.requests)
-    assert all(request.model == scoring_route.model for request in llm_provider.requests)
+    assert all(
+        request.provider == settings.llm.scoring_llm_provider
+        for request in llm_provider.requests
+    )
+    assert all(
+        request.model == scoring_route.model for request in llm_provider.requests
+    )
     assert all(response.metadata is not None for response in llm_provider.responses)
-    assert all(response.metadata["selected_provider"] == route_target for response in llm_provider.responses)
-    assert all(response.metadata["selected_model"] == scoring_route.model for response in llm_provider.responses)
+    assert all(
+        response.metadata["selected_provider"] == route_target
+        for response in llm_provider.responses
+    )
+    assert all(
+        response.metadata["selected_model"] == scoring_route.model
+        for response in llm_provider.responses
+    )
     assert score.scoring_version == "v1"
     assert 0.0 <= score.comparison_score <= 1.0
     assert score.total_score == pytest.approx(score.comparison_score)
@@ -438,11 +481,17 @@ def _build_live_scoring_settings(
     _require_mapping_env(environ, "GCP_SERVICE_ACCOUNT_CREDENTIAL_BASE64")
     settings = base_settings.model_copy(
         update={
-            "openai_compatible_endpoints_json": json.dumps([_cloud_run_endpoint_config(endpoint_id, service_url)]),
-            "llm_model_provider_overrides_json": json.dumps({"scoring": {model: route_target}}),
+            "openai_compatible_endpoints_json": json.dumps(
+                [_cloud_run_endpoint_config(endpoint_id, service_url)]
+            ),
+            "llm_model_provider_overrides_json": json.dumps(
+                {"scoring": {model: route_target}}
+            ),
         }
     )
-    _require_cloud_run_google_id_token_auth(settings, endpoint_id=endpoint_id, service_url=service_url)
+    _require_cloud_run_google_id_token_auth(
+        settings, endpoint_id=endpoint_id, service_url=service_url
+    )
     return settings
 
 
@@ -467,12 +516,18 @@ def _require_cloud_run_google_id_token_auth(
 ) -> None:
     endpoint = settings.openai_compatible_endpoints.get(endpoint_id)
     if endpoint is None:
-        raise RuntimeError(f"LLM_OPENAI_COMPATIBLE_ENDPOINTS_JSON must include endpoint id {endpoint_id}")
+        raise RuntimeError(
+            f"LLM_OPENAI_COMPATIBLE_ENDPOINTS_JSON must include endpoint id {endpoint_id}"
+        )
     auth = endpoint.auth
     if not isinstance(auth, OpenAiCompatibleGoogleIdTokenAuthConfig):
-        raise RuntimeError(f"OpenAI-compatible endpoint {endpoint_id} must use google_id_token auth")
+        raise RuntimeError(
+            f"OpenAI-compatible endpoint {endpoint_id} must use google_id_token auth"
+        )
     if auth.audience != service_url:
-        raise RuntimeError(f"OpenAI-compatible endpoint {endpoint_id} google_id_token audience must be {service_url}")
+        raise RuntimeError(
+            f"OpenAI-compatible endpoint {endpoint_id} google_id_token audience must be {service_url}"
+        )
     if auth.credential_source != "service_account_json_b64_env":
         raise RuntimeError(
             f"OpenAI-compatible endpoint {endpoint_id} must use service_account_json_b64_env credentials"

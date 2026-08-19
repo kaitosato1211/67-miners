@@ -11,7 +11,14 @@ from typing import Any, cast
 
 import httpx
 from google.genai import types
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationError,
+    model_validator,
+)
 
 from harnyx_commons.llm.adapter import canonical_model_for_provider_model
 from harnyx_commons.llm.provider_types import normalize_reasoning_effort
@@ -19,7 +26,10 @@ from harnyx_commons.llm.providers.openai_chat_codec import (
     OpenAiChatRequestParts,
     json_schema_from_model,
 )
-from harnyx_commons.llm.providers.openai_stream import OpenAiChoiceState, OpenAiStreamState
+from harnyx_commons.llm.providers.openai_stream import (
+    OpenAiChoiceState,
+    OpenAiStreamState,
+)
 from harnyx_commons.llm.providers.thinking import resolve_template_thinking
 from harnyx_commons.llm.schema import (
     AbstractLlmRequest,
@@ -40,7 +50,9 @@ from harnyx_commons.llm.tool_models import model_thinking_capability
 
 _IMAGE_FETCH_TIMEOUT_SECONDS = 20.0
 _STRING_KEY_MAPPING_ADAPTER = TypeAdapter(dict[str, object])
-_GEMINI_MODEL_VERSION_PATTERN = re.compile(r"(?:^|[/@:])gemini-(?P<major>\d+)(?:[.-]|$)")
+_GEMINI_MODEL_VERSION_PATTERN = re.compile(
+    r"(?:^|[/@:])gemini-(?P<major>\d+)(?:[.-]|$)"
+)
 
 
 @dataclass(frozen=True)
@@ -71,8 +83,13 @@ class _VertexMaasChatRequest(BaseModel):
     @classmethod
     def from_request(cls, request: AbstractLlmRequest) -> _VertexMaasChatRequest:
         wire_model = vertex_maas_openai_chat_model_name(request.model)
-        canonical_model = canonical_model_for_provider_model(provider_name="vertex", model=wire_model)
-        template_thinking_capable = model_thinking_capability(canonical_model, provider_name="vertex") is not None
+        canonical_model = canonical_model_for_provider_model(
+            provider_name="vertex", model=wire_model
+        )
+        template_thinking_capable = (
+            model_thinking_capability(canonical_model, provider_name="vertex")
+            is not None
+        )
         request_parts = OpenAiChatRequestParts.from_request(
             request,
             provider_name="Vertex MaaS",
@@ -86,25 +103,37 @@ class _VertexMaasChatRequest(BaseModel):
         )
         payload = cls(
             model=wire_model,
-            messages=[message.model_dump(mode="python", exclude_none=True) for message in request_parts.messages],
+            messages=[
+                message.model_dump(mode="python", exclude_none=True)
+                for message in request_parts.messages
+            ],
             temperature=request.temperature,
             max_tokens=request.max_output_tokens,
             tools=(
-                [tool.model_dump(mode="python", exclude_none=True) for tool in request_parts.tools]
+                [
+                    tool.model_dump(mode="python", exclude_none=True)
+                    for tool in request_parts.tools
+                ]
                 if request_parts.tools
                 else None
             ),
             tool_choice=request_parts.tool_choice,
             parallel_tool_calls=request_parts.parallel_tool_calls,
-            reasoning_effort=None if template_thinking_capable else request.reasoning_effort,
+            reasoning_effort=(
+                None if template_thinking_capable else request.reasoning_effort
+            ),
             include=request_parts.include,
             response_format=(
-                request_parts.response_format.model_dump(mode="python", exclude_none=True)
+                request_parts.response_format.model_dump(
+                    mode="python", exclude_none=True
+                )
                 if request_parts.response_format is not None
                 else None
             ),
         )
-        payload = _apply_vertex_maas_thinking(payload, request, canonical_model=canonical_model)
+        payload = _apply_vertex_maas_thinking(
+            payload, request, canonical_model=canonical_model
+        )
         if request.extra:
             payload = payload.model_copy(update=dict(request.extra))
         return payload.model_copy(update={"stream": True})
@@ -183,7 +212,9 @@ class _VertexMaasChoicePayload(BaseModel):
         return {**payload, **message}
 
     @classmethod
-    def from_stream_choice(cls, *, index: int, state: OpenAiChoiceState) -> _VertexMaasChoicePayload:
+    def from_stream_choice(
+        cls, *, index: int, state: OpenAiChoiceState
+    ) -> _VertexMaasChoicePayload:
         return cls(
             index=index,
             content=state.content_text,
@@ -199,9 +230,9 @@ class _VertexMaasChoicePayload(BaseModel):
         return _extract_vertex_maas_text(self.content, require_text_type=True)
 
     def reasoning_text(self, *, model: str | None = None) -> str | None:
-        explicit_reasoning = _extract_vertex_maas_text(self.reasoning_content) or _extract_vertex_maas_text(
-            self.reasoning
-        )
+        explicit_reasoning = _extract_vertex_maas_text(
+            self.reasoning_content
+        ) or _extract_vertex_maas_text(self.reasoning)
         if explicit_reasoning is not None:
             return explicit_reasoning
         split = self._deepseek_v31_reasoning_split(model=model)
@@ -212,14 +243,20 @@ class _VertexMaasChoicePayload(BaseModel):
             index=self.index if self.index is not None else index,
             message=LlmChoiceMessage(
                 role="assistant",
-                content=((_text_part(text_content),) if (text_content := self.text_content(model=model)) else ()),
+                content=(
+                    (_text_part(text_content),)
+                    if (text_content := self.text_content(model=model))
+                    else ()
+                ),
                 tool_calls=_vertex_maas_tool_calls(self.tool_calls),
                 reasoning=self.reasoning_text(model=model),
             ),
             finish_reason=self.finish_reason or "stop",
         )
 
-    def _deepseek_v31_reasoning_split(self, *, model: str | None) -> _VertexReasoningSplit | None:
+    def _deepseek_v31_reasoning_split(
+        self, *, model: str | None
+    ) -> _VertexReasoningSplit | None:
         if not _is_vertex_deepseek_v31_model(model):
             return None
         content = _extract_vertex_maas_text(self.content, require_text_type=True)
@@ -230,12 +267,18 @@ class _VertexMaasChoicePayload(BaseModel):
                 return None
             return _VertexReasoningSplit(
                 visible_text=None,
-                reasoning_text=content.removeprefix(_DEEPSEEK_V31_THINKING_START).strip() or None,
+                reasoning_text=content.removeprefix(
+                    _DEEPSEEK_V31_THINKING_START
+                ).strip()
+                or None,
             )
         reasoning_text, visible_text = content.split(_DEEPSEEK_V31_THINKING_STOP, 1)
         return _VertexReasoningSplit(
             visible_text=visible_text.strip() or None,
-            reasoning_text=reasoning_text.removeprefix(_DEEPSEEK_V31_THINKING_START).strip() or None,
+            reasoning_text=reasoning_text.removeprefix(
+                _DEEPSEEK_V31_THINKING_START
+            ).strip()
+            or None,
         )
 
     def raw_payload(self) -> dict[str, Any]:
@@ -244,7 +287,10 @@ class _VertexMaasChoicePayload(BaseModel):
             "reasoning_content": self.reasoning_content,
             "reasoning": self.reasoning,
             "tool_calls": (
-                [tool_call.model_dump(mode="python", exclude_none=True) for tool_call in self.tool_calls]
+                [
+                    tool_call.model_dump(mode="python", exclude_none=True)
+                    for tool_call in self.tool_calls
+                ]
                 if self.tool_calls
                 else None
             ),
@@ -252,7 +298,11 @@ class _VertexMaasChoicePayload(BaseModel):
         payload = {
             "index": self.index,
             "finish_reason": self.finish_reason,
-            "message": {key: value for key, value in message_payload.items() if value is not None},
+            "message": {
+                key: value
+                for key, value in message_payload.items()
+                if value is not None
+            },
         }
         return {key: value for key, value in payload.items() if value is not None}
 
@@ -280,18 +330,27 @@ class _VertexMaasChatResponse(BaseModel):
     usage: _VertexMaasUsagePayload | None = None
 
     @classmethod
-    def from_stream_state(cls, state: OpenAiStreamState, *, model: str | None = None) -> _VertexMaasChatResponse:
+    def from_stream_state(
+        cls, state: OpenAiStreamState, *, model: str | None = None
+    ) -> _VertexMaasChatResponse:
         choices = [
             _VertexMaasChoicePayload.from_stream_choice(index=index, state=choice_state)
             for index, choice_state in sorted(state.choices.items())
         ]
-        usage = _VertexMaasUsagePayload.model_validate(state.usage) if state.usage is not None else None
-        return cls(id=state.response_id or None, model=model, choices=choices, usage=usage)
+        usage = (
+            _VertexMaasUsagePayload.model_validate(state.usage)
+            if state.usage is not None
+            else None
+        )
+        return cls(
+            id=state.response_id or None, model=model, choices=choices, usage=usage
+        )
 
     def to_llm_response(self, *, model: str | None = None) -> LlmResponse:
         response_model = model or self.model
         choices = tuple(
-            choice.to_choice(index=index, model=response_model) for index, choice in enumerate(self.choices)
+            choice.to_choice(index=index, model=response_model)
+            for index, choice in enumerate(self.choices)
         )
         usage_payload = self.usage
         usage = LlmUsage(
@@ -301,7 +360,11 @@ class _VertexMaasChatResponse(BaseModel):
                 if usage_payload and usage_payload.prompt_tokens_details
                 else None
             ),
-            completion_tokens=usage_payload.completion_tokens_excluding_reasoning() if usage_payload else None,
+            completion_tokens=(
+                usage_payload.completion_tokens_excluding_reasoning()
+                if usage_payload
+                else None
+            ),
             total_tokens=usage_payload.total_tokens if usage_payload else None,
             reasoning_tokens=usage_payload.reasoning_tokens if usage_payload else None,
         )
@@ -319,7 +382,11 @@ class _VertexMaasChatResponse(BaseModel):
             "id": self.id,
             "model": self.model,
             "choices": [choice.raw_payload() for choice in self.choices],
-            "usage": self.usage.model_dump(mode="python", exclude_none=True) if self.usage is not None else None,
+            "usage": (
+                self.usage.model_dump(mode="python", exclude_none=True)
+                if self.usage is not None
+                else None
+            ),
         }
         if self.model is None:
             payload.pop("model")
@@ -341,7 +408,9 @@ def normalize_messages(messages: Sequence[LlmMessage]) -> tuple[str | None, list
     converted: list[Any] = []
     for message in messages:
         if message.tool_calls or message.reasoning_details:
-            raise ValueError("native Vertex messages do not support tool-call or reasoning-detail replay")
+            raise ValueError(
+                "native Vertex messages do not support tool-call or reasoning-detail replay"
+            )
         if message.role == "system":
             system_instruction = _join_text_parts(message.content, label="system")
             continue
@@ -359,13 +428,19 @@ def serialize_tools(tools: Sequence[LlmTool] | None) -> list[types.Tool] | None:
         if tool.type == "function":
             if tool.function is None:
                 raise ValueError("function tool requires 'function' metadata")
-            serialized.append(types.Tool(function_declarations=[types.FunctionDeclaration(**tool.function)]))
+            serialized.append(
+                types.Tool(
+                    function_declarations=[types.FunctionDeclaration(**tool.function)]
+                )
+            )
         else:
             serialized.append(types.Tool())
     return serialized
 
 
-def serialize_provider_native_tools(tools: Sequence[LlmTool] | None) -> list[types.Tool]:
+def serialize_provider_native_tools(
+    tools: Sequence[LlmTool] | None,
+) -> list[types.Tool]:
     if not tools:
         return []
     serialized: list[types.Tool] = []
@@ -448,7 +523,9 @@ def _vertex_maas_tool_calls(
     )
 
 
-def _vertex_maas_tool_call_payloads(state: OpenAiChoiceState) -> list[_VertexMaasToolCallPayload] | None:
+def _vertex_maas_tool_call_payloads(
+    state: OpenAiChoiceState,
+) -> list[_VertexMaasToolCallPayload] | None:
     tool_calls = state.tool_call_values()
     if not tool_calls:
         return None
@@ -546,12 +623,19 @@ def resolve_thinking_config(
 
 
 def build_choices(response: types.GenerateContentResponse) -> tuple[LlmChoice, ...]:
-    return tuple(_choice_from_candidate(idx, candidate) for idx, candidate in enumerate(response.candidates or ()))
+    return tuple(
+        _choice_from_candidate(idx, candidate)
+        for idx, candidate in enumerate(response.candidates or ())
+    )
 
 
 def _choice_from_candidate(index: int, candidate: Any) -> LlmChoice:
     parts, tool_calls, reasoning = _candidate_parts_and_calls(candidate)
-    finish_reason = candidate.finish_reason.value.lower() if candidate.finish_reason is not None else "stop"
+    finish_reason = (
+        candidate.finish_reason.value.lower()
+        if candidate.finish_reason is not None
+        else "stop"
+    )
     return LlmChoice(
         index=index,
         message=LlmChoiceMessage(
@@ -592,7 +676,9 @@ def _candidate_parts_and_calls(
 
 
 def _reasoning_text(thought_text_parts: list[str]) -> str | None:
-    normalized_parts = tuple(part.strip() for part in thought_text_parts if part.strip())
+    normalized_parts = tuple(
+        part.strip() for part in thought_text_parts if part.strip()
+    )
     if not normalized_parts:
         return None
     return "\n\n".join(normalized_parts)
@@ -630,9 +716,13 @@ def _join_text_parts(parts: Sequence[LlmInputContentPart], *, label: str) -> str
             case LlmInputTextPart(text=text):
                 fragments.append(text)
             case LlmInputImagePart():
-                raise ValueError(f"{label} messages do not support input_image content parts")
+                raise ValueError(
+                    f"{label} messages do not support input_image content parts"
+                )
             case LlmInputToolResultPart():
-                raise ValueError(f"{label} messages do not support input_tool_result content parts")
+                raise ValueError(
+                    f"{label} messages do not support input_tool_result content parts"
+                )
             case _:
                 raise ValueError(f"unsupported request content part type: {part!r}")
     return "\n".join(fragments)
@@ -684,11 +774,15 @@ def _serialize_vertex_image_part(part: LlmInputImagePart) -> Any:
         return types.Part.from_uri(file_uri=url, mime_type=mime_type)
 
     image_bytes, resolved_mime_type = _download_image(url)
-    return types.Part.from_bytes(data=image_bytes, mime_type=mime_type or resolved_mime_type)
+    return types.Part.from_bytes(
+        data=image_bytes, mime_type=mime_type or resolved_mime_type
+    )
 
 
 def _download_image(url: str) -> tuple[bytes, str]:
-    with httpx.Client(follow_redirects=True, timeout=_IMAGE_FETCH_TIMEOUT_SECONDS) as client:
+    with httpx.Client(
+        follow_redirects=True, timeout=_IMAGE_FETCH_TIMEOUT_SECONDS
+    ) as client:
         response = client.get(url)
         response.raise_for_status()
         content = response.content
@@ -716,7 +810,9 @@ def _infer_mime_type_from_url(url: str) -> str | None:
     return None
 
 
-def extract_usage(usage_metadata: types.GenerateContentResponseUsageMetadata | None) -> LlmUsage | None:
+def extract_usage(
+    usage_metadata: types.GenerateContentResponseUsageMetadata | None,
+) -> LlmUsage | None:
     if usage_metadata is None:
         return None
     return LlmUsage(

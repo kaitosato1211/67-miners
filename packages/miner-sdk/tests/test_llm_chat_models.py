@@ -74,17 +74,25 @@ def test_parameterless_function_definition_omits_parameters() -> None:
     payload["tools"] = [
         {
             "type": "function",
-            "function": {"name": "current_time", "description": "Return the current time."},
+            "function": {
+                "name": "current_time",
+                "description": "Return the current time.",
+            },
         }
     ]
     payload["tool_choice"] = "auto"
 
-    dumped = LlmChatRequest.model_validate(payload).model_dump(mode="json", exclude_none=True)
+    dumped = LlmChatRequest.model_validate(payload).model_dump(
+        mode="json", exclude_none=True
+    )
 
     assert dumped["tools"] == [
         {
             "type": "function",
-            "function": {"name": "current_time", "description": "Return the current time."},
+            "function": {
+                "name": "current_time",
+                "description": "Return the current time.",
+            },
         }
     ]
 
@@ -127,7 +135,11 @@ def test_valid_parallel_tool_transcript_preserves_opaque_reasoning_details() -> 
     assert dumped["messages"][1]["reasoning_details"] == reasoning_details
     normalized = request.to_tool_request()
     assert normalized.messages[1].reasoning_details == tuple(reasoning_details)
-    assert tuple(part.tool_call_id for message in normalized.messages[2:] for part in message.content) == (
+    assert tuple(
+        part.tool_call_id
+        for message in normalized.messages[2:]
+        for part in message.content
+    ) == (
         "call-rome",
         "call-paris",
     )
@@ -155,7 +167,9 @@ def test_request_preserves_whitespace_in_recursive_and_opaque_json_values() -> N
         }
     ]
 
-    dumped = LlmChatRequest.model_validate(payload).model_dump(mode="json", exclude_none=True)
+    dumped = LlmChatRequest.model_validate(payload).model_dump(
+        mode="json", exclude_none=True
+    )
 
     assert dumped["tools"][0]["function"]["parameters"]["properties"] == {
         " city ": {"type": "string", "const": " Paris "}

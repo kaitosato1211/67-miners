@@ -17,9 +17,14 @@ from harnyx_commons.sandbox.client import SandboxClient
 from harnyx_commons.sandbox.docker import DockerSandboxManager
 from harnyx_commons.sandbox.options import SandboxOptions
 from harnyx_commons.sandbox.state import DEFAULT_STATE_DIR, resolve_state_mount_source
-from harnyx_validator.application.dto.evaluation import MinerTaskBatchSpec, ScriptArtifactSpec
+from harnyx_validator.application.dto.evaluation import (
+    MinerTaskBatchSpec,
+    ScriptArtifactSpec,
+)
 from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator
-from harnyx_validator.application.platform_tool_proxy import PlatformToolProxyScopeRegistry
+from harnyx_validator.application.platform_tool_proxy import (
+    PlatformToolProxyScopeRegistry,
+)
 from harnyx_validator.application.ports.evaluation_record import EvaluationRecordPort
 from harnyx_validator.application.ports.progress import ProgressRecorder
 from harnyx_validator.application.ports.subtensor import SubtensorClientPort
@@ -153,7 +158,9 @@ class BatchExecutionPlanner:
         self,
         run_ctx: RunContext,
     ) -> Callable[[ScriptArtifactSpec], SandboxOptions]:
-        volumes = run_ctx.base_volumes + ((resolve_state_mount_source(), run_ctx.config.state_dir, "ro"),)
+        volumes = run_ctx.base_volumes + (
+            (resolve_state_mount_source(), run_ctx.config.state_dir, "ro"),
+        )
         resolved_artifacts: dict[UUID, AgentArtifact] = {}
 
         def sandbox_options_factory(artifact: ScriptArtifactSpec) -> SandboxOptions:

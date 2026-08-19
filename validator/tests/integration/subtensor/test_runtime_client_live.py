@@ -5,7 +5,10 @@ import time
 import pytest
 
 from harnyx_validator.application.ports.subtensor import WeightSubmissionTooEarlyError
-from harnyx_validator.application.scheduling.gate import chain_epoch_index, commitment_marker
+from harnyx_validator.application.scheduling.gate import (
+    chain_epoch_index,
+    commitment_marker,
+)
 from harnyx_validator.infrastructure.subtensor.client import RuntimeSubtensorClient
 from harnyx_validator.runtime.settings import Settings
 
@@ -39,7 +42,9 @@ def test_runtime_client_live_commitment_and_weights() -> None:
     # Publish and confirm commitment using the canonical marker format.
     now_block = client.current_block()
     tempo = client.tempo(settings.subtensor.netuid)
-    epoch = chain_epoch_index(at_block=now_block, netuid=settings.subtensor.netuid, tempo=tempo)
+    epoch = chain_epoch_index(
+        at_block=now_block, netuid=settings.subtensor.netuid, tempo=tempo
+    )
     commitment_payload = commitment_marker(validator_info.uid, epoch)
     client.publish_commitment(commitment_payload, blocks_until_reveal=1)
 
@@ -53,7 +58,10 @@ def test_runtime_client_live_commitment_and_weights() -> None:
 
     baseline_update = client.last_update_block(validator_info.uid)
     if baseline_update is None:
-        pytest.fail("validator metagraph last_update missing; cannot verify weight updates", pytrace=False)
+        pytest.fail(
+            "validator metagraph last_update missing; cannot verify weight updates",
+            pytrace=False,
+        )
     baseline_value = baseline_update
 
     # Choose a target miner uid ≠ validator uid
@@ -64,7 +72,9 @@ def test_runtime_client_live_commitment_and_weights() -> None:
         pytest.fail("no miner UID available on this subnet to set weight for")
 
     # Submit weight and verify via adapter.
-    network_or_endpoint = settings.subtensor.endpoint.strip() or settings.subtensor.network
+    network_or_endpoint = (
+        settings.subtensor.endpoint.strip() or settings.subtensor.network
+    )
     subtensor = bittensor.Subtensor(network=network_or_endpoint)
     weights_rate_limit = int(subtensor.weights_rate_limit(settings.subtensor.netuid))
 

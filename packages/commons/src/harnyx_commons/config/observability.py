@@ -40,7 +40,9 @@ class ObservabilitySettings(BaseSettings):
         ge=0.0,
         le=1.0,
     )
-    sentry_send_default_pii: bool = Field(default=False, alias="SENTRY_SEND_DEFAULT_PII")
+    sentry_send_default_pii: bool = Field(
+        default=False, alias="SENTRY_SEND_DEFAULT_PII"
+    )
     sentry_enable_logs: bool = Field(default=False, alias="SENTRY_ENABLE_LOGS")
     sentry_debug: bool = Field(default=False, alias="SENTRY_DEBUG")
 

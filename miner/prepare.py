@@ -74,8 +74,14 @@ def prepare(
 ) -> str:
     """Pin the local-eval batch and local benchmark snapshot used by this autoresearch run."""
     load_public_env()
-    resolved_batch_id = _normalize_batch_id(batch_id) if batch_id else _resolve_latest_completed_batch_id()
-    benchmark = _resolve_benchmark(benchmark_suite=benchmark_suite, sample_size=benchmark_sample_size)
+    resolved_batch_id = (
+        _normalize_batch_id(batch_id)
+        if batch_id
+        else _resolve_latest_completed_batch_id()
+    )
+    benchmark = _resolve_benchmark(
+        benchmark_suite=benchmark_suite, sample_size=benchmark_sample_size
+    )
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     BATCH_ID_PATH.write_text(f"{resolved_batch_id}\n", encoding="utf-8")
@@ -106,7 +112,9 @@ def prepare(
     return resolved_batch_id
 
 
-def run_experiment(agent_path: Path = Path("train.py"), *, mode: str = "vs-champion") -> int:
+def run_experiment(
+    agent_path: Path = Path("train.py"), *, mode: str = "vs-champion"
+) -> int:
     """Run the fixed evaluators for the editable candidate and print a stable summary."""
     load_public_env()
     batch_id = _read_pinned_batch_id()
@@ -160,8 +168,12 @@ def run_experiment(agent_path: Path = Path("train.py"), *, mode: str = "vs-champ
         text=True,
     )
     benchmark_elapsed_seconds = time.monotonic() - benchmark_started
-    (output_dir / "local-benchmark.stdout").write_text(benchmark_result.stdout, encoding="utf-8")
-    (output_dir / "local-benchmark.stderr").write_text(benchmark_result.stderr, encoding="utf-8")
+    (output_dir / "local-benchmark.stdout").write_text(
+        benchmark_result.stdout, encoding="utf-8"
+    )
+    (output_dir / "local-benchmark.stderr").write_text(
+        benchmark_result.stderr, encoding="utf-8"
+    )
     if benchmark_result.returncode != 0:
         sys.stdout.write(benchmark_result.stdout)
         sys.stderr.write(benchmark_result.stderr)
@@ -229,20 +241,34 @@ def build_local_benchmark_command(
     ]
 
 
-def parse_report_summary(report_path: Path, *, elapsed_seconds: float | None = None) -> LocalEvalSummary:
+def parse_report_summary(
+    report_path: Path, *, elapsed_seconds: float | None = None
+) -> LocalEvalSummary:
     report = _read_json_object(report_path)
-    batch_id = _string(_mapping(report.get("identifiers"), "identifiers").get("batch_id"), "batch_id")
+    batch_id = _string(
+        _mapping(report.get("identifiers"), "identifiers").get("batch_id"), "batch_id"
+    )
     leaderboard = _sequence(
-        _mapping(report.get("local_result_summary"), "local_result_summary").get("leaderboard"),
+        _mapping(report.get("local_result_summary"), "local_result_summary").get(
+            "leaderboard"
+        ),
         "leaderboard",
     )
     target = _leaderboard_entry(leaderboard, "target")
     champion = _optional_leaderboard_entry(leaderboard, "champion")
     score_a = _float(target.get("total_score"), "target total_score")
-    champion_score = _float(champion.get("total_score"), "champion total_score") if champion else None
+    champion_score = (
+        _float(champion.get("total_score"), "champion total_score")
+        if champion
+        else None
+    )
     delta = score_a - champion_score if champion_score is not None else None
     costs = _mapping(target.get("cost_totals"), "target cost_totals")
-    total_seconds = elapsed_seconds if elapsed_seconds is not None else _target_elapsed_seconds(report)
+    total_seconds = (
+        elapsed_seconds
+        if elapsed_seconds is not None
+        else _target_elapsed_seconds(report)
+    )
     return LocalEvalSummary(
         batch_id=batch_id,
         score_a=score_a,
@@ -250,7 +276,9 @@ def parse_report_summary(report_path: Path, *, elapsed_seconds: float | None = N
         delta_vs_champion=delta,
         total_seconds=total_seconds,
         cost_usd=_float(costs.get("total_cost_usd", 0.0), "target total_cost_usd"),
-        error_count=_non_negative_int(target.get("error_count", 0), "target error_count"),
+        error_count=_non_negative_int(
+            target.get("error_count", 0), "target error_count"
+        ),
         json_report=report_path,
     )
 
@@ -267,19 +295,29 @@ def parse_benchmark_report_summary(
     summary = _mapping(report.get("summary"), "summary")
     costs = _mapping(summary.get("cost_totals"), "benchmark cost_totals")
     source_batch_id = _string(identifiers.get("source_batch_id"), "source_batch_id")
-    total_seconds = elapsed_seconds if elapsed_seconds is not None else _float(
-        summary.get("total_seconds"),
-        "benchmark total_seconds",
+    total_seconds = (
+        elapsed_seconds
+        if elapsed_seconds is not None
+        else _float(
+            summary.get("total_seconds"),
+            "benchmark total_seconds",
+        )
     )
     return BenchmarkSummary(
         suite_slug=_string(manifest.get("suite_slug"), "benchmark suite_slug"),
-        dataset_version=_string(manifest.get("dataset_version"), "benchmark dataset_version"),
-        scoring_version=_string(manifest.get("scoring_version"), "benchmark scoring_version"),
+        dataset_version=_string(
+            manifest.get("dataset_version"), "benchmark dataset_version"
+        ),
+        scoring_version=_string(
+            manifest.get("scoring_version"), "benchmark scoring_version"
+        ),
         source_batch_id=_normalize_batch_id(source_batch_id),
         score_b=_float(summary.get("mean_total_score"), "benchmark mean_total_score"),
         total_seconds=total_seconds,
         cost_usd=_float(costs.get("total_cost_usd", 0.0), "benchmark total_cost_usd"),
-        error_count=_non_negative_int(summary.get("error_count", 0), "benchmark error_count"),
+        error_count=_non_negative_int(
+            summary.get("error_count", 0), "benchmark error_count"
+        ),
         json_report=report_path,
     )
 
@@ -292,7 +330,9 @@ def print_summary(local_eval: LocalEvalSummary, benchmark: BenchmarkSummary) -> 
     print(f"score_a:              {local_eval.score_a:.6f}")
     print(f"score_b:              {benchmark.score_b:.6f}")
     print(f"champion_score_a:     {_format_optional_float(local_eval.champion_score)}")
-    print(f"delta_vs_champion_a:  {_format_optional_float(local_eval.delta_vs_champion)}")
+    print(
+        f"delta_vs_champion_a:  {_format_optional_float(local_eval.delta_vs_champion)}"
+    )
     print(f"total_seconds:        {total_seconds:.1f}")
     print(f"cost_usd:             {total_cost_usd:.6f}")
     print(f"local_eval_cost_usd:  {local_eval.cost_usd:.6f}")
@@ -310,8 +350,13 @@ def print_summary(local_eval: LocalEvalSummary, benchmark: BenchmarkSummary) -> 
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Prepare a Harnyx miner autoresearch run.")
-    parser.add_argument("--batch-id", help="Specific completed batch id to pin. Defaults to latest completed batch.")
+    parser = argparse.ArgumentParser(
+        description="Prepare a Harnyx miner autoresearch run."
+    )
+    parser.add_argument(
+        "--batch-id",
+        help="Specific completed batch id to pin. Defaults to latest completed batch.",
+    )
     parser.add_argument(
         "--benchmark-suite",
         required=True,
@@ -376,13 +421,19 @@ def _read_pinned_benchmark() -> BenchmarkPin:
     payload = _read_json_object(BENCHMARK_PATH)
     return BenchmarkPin(
         suite_slug=_string(payload.get("suite_slug"), "benchmark suite_slug"),
-        dataset_version=_string(payload.get("dataset_version"), "benchmark dataset_version"),
-        scoring_version=_string(payload.get("scoring_version"), "benchmark scoring_version"),
+        dataset_version=_string(
+            payload.get("dataset_version"), "benchmark dataset_version"
+        ),
+        scoring_version=_string(
+            payload.get("scoring_version"), "benchmark scoring_version"
+        ),
         sample_size=_positive_int(payload.get("sample_size"), "benchmark sample_size"),
     )
 
 
-def _report_path_from_stdout(stdout: str, *, output_dir: Path, report_glob: str) -> Path:
+def _report_path_from_stdout(
+    stdout: str, *, output_dir: Path, report_glob: str
+) -> Path:
     for line in reversed(stdout.splitlines()):
         try:
             payload = json.loads(line)
@@ -408,7 +459,9 @@ def _leaderboard_entry(entries: Sequence[object], label: str) -> Mapping[str, ob
     return entry
 
 
-def _optional_leaderboard_entry(entries: Sequence[object], label: str) -> Mapping[str, object] | None:
+def _optional_leaderboard_entry(
+    entries: Sequence[object], label: str
+) -> Mapping[str, object] | None:
     for raw_entry in entries:
         entry = _mapping(raw_entry, "leaderboard entry")
         if entry.get("label") == label:

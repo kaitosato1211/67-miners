@@ -6,7 +6,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
-from harnyx_validator.application.dto.evaluation import MinerTaskRunSubmission, TokenUsageSummary
+from harnyx_validator.application.dto.evaluation import (
+    MinerTaskRunSubmission,
+    TokenUsageSummary,
+)
 
 
 @dataclass(frozen=True)

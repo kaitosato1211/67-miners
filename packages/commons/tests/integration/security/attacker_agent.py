@@ -22,7 +22,9 @@ class _MaliciousResult:
         self._marker_url = marker_url
 
     def __reduce__(self):
-        urllib.request.urlopen(self._marker_url, timeout=2).close()  # noqa: S310 - fixed test-server URL
+        urllib.request.urlopen(
+            self._marker_url, timeout=2
+        ).close()  # noqa: S310 - fixed test-server URL
         return str, ("executed",)
 
 

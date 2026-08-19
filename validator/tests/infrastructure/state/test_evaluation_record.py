@@ -16,9 +16,14 @@ from harnyx_commons.domain.miner_task import (
 from harnyx_commons.domain.session import Session, SessionUsage
 from harnyx_commons.domain.tool_call import ToolCall, ToolCallDetails, ToolCallOutcome
 from harnyx_commons.domain.tool_usage import ToolUsageSummary
-from harnyx_validator.application.dto.evaluation import MinerTaskRunSubmission, TokenUsageSummary
+from harnyx_validator.application.dto.evaluation import (
+    MinerTaskRunSubmission,
+    TokenUsageSummary,
+)
 from harnyx_validator.domain.evaluation import MinerTaskRun
-from harnyx_validator.infrastructure.state.evaluation_record import CompactEvaluationRecordStore
+from harnyx_validator.infrastructure.state.evaluation_record import (
+    CompactEvaluationRecordStore,
+)
 
 
 def _make_submission(
@@ -114,8 +119,12 @@ def test_compact_store_rejects_conflicting_duplicate_pair() -> None:
     batch_id = uuid4()
     artifact_id = uuid4()
     task_id = uuid4()
-    submission = _make_submission(batch_id=batch_id, artifact_id=artifact_id, task_id=task_id, score=1.0)
-    conflicting = _make_submission(batch_id=batch_id, artifact_id=artifact_id, task_id=task_id, score=0.0)
+    submission = _make_submission(
+        batch_id=batch_id, artifact_id=artifact_id, task_id=task_id, score=1.0
+    )
+    conflicting = _make_submission(
+        batch_id=batch_id, artifact_id=artifact_id, task_id=task_id, score=0.0
+    )
 
     store.record(submission)
 

@@ -10,7 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from harnyx_commons.errors import ToolProviderError
 from harnyx_commons.llm.cost_settlement import normalized_provider_cost
 from harnyx_commons.llm.retry_utils import RetryPolicy
-from harnyx_commons.tools.provider_billing import ProviderBillingMetadata, SearchProviderResult
+from harnyx_commons.tools.provider_billing import (
+    ProviderBillingMetadata,
+    SearchProviderResult,
+)
 from harnyx_commons.tools.search_http import JsonSearchProviderClient
 from harnyx_commons.tools.search_models import (
     FetchPageRequest,
@@ -72,7 +75,8 @@ class ExaClient:
     ) -> SearchProviderResult[SearchWebSearchResponse]:
         if request.num == 0:
             return SearchProviderResult(
-                response=SearchWebSearchResponse(data=[]), billing=_billing(service="search")
+                response=SearchWebSearchResponse(data=[]),
+                billing=_billing(service="search"),
             )
         extra = request.provider_extra or ExaSearchExtra()
         if not isinstance(extra, ExaSearchExtra):
@@ -83,11 +87,16 @@ class ExaClient:
         }
         if request.num is not None:
             payload["numResults"] = min(request.num, 100)
-        raw = await self._http.post_json("/search", payload, requested_timeout=request.timeout)
+        raw = await self._http.post_json(
+            "/search", payload, requested_timeout=request.timeout
+        )
         parsed = _parse_response(raw)
         return SearchProviderResult(
             response=SearchWebSearchResponse(
-                data=[SearchWebResult(link=item.url, title=item.title) for item in parsed.results]
+                data=[
+                    SearchWebResult(link=item.url, title=item.title)
+                    for item in parsed.results
+                ]
             ),
             billing=_billing_from_response(parsed, service="search"),
         )
@@ -104,7 +113,11 @@ class ExaClient:
             requested_timeout=request.timeout,
         )
         parsed = _parse_response(raw)
-        if len(parsed.results) != 1 or not parsed.results[0].text or not parsed.results[0].text.strip():
+        if (
+            len(parsed.results) != 1
+            or not parsed.results[0].text
+            or not parsed.results[0].text.strip()
+        ):
             raise ToolProviderError(
                 "tool provider response invalid",
                 provider="exa",
@@ -116,7 +129,11 @@ class ExaClient:
             raise AssertionError("validated Exa content unexpectedly missing")
         return SearchProviderResult(
             response=FetchPageResponse(
-                data=[FetchPageResult(url=item.url, title=item.title, content=content.strip())]
+                data=[
+                    FetchPageResult(
+                        url=item.url, title=item.title, content=content.strip()
+                    )
+                ]
             ),
             billing=_billing_from_response(parsed, service="contents"),
         )
@@ -129,19 +146,27 @@ def _parse_response(raw: dict[str, Any]) -> _ExaResponse:
     try:
         return _ExaResponse.model_validate(raw)
     except ValidationError as exc:
-        raise ToolProviderError("tool provider response invalid", provider="exa") from exc
+        raise ToolProviderError(
+            "tool provider response invalid", provider="exa"
+        ) from exc
 
 
 def _combined_query(queries: tuple[str, ...]) -> str:
     return " OR ".join(f"({query})" for query in queries)
 
 
-def _billing_from_response(response: _ExaResponse, *, service: str) -> ProviderBillingMetadata:
-    raw_cost = response.cost_dollars.total if response.cost_dollars is not None else None
+def _billing_from_response(
+    response: _ExaResponse, *, service: str
+) -> ProviderBillingMetadata:
+    raw_cost = (
+        response.cost_dollars.total if response.cost_dollars is not None else None
+    )
     return _billing(
         service=service,
         request_id=response.request_id,
-        cost=normalized_provider_cost(raw_cost, field_name="Exa costDollars.total", strict=False),
+        cost=normalized_provider_cost(
+            raw_cost, field_name="Exa costDollars.total", strict=False
+        ),
     )
 
 
@@ -151,7 +176,11 @@ def _billing(
     return ProviderBillingMetadata(
         actual_cost_provider="exa",
         actual_cost_usd=cost,
-        source="response_body" if request_id is not None or cost is not None else "missing_provider_metadata",
+        source=(
+            "response_body"
+            if request_id is not None or cost is not None
+            else "missing_provider_metadata"
+        ),
         provider_request_id=request_id,
         service=service,
         currency="USD" if cost is not None else None,

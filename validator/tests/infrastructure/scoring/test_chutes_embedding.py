@@ -8,7 +8,9 @@ from harnyx_commons.llm.providers.chutes import ChutesTextEmbeddingClient
 pytestmark = pytest.mark.anyio("asyncio")
 
 
-async def test_chutes_text_embedding_client_posts_openai_compatible_embeddings_request() -> None:
+async def test_chutes_text_embedding_client_posts_openai_compatible_embeddings_request() -> (
+    None
+):
     captured: dict[str, object] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -32,7 +34,9 @@ async def test_chutes_text_embedding_client_posts_openai_compatible_embeddings_r
     client = ChutesTextEmbeddingClient(
         model="Qwen/Qwen3-Embedding-8B-TEE",
         base_url="https://llm.chutes.ai",
-        client=httpx.AsyncClient(base_url="https://llm.chutes.ai", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://llm.chutes.ai", transport=httpx.MockTransport(handler)
+        ),
         api_key="test-key",
         dimensions=3,
     )

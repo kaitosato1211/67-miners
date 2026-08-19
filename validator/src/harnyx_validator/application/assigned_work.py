@@ -6,7 +6,10 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from harnyx_validator.application.dto.evaluation import MinerTaskWorkAssignment, PlatformOwnedTaskResult
+from harnyx_validator.application.dto.evaluation import (
+    MinerTaskWorkAssignment,
+    PlatformOwnedTaskResult,
+)
 
 
 class ClaimedAssignedTask(Protocol):
@@ -38,7 +41,9 @@ class AssignedArtifactWork(Protocol):
     def mark_dispatch_ready(self) -> None:
         """Mark the artifact ready to dispatch assigned tasks."""
 
-    def claim_initial_for_dispatch(self, assignment: MinerTaskWorkAssignment) -> ClaimedAssignedTask | None:
+    def claim_initial_for_dispatch(
+        self, assignment: MinerTaskWorkAssignment
+    ) -> ClaimedAssignedTask | None:
         """Claim a startup-drained assignment before validator session start."""
 
     async def claim_for_dispatch(self) -> ClaimedAssignedTask:

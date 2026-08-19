@@ -45,23 +45,21 @@ class RunProgressPage(TypedDict):
 
 
 class ProgressRecorder(Protocol):
-    def register(self, batch: MinerTaskBatchSpec) -> None:
-        ...
+    def register(self, batch: MinerTaskBatchSpec) -> None: ...
 
-    def record(self, result: MinerTaskRunSubmission) -> None:
-        ...
+    def record(self, result: MinerTaskRunSubmission) -> None: ...
 
-    def record_terminated_attempt(self, attempt: MinerTaskAttemptAuditRecord) -> None:
-        ...
+    def record_terminated_attempt(
+        self, attempt: MinerTaskAttemptAuditRecord
+    ) -> None: ...
 
-    def next_attempt_number(self, batch_id: UUID, artifact_id: UUID, task_id: UUID) -> int:
-        ...
+    def next_attempt_number(
+        self, batch_id: UUID, artifact_id: UUID, task_id: UUID
+    ) -> int: ...
 
-    def recorded_pairs(self, batch_id: UUID) -> frozenset[tuple[UUID, UUID]]:
-        ...
+    def recorded_pairs(self, batch_id: UUID) -> frozenset[tuple[UUID, UUID]]: ...
 
-    def summary(self, batch_id: UUID) -> RunProgressSummary:
-        ...
+    def summary(self, batch_id: UUID) -> RunProgressSummary: ...
 
     def completed_run_page(
         self,
@@ -69,16 +67,14 @@ class ProgressRecorder(Protocol):
         *,
         after_sequence: int,
         limit: int,
-    ) -> RunProgressPage:
-        ...
+    ) -> RunProgressPage: ...
 
     def register_task_session(
         self,
         *,
         batch_id: UUID,
         session_id: UUID,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def record_provider_call(
         self,
@@ -86,8 +82,7 @@ class ProgressRecorder(Protocol):
         session_id: UUID,
         provider: str,
         model: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def record_provider_failure(
         self,
@@ -96,14 +91,13 @@ class ProgressRecorder(Protocol):
         provider: str,
         model: str,
         reason: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
-    def consume_provider_failures(self, session_id: UUID) -> tuple[ProviderFailureEvidence, ...]:
-        ...
+    def consume_provider_failures(
+        self, session_id: UUID
+    ) -> tuple[ProviderFailureEvidence, ...]: ...
 
-    def clear_task_session(self, session_id: UUID) -> None:
-        ...
+    def clear_task_session(self, session_id: UUID) -> None: ...
 
 
 __all__ = [

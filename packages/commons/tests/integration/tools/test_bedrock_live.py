@@ -7,7 +7,11 @@ from harnyx_commons.llm.adapter import LlmProviderAdapter
 from harnyx_commons.llm.providers.bedrock import BedrockLlmProvider
 from harnyx_commons.llm.schema import LlmMessage, LlmMessageContentPart, LlmRequest
 
-pytestmark = [pytest.mark.integration, pytest.mark.expensive, pytest.mark.anyio("asyncio")]
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.expensive,
+    pytest.mark.anyio("asyncio"),
+]
 
 _LIVE_READ_TIMEOUT_SECONDS = 600.0
 
@@ -32,7 +36,11 @@ async def test_bedrock_openai_tee_alias_live() -> None:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('What is 7 times 8? Reply with only "56".'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'What is 7 times 8? Reply with only "56".'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,
@@ -56,7 +64,11 @@ async def test_bedrock_openai_tee_reasoning_effort_live() -> None:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('Think briefly, then reply with only "56".'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'Think briefly, then reply with only "56".'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,
@@ -83,7 +95,11 @@ async def test_bedrock_kimi_alias_live() -> None:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('What is 7 times 8? Reply with only "56".'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'What is 7 times 8? Reply with only "56".'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,
@@ -107,7 +123,11 @@ async def test_bedrock_glm5_alias_live() -> None:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('What is 7 times 8? Reply with only "56".'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'What is 7 times 8? Reply with only "56".'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,

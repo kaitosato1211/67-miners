@@ -61,7 +61,10 @@ async def test_desearch_search_ai_live() -> None:
         if billing_response.billing.actual_cost_usd is None:
             assert response.data
         else:
-            assert billing_response.billing.source in {"response_body", "response_headers"}
+            assert billing_response.billing.source in {
+                "response_body",
+                "response_headers",
+            }
     finally:
         await desearch.aclose()
 

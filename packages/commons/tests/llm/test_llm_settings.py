@@ -9,7 +9,9 @@ def test_openrouter_api_key_value_strips_secret() -> None:
     assert settings.openrouter_api_key_value == "test-openrouter-key"
 
 
-def test_tool_embedding_provider_defaults_to_chutes_for_direct_runtime_compatibility() -> None:
+def test_tool_embedding_provider_defaults_to_chutes_for_direct_runtime_compatibility() -> (
+    None
+):
     settings = LlmSettings()
 
     assert settings.tool_embedding_provider == "chutes"

@@ -20,7 +20,9 @@ async def request_logging_middleware(
     request_id = request.headers.get("x-request-id", uuid4().hex)
     request.state.request_id = request_id
     request.scope[_REQUEST_ID_SCOPE_KEY] = request_id
-    log_level = logging.DEBUG if request.url.path in _LOW_NOISE_PROBE_PATHS else logging.INFO
+    log_level = (
+        logging.DEBUG if request.url.path in _LOW_NOISE_PROBE_PATHS else logging.INFO
+    )
     request_line = _format_request_line(request)
     query_params = list(request.query_params.multi_items())
 

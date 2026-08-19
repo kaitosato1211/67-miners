@@ -46,14 +46,18 @@ class _JudgeDecision(BaseModel):
     better: str
 
 
-def test_chutes_provider_defaults_client_timeout_to_300(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_chutes_provider_defaults_client_timeout_to_300(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured: dict[str, object] = {}
 
     class _FakeAsyncClient:
         def __init__(self, **kwargs: object) -> None:
             captured.update(kwargs)
 
-    monkeypatch.setattr("harnyx_commons.llm.providers.chutes.httpx.AsyncClient", _FakeAsyncClient)
+    monkeypatch.setattr(
+        "harnyx_commons.llm.providers.chutes.httpx.AsyncClient", _FakeAsyncClient
+    )
 
     ChutesLlmProvider(base_url="https://llm.chutes.ai", api_key="key")
 
@@ -172,8 +176,16 @@ def test_parse_payload_rejects_response_containing_malformed_tool_call() -> None
 @pytest.mark.parametrize(
     "tool_call",
     (
-        {"id": " ", "type": "function", "function": {"name": "summarize", "arguments": "{}"}},
-        {"id": "tc-1", "type": "function", "function": {"name": " ", "arguments": "{}"}},
+        {
+            "id": " ",
+            "type": "function",
+            "function": {"name": "summarize", "arguments": "{}"},
+        },
+        {
+            "id": "tc-1",
+            "type": "function",
+            "function": {"name": " ", "arguments": "{}"},
+        },
     ),
 )
 def test_parse_payload_rejects_whitespace_only_tool_call_identifiers(
@@ -196,7 +208,9 @@ def test_parse_payload_rejects_duplicate_tool_call_ids_within_one_block() -> Non
     }
     payload = {
         "id": "resp-duplicate",
-        "choices": [{"message": {"content": None, "tool_calls": [tool_call, tool_call]}}],
+        "choices": [
+            {"message": {"content": None, "tool_calls": [tool_call, tool_call]}}
+        ],
     }
 
     with pytest.raises(RuntimeError, match="unique"):
@@ -281,7 +295,10 @@ def test_parse_payload_normalizes_string_reasoning_field() -> None:
 
     parsed = _parse_chutes_response_payload(payload)
 
-    assert parsed.choices[0].message.reasoning == "model supplied unsupported reasoning shape"
+    assert (
+        parsed.choices[0].message.reasoning
+        == "model supplied unsupported reasoning shape"
+    )
 
 
 def test_chutes_thinking_omitted_is_noop() -> None:
@@ -307,7 +324,11 @@ def test_chutes_request_forces_stream_even_when_extra_overrides() -> None:
 
 
 def test_chutes_request_serializes_complete_tool_loop() -> None:
-    from harnyx_commons.llm.schema import LlmInputToolResultPart, LlmMessageToolCall, LlmTool
+    from harnyx_commons.llm.schema import (
+        LlmInputToolResultPart,
+        LlmMessageToolCall,
+        LlmTool,
+    )
 
     request = replace(
         _basic_chutes_request(),
@@ -335,12 +356,18 @@ def test_chutes_request_serializes_complete_tool_loop() -> None:
                 ),
             ),
         ),
-        tools=(LlmTool(type="function", function={"name": "lookup_weather", "strict": True}),),
+        tools=(
+            LlmTool(
+                type="function", function={"name": "lookup_weather", "strict": True}
+            ),
+        ),
         tool_choice={"type": "function", "function": {"name": "lookup_weather"}},
         parallel_tool_calls=True,
     )
 
-    payload = _ChutesChatRequest.from_request(request).model_dump(mode="json", exclude_none=True)
+    payload = _ChutesChatRequest.from_request(request).model_dump(
+        mode="json", exclude_none=True
+    )
 
     assert payload["messages"][0]["tool_calls"][0]["id"] == "call-1"
     assert payload["messages"][1] == {
@@ -348,7 +375,10 @@ def test_chutes_request_serializes_complete_tool_loop() -> None:
         "content": '{"temperature":19}',
         "tool_call_id": "call-1",
     }
-    assert payload["tool_choice"] == {"type": "function", "function": {"name": "lookup_weather"}}
+    assert payload["tool_choice"] == {
+        "type": "function",
+        "function": {"name": "lookup_weather"},
+    }
     assert payload["parallel_tool_calls"] is True
 
 
@@ -460,7 +490,9 @@ def test_chutes_unsupported_reasoning_effort_capability_serializes_nothing() -> 
     ("zai-org/GLM-5.2-TEE", "Qwen/Qwen3.5-397B-A17B-TEE"),
 )
 @pytest.mark.parametrize("enabled", (True, False))
-def test_new_chutes_models_do_not_guess_thinking_template_fields(model: str, enabled: bool) -> None:
+def test_new_chutes_models_do_not_guess_thinking_template_fields(
+    model: str, enabled: bool
+) -> None:
     payload = _ChutesChatRequest.from_request(
         _basic_chutes_request(
             model=model,
@@ -472,7 +504,9 @@ def test_new_chutes_models_do_not_guess_thinking_template_fields(model: str, ena
     assert "reasoning_effort" not in payload
 
 
-def test_parse_payload_preserves_reasoning_usage_without_double_counting_completion_tokens() -> None:
+def test_parse_payload_preserves_reasoning_usage_without_double_counting_completion_tokens() -> (
+    None
+):
     payload = {
         "id": "resp_reasoning_usage",
         "choices": [
@@ -499,23 +533,42 @@ def test_parse_payload_preserves_reasoning_usage_without_double_counting_complet
     assert response.usage.total_tokens == 7
 
 
-def test_chutes_stream_preserves_reasoning_tokens_when_usage_progresses_with_reasoning() -> None:
+def test_chutes_stream_preserves_reasoning_tokens_when_usage_progresses_with_reasoning() -> (
+    None
+):
     response = _merge_chutes_stream_events(
         (
             {
                 "id": "resp-progress",
                 "choices": [{"index": 0, "delta": {"reasoning_content": "think "}}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 1, "reasoning_tokens": 1, "total_tokens": 4},
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 1,
+                    "reasoning_tokens": 1,
+                    "total_tokens": 4,
+                },
             },
             {
                 "id": "resp-progress",
                 "choices": [{"index": 0, "delta": {"reasoning_content": "more"}}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 5, "reasoning_tokens": 4, "total_tokens": 8},
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 5,
+                    "reasoning_tokens": 4,
+                    "total_tokens": 8,
+                },
             },
             {
                 "id": "resp-progress",
-                "choices": [{"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 6, "reasoning_tokens": 4, "total_tokens": 9},
+                "choices": [
+                    {"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}
+                ],
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 6,
+                    "reasoning_tokens": 4,
+                    "total_tokens": 9,
+                },
             },
         )
     )
@@ -532,12 +585,24 @@ def test_chutes_stream_preserves_single_reasoning_usage_sample() -> None:
             {
                 "id": "resp-single-usage",
                 "choices": [{"index": 0, "delta": {"reasoning_content": "think"}}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 1, "reasoning_tokens": 1, "total_tokens": 4},
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 1,
+                    "reasoning_tokens": 1,
+                    "total_tokens": 4,
+                },
             },
             {
                 "id": "resp-single-usage",
-                "choices": [{"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 2, "reasoning_tokens": 1, "total_tokens": 5},
+                "choices": [
+                    {"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}
+                ],
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 2,
+                    "reasoning_tokens": 1,
+                    "total_tokens": 5,
+                },
             },
         )
     )
@@ -548,23 +613,42 @@ def test_chutes_stream_preserves_single_reasoning_usage_sample() -> None:
     assert response.usage.reasoning_tokens == 1
 
 
-def test_chutes_stream_keeps_reasoning_tokens_unavailable_when_usage_does_not_progress() -> None:
+def test_chutes_stream_keeps_reasoning_tokens_unavailable_when_usage_does_not_progress() -> (
+    None
+):
     response = _merge_chutes_stream_events(
         (
             {
                 "id": "resp-stalled",
                 "choices": [{"index": 0, "delta": {"reasoning_content": "think "}}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 1, "reasoning_tokens": 1, "total_tokens": 4},
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 1,
+                    "reasoning_tokens": 1,
+                    "total_tokens": 4,
+                },
             },
             {
                 "id": "resp-stalled",
                 "choices": [{"index": 0, "delta": {"reasoning_content": "more"}}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 5, "reasoning_tokens": 1, "total_tokens": 8},
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 5,
+                    "reasoning_tokens": 1,
+                    "total_tokens": 8,
+                },
             },
             {
                 "id": "resp-stalled",
-                "choices": [{"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 6, "reasoning_tokens": 1, "total_tokens": 9},
+                "choices": [
+                    {"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}
+                ],
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 6,
+                    "reasoning_tokens": 1,
+                    "total_tokens": 9,
+                },
             },
         )
     )
@@ -575,7 +659,9 @@ def test_chutes_stream_keeps_reasoning_tokens_unavailable_when_usage_does_not_pr
     assert response.usage.reasoning_tokens is None
 
 
-def test_chutes_stream_keeps_reasoning_tokens_unavailable_with_final_only_usage() -> None:
+def test_chutes_stream_keeps_reasoning_tokens_unavailable_with_final_only_usage() -> (
+    None
+):
     response = _merge_chutes_stream_events(
         (
             {
@@ -588,8 +674,15 @@ def test_chutes_stream_keeps_reasoning_tokens_unavailable_with_final_only_usage(
             },
             {
                 "id": "resp-final-only",
-                "choices": [{"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 6, "reasoning_tokens": 1, "total_tokens": 9},
+                "choices": [
+                    {"index": 0, "delta": {"content": "ok"}, "finish_reason": "stop"}
+                ],
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 6,
+                    "reasoning_tokens": 1,
+                    "total_tokens": 9,
+                },
             },
         )
     )
@@ -605,9 +698,13 @@ def _merge_chutes_stream_events(events: tuple[dict[str, object], ...]) -> LlmRes
     reasoning_state = _ChutesReasoningStreamState()
     for event_payload in events:
         event = _OpenAiStreamEvent.model_validate(event_payload)
-        openai_state.merge_event(event, reasoning_keys=("reasoning", "reasoning_content"))
+        openai_state.merge_event(
+            event, reasoning_keys=("reasoning", "reasoning_content")
+        )
         reasoning_state.merge_event(event)
-    return _ChutesChatResponse.from_stream_state(openai_state, reasoning_state=reasoning_state).to_llm_response()
+    return _ChutesChatResponse.from_stream_state(
+        openai_state, reasoning_state=reasoning_state
+    ).to_llm_response()
 
 
 @pytest.mark.anyio("asyncio")
@@ -616,15 +713,21 @@ async def test_chutes_provider_persists_stream_ttft_metadata() -> None:
         assert request.url.path == "/v1/chat/completions"
         payload = {
             "id": "resp-ttft",
-            "choices": [{"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}],
+            "choices": [
+                {"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}
+            ],
             "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
         }
-        return httpx.Response(200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n")
+        return httpx.Response(
+            200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n"
+        )
 
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
     )
 
     try:
@@ -638,7 +741,9 @@ async def test_chutes_provider_persists_stream_ttft_metadata() -> None:
 
 
 @pytest.mark.anyio("asyncio")
-async def test_chutes_provider_enforces_request_timeout_as_total_stream_deadline() -> None:
+async def test_chutes_provider_enforces_request_timeout_as_total_stream_deadline() -> (
+    None
+):
     class _NeverEndingHeartbeatStream(httpx.AsyncByteStream):
         async def __aiter__(self) -> AsyncIterator[bytes]:
             while True:
@@ -646,12 +751,16 @@ async def test_chutes_provider_enforces_request_timeout_as_total_stream_deadline
                 await asyncio.sleep(0)
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, stream=_NeverEndingHeartbeatStream(), request=request)
+        return httpx.Response(
+            200, stream=_NeverEndingHeartbeatStream(), request=request
+        )
 
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
     )
     request = replace(
         _basic_chutes_request(),
@@ -686,7 +795,13 @@ async def test_chutes_provider_preserves_structured_reasoning_raw_response() -> 
         }
         content_payload = {
             "id": "resp-reasoning-raw",
-            "choices": [{"delta": {"content": "final answer"}, "finish_reason": "stop", "index": 0}],
+            "choices": [
+                {
+                    "delta": {"content": "final answer"},
+                    "finish_reason": "stop",
+                    "index": 0,
+                }
+            ],
             "usage": {"prompt_tokens": 1, "completion_tokens": 3, "total_tokens": 4},
         }
         return httpx.Response(
@@ -701,7 +816,9 @@ async def test_chutes_provider_preserves_structured_reasoning_raw_response() -> 
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
     )
 
     try:
@@ -719,22 +836,36 @@ async def test_chutes_provider_preserves_structured_reasoning_raw_response() -> 
 
 
 @pytest.mark.anyio("asyncio")
-async def test_chutes_provider_attaches_actual_cost_from_cached_pricing_without_live_fetch() -> None:
+async def test_chutes_provider_attaches_actual_cost_from_cached_pricing_without_live_fetch() -> (
+    None
+):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v1/chat/completions"
         payload = {
             "id": "resp-cost",
-            "choices": [{"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}],
-            "usage": {"prompt_tokens": 1_000, "completion_tokens": 2_000, "total_tokens": 3_000},
+            "choices": [
+                {"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}
+            ],
+            "usage": {
+                "prompt_tokens": 1_000,
+                "completion_tokens": 2_000,
+                "total_tokens": 3_000,
+            },
         }
-        return httpx.Response(200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n")
+        return httpx.Response(
+            200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n"
+        )
 
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
         pricing_cache=ChutesModelPricingCache(
-            cached_pricing={"deepseek-ai/DeepSeek-V3.2-TEE": ModelPricing(0.10, 0.20, 0.0)}
+            cached_pricing={
+                "deepseek-ai/DeepSeek-V3.2-TEE": ModelPricing(0.10, 0.20, 0.0)
+            }
         ),
     )
     try:
@@ -745,8 +876,14 @@ async def test_chutes_provider_attaches_actual_cost_from_cached_pricing_without_
     assert response.metadata is not None
     assert response.metadata["actual_cost_provider"] == "chutes"
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.0005)
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "cached_provider_pricing"
-    assert response.metadata["actual_cost_evidence"]["pricing_origin"] == "chutes_live_snapshot"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "cached_provider_pricing"
+    )
+    assert (
+        response.metadata["actual_cost_evidence"]["pricing_origin"]
+        == "chutes_live_snapshot"
+    )
 
 
 @pytest.mark.anyio("asyncio")
@@ -755,31 +892,51 @@ async def test_chutes_provider_attaches_actual_cost_from_static_pricing() -> Non
         assert request.url.path == "/v1/chat/completions"
         payload = {
             "id": "resp-cost-fallback",
-            "choices": [{"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}],
-            "usage": {"prompt_tokens": 1_000, "completion_tokens": 2_000, "total_tokens": 3_000},
+            "choices": [
+                {"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}
+            ],
+            "usage": {
+                "prompt_tokens": 1_000,
+                "completion_tokens": 2_000,
+                "total_tokens": 3_000,
+            },
         }
-        return httpx.Response(200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n")
+        return httpx.Response(
+            200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n"
+        )
 
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
     )
 
     try:
-        response = await provider.invoke(_basic_chutes_request(model="Qwen/Qwen3.6-27B-TEE"))
+        response = await provider.invoke(
+            _basic_chutes_request(model="Qwen/Qwen3.6-27B-TEE")
+        )
     finally:
         await provider.aclose()
 
     assert response.metadata is not None
     assert response.metadata["actual_cost_provider"] == "chutes"
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.0043)
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "static_pricing"
-    assert response.metadata["actual_cost_evidence"]["pricing_origin"] == "chutes_repo_rates"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "static_pricing"
+    )
+    assert (
+        response.metadata["actual_cost_evidence"]["pricing_origin"]
+        == "chutes_repo_rates"
+    )
 
 
 @pytest.mark.anyio("asyncio")
-async def test_chutes_provider_accumulates_per_response_cost_after_provider_retries() -> None:
+async def test_chutes_provider_accumulates_per_response_cost_after_provider_retries() -> (
+    None
+):
     calls = 0
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -789,14 +946,18 @@ async def test_chutes_provider_accumulates_per_response_cost_after_provider_retr
         text = "bad" if calls == 1 else "ok"
         payload = {
             "id": f"resp-cost-retry-{calls}",
-            "choices": [{"delta": {"content": text}, "finish_reason": "stop", "index": 0}],
+            "choices": [
+                {"delta": {"content": text}, "finish_reason": "stop", "index": 0}
+            ],
             "usage": {
                 "prompt_tokens": calls * 1_000,
                 "completion_tokens": calls * 1_000,
                 "total_tokens": calls * 2_000,
             },
         }
-        return httpx.Response(200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n")
+        return httpx.Response(
+            200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n"
+        )
 
     def postprocessor(response: LlmResponse) -> PostprocessResult:
         if response.raw_text == "ok":
@@ -806,15 +967,21 @@ async def test_chutes_provider_accumulates_per_response_cost_after_provider_retr
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
         pricing_cache=ChutesModelPricingCache(
-            cached_pricing={"deepseek-ai/DeepSeek-V3.2-TEE": ModelPricing(0.10, 0.20, 0.0)}
+            cached_pricing={
+                "deepseek-ai/DeepSeek-V3.2-TEE": ModelPricing(0.10, 0.20, 0.0)
+            }
         ),
     )
     provider._retry_policy = RetryPolicy(attempts=2, initial_ms=0, max_ms=0, jitter=0.0)
 
     try:
-        response = await provider.invoke(replace(_basic_chutes_request(), postprocessor=postprocessor))
+        response = await provider.invoke(
+            replace(_basic_chutes_request(), postprocessor=postprocessor)
+        )
     finally:
         await provider.aclose()
 
@@ -840,17 +1007,25 @@ async def test_chutes_provider_uses_request_retry_policy_over_default() -> None:
             return httpx.Response(429, json={"error": "capacity"})
         payload = {
             "id": "resp-retry-success",
-            "choices": [{"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}],
+            "choices": [
+                {"delta": {"content": "ok"}, "finish_reason": "stop", "index": 0}
+            ],
             "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
         }
-        return httpx.Response(200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n")
+        return httpx.Response(
+            200, text=f"data: {json.dumps(payload)}\n\ndata: [DONE]\n\n"
+        )
 
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
         pricing_cache=ChutesModelPricingCache(
-            cached_pricing={"deepseek-ai/DeepSeek-V3.2-TEE": ModelPricing(0.10, 0.20, 0.0)}
+            cached_pricing={
+                "deepseek-ai/DeepSeek-V3.2-TEE": ModelPricing(0.10, 0.20, 0.0)
+            }
         ),
     )
     provider._retry_policy = RetryPolicy(attempts=1, initial_ms=0, max_ms=0, jitter=0.0)
@@ -877,7 +1052,9 @@ async def test_chutes_provider_records_ttft_on_reasoning_only_first_stream_event
     def fake_perf_counter() -> float:
         return clock_seconds
 
-    monkeypatch.setattr("harnyx_commons.llm.providers.chutes.time.perf_counter", fake_perf_counter)
+    monkeypatch.setattr(
+        "harnyx_commons.llm.providers.chutes.time.perf_counter", fake_perf_counter
+    )
 
     class _DelayedReasoningThenContentStream(httpx.AsyncByteStream):
         async def __aiter__(self) -> AsyncIterator[bytes]:
@@ -908,19 +1085,27 @@ async def test_chutes_provider_records_ttft_on_reasoning_only_first_stream_event
                         "finish_reason": "stop",
                     }
                 ],
-                "usage": {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3},
+                "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 2,
+                    "total_tokens": 3,
+                },
             }
             clock_seconds = 10.2
             yield f"data: {json.dumps(content_payload)}\n\ndata: [DONE]\n\n".encode()
 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v1/chat/completions"
-        return httpx.Response(200, stream=_DelayedReasoningThenContentStream(), request=request)
+        return httpx.Response(
+            200, stream=_DelayedReasoningThenContentStream(), request=request
+        )
 
     provider = ChutesLlmProvider(
         base_url="https://example.com",
         api_key="test-key",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
     )
 
     try:
@@ -946,7 +1131,9 @@ def test_resolve_chutes_embedding_base_url_fails_for_unmapped_model() -> None:
 
 
 @pytest.mark.anyio("asyncio")
-async def test_chutes_text_embedding_client_posts_openai_compatible_embeddings_request() -> None:
+async def test_chutes_text_embedding_client_posts_openai_compatible_embeddings_request() -> (
+    None
+):
     captured: dict[str, object] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -970,7 +1157,9 @@ async def test_chutes_text_embedding_client_posts_openai_compatible_embeddings_r
     client = ChutesTextEmbeddingClient(
         model="Qwen/Qwen3-Embedding-8B-TEE",
         base_url="https://example.com",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
         api_key="test-key",
         dimensions=3,
     )
@@ -1013,7 +1202,9 @@ async def test_chutes_text_embedding_client_splits_multi_text_requests() -> None
     client = ChutesTextEmbeddingClient(
         model="Qwen/Qwen3-Embedding-8B-TEE",
         base_url="https://example.com",
-        client=httpx.AsyncClient(base_url="https://example.com", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="https://example.com", transport=httpx.MockTransport(handler)
+        ),
         api_key="test-key",
         dimensions=2,
     )
@@ -1094,7 +1285,9 @@ async def test_iter_openai_sse_events_raises_upstream_in_band_error() -> None:
 
 
 @pytest.mark.anyio("asyncio")
-async def test_iter_openai_sse_events_classifies_truncated_json_as_retryable_stream_error() -> None:
+async def test_iter_openai_sse_events_classifies_truncated_json_as_retryable_stream_error() -> (
+    None
+):
     response = httpx.Response(
         200,
         text='data: {"choices":[{"delta":{"content":"unterminated',
@@ -1138,7 +1331,9 @@ async def test_iter_openai_sse_events_rejects_wrapped_event_envelope() -> None:
 
 
 @pytest.mark.anyio("asyncio")
-async def test_iter_openai_sse_events_rejects_non_object_event_as_stream_error() -> None:
+async def test_iter_openai_sse_events_rejects_non_object_event_as_stream_error() -> (
+    None
+):
     response = httpx.Response(
         200,
         text="data: []\n\n",
@@ -1170,7 +1365,11 @@ def test_streamed_fallback_reasoning_preserves_exact_chunk_text() -> None:
         {"choices": [{"index": 0, "message": {"reasoning": " "}}]}
     )
     third_event = _OpenAiStreamEvent.model_validate(
-        {"choices": [{"index": 0, "message": {"reasoning": "two"}, "finish_reason": "stop"}]}
+        {
+            "choices": [
+                {"index": 0, "message": {"reasoning": "two"}, "finish_reason": "stop"}
+            ]
+        }
     )
 
     reasoning_state.merge_event(first_event)
@@ -1180,7 +1379,9 @@ def test_streamed_fallback_reasoning_preserves_exact_chunk_text() -> None:
     reasoning_state.merge_event(third_event)
     assert state.merge_event(third_event, reasoning_keys=()) is False
 
-    response = _ChutesChatResponse.from_stream_state(state, reasoning_state=reasoning_state)
+    response = _ChutesChatResponse.from_stream_state(
+        state, reasoning_state=reasoning_state
+    )
 
     assert response.to_llm_response().choices[0].message.reasoning == "step two"
 
@@ -1190,10 +1391,22 @@ def test_streamed_reasoning_content_is_preserved_as_reasoning_clue() -> None:
     reasoning_state = _ChutesReasoningStreamState()
 
     first_event = _OpenAiStreamEvent.model_validate(
-        {"choices": [{"index": 0, "delta": {"content": "ok", "reasoning_content": "step"}}]}
+        {
+            "choices": [
+                {"index": 0, "delta": {"content": "ok", "reasoning_content": "step"}}
+            ]
+        }
     )
     second_event = _OpenAiStreamEvent.model_validate(
-        {"choices": [{"index": 0, "delta": {"reasoning_content": " two"}, "finish_reason": "stop"}]}
+        {
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {"reasoning_content": " two"},
+                    "finish_reason": "stop",
+                }
+            ]
+        }
     )
 
     reasoning_state.merge_event(first_event)
@@ -1201,7 +1414,9 @@ def test_streamed_reasoning_content_is_preserved_as_reasoning_clue() -> None:
     reasoning_state.merge_event(second_event)
     assert state.merge_event(second_event, reasoning_keys=()) is False
 
-    response = _ChutesChatResponse.from_stream_state(state, reasoning_state=reasoning_state).to_llm_response()
+    response = _ChutesChatResponse.from_stream_state(
+        state, reasoning_state=reasoning_state
+    ).to_llm_response()
 
     assert response.choices[0].message.reasoning == "step two"
 
@@ -1231,7 +1446,9 @@ def test_streamed_multipart_reasoning_content_is_preserved_as_reasoning_clue() -
     reasoning_state.merge_event(event)
     assert state.merge_event(event, reasoning_keys=()) is True
 
-    response = _ChutesChatResponse.from_stream_state(state, reasoning_state=reasoning_state).to_llm_response()
+    response = _ChutesChatResponse.from_stream_state(
+        state, reasoning_state=reasoning_state
+    ).to_llm_response()
 
     assert response.choices[0].message.reasoning == "step two"
 
@@ -1259,7 +1476,9 @@ def test_streamed_mirrored_reasoning_keys_are_deduplicated_per_event() -> None:
     reasoning_state.merge_event(event)
     assert state.merge_event(event, reasoning_keys=()) is True
 
-    response = _ChutesChatResponse.from_stream_state(state, reasoning_state=reasoning_state).to_llm_response()
+    response = _ChutesChatResponse.from_stream_state(
+        state, reasoning_state=reasoning_state
+    ).to_llm_response()
 
     assert response.choices[0].message.reasoning == "think"
 
@@ -1296,7 +1515,9 @@ def test_build_payload_accepts_structured_output_mode() -> None:
             messages=(
                 LlmMessage(
                     role="user",
-                    content=(LlmMessageContentPart.input_text("Choose the better answer"),),
+                    content=(
+                        LlmMessageContentPart.input_text("Choose the better answer"),
+                    ),
                 ),
             ),
             temperature=0.0,

@@ -37,9 +37,7 @@ pytestmark = [
     pytest.mark.anyio("asyncio"),
 ]
 
-_CASES_PATH = (
-    Path(__file__).parent / "data" / "similarity_judge_benchmark_cases.jsonl"
-)
+_CASES_PATH = Path(__file__).parent / "data" / "similarity_judge_benchmark_cases.jsonl"
 _OUTPUT_ROOT = Path(".localdev/similarity-judge-benchmark")
 _GEMMA_MODEL = "google/gemma-4-31B-turbo-TEE"
 _GEMMA_ENDPOINT_ID = "gemma4-cloud-run-turbo"
@@ -115,7 +113,9 @@ _BENCHMARK_TARGETS = (
 def _repository_sha() -> str:
     git_executable = shutil.which("git")
     if git_executable is None:
-        raise RuntimeError("git executable is required to record the benchmark repository SHA")
+        raise RuntimeError(
+            "git executable is required to record the benchmark repository SHA"
+        )
     completed = subprocess.run(  # noqa: S603 - fixed git command, resolved executable
         [git_executable, "rev-parse", "HEAD"],
         check=True,
@@ -166,7 +166,9 @@ async def test_fixed_dataset_similarity_benchmark(target: BenchmarkTarget) -> No
             "llm": base_settings.llm.model_copy(
                 update={
                     "openai_compatible_endpoints_json": json.dumps(
-                        [] if target.endpoint_config is None else [target.endpoint_config]
+                        []
+                        if target.endpoint_config is None
+                        else [target.endpoint_config]
                     ),
                     "llm_model_provider_overrides_json": json.dumps(
                         target.provider_overrides

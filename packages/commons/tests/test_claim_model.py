@@ -56,6 +56,7 @@ def test_generated_claim_rejects_unknown_verdict() -> None:
             justification="unsupported",
         )
 
+
 def test_span_rejects_end_before_start() -> None:
     with pytest.raises(ValueError):
         Span(excerpt="bad", start=3, end=2)

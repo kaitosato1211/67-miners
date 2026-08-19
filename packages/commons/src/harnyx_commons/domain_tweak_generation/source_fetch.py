@@ -16,7 +16,10 @@ from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 from pydantic import BaseModel, Field
 
 from harnyx_commons.domain.shared_config import COMMONS_STRICT_CONFIG
-from harnyx_commons.domain_tweak_generation.source_workspace import SourceDocument, SourceLink
+from harnyx_commons.domain_tweak_generation.source_workspace import (
+    SourceDocument,
+    SourceLink,
+)
 from harnyx_commons.source_extractor_worker import (
     MAX_ADDRESS_SPACE_BYTES,
     MAX_CPU_SECONDS,
@@ -33,7 +36,17 @@ MAX_FETCH_WALL_SECONDS = (MAX_REDIRECTS + 1) * MAX_WALL_SECONDS
 _MAX_CONCURRENT_SOURCE_WORKERS = 5
 DocumentKind = Literal["html", "text", "pdf", "xlsx", "static_json"]
 _SENSITIVE_QUERY_KEYS = frozenset(
-    {"key", "api_key", "apikey", "token", "access_token", "auth", "authorization", "signature", "sig"}
+    {
+        "key",
+        "api_key",
+        "apikey",
+        "token",
+        "access_token",
+        "auth",
+        "authorization",
+        "signature",
+        "sig",
+    }
 )
 _API_PATH_SEGMENTS = frozenset({"api", "graphql", "rest"})
 _INVALID_PERCENT_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
@@ -137,7 +150,9 @@ class PublicSourceFetcher:
             media_type=fetched.media_type,
             content=extracted.content,
             fetched_bytes=len(fetched.body),
-            links=tuple(SourceLink(url=link.url, text=link.text) for link in extracted.links),
+            links=tuple(
+                SourceLink(url=link.url, text=link.text) for link in extracted.links
+            ),
         )
 
 
@@ -162,23 +177,39 @@ def _fetch_complete_body(initial_url: str, document_kind: DocumentKind) -> _Fetc
         )
         try:
             if _public_addresses(host, port) != addresses:
-                raise SourceFetchError("source_fetch_rejected", "DNS resolution changed during the request")
-            peer = connection.sock.getpeername()[0] if connection.sock is not None else None
+                raise SourceFetchError(
+                    "source_fetch_rejected", "DNS resolution changed during the request"
+                )
+            peer = (
+                connection.sock.getpeername()[0]
+                if connection.sock is not None
+                else None
+            )
             if peer not in addresses:
-                raise SourceFetchError("source_fetch_rejected", "connected peer was not in the validated DNS set")
+                raise SourceFetchError(
+                    "source_fetch_rejected",
+                    "connected peer was not in the validated DNS set",
+                )
             if response.status in {301, 302, 303, 307, 308}:
                 location = response.getheader("Location")
                 if not location:
-                    raise SourceFetchError("source_unavailable", "redirect response omitted Location")
+                    raise SourceFetchError(
+                        "source_unavailable", "redirect response omitted Location"
+                    )
                 if redirect_index >= MAX_REDIRECTS:
                     raise SourceFetchError("source_unavailable", "too many redirects")
                 current = urljoin(current, location)
                 continue
             if response.status < 200 or response.status >= 300:
-                raise SourceFetchError("source_unavailable", f"source returned HTTP {response.status}")
+                raise SourceFetchError(
+                    "source_unavailable", f"source returned HTTP {response.status}"
+                )
             length = response.getheader("Content-Length")
             if length is not None and int(length) > MAX_RESPONSE_BYTES:
-                raise SourceFetchError("source_extraction_limit", "source exceeds the 64 MiB response limit")
+                raise SourceFetchError(
+                    "source_extraction_limit",
+                    "source exceeds the 64 MiB response limit",
+                )
             chunks: list[bytes] = []
             total = 0
             while True:
@@ -187,19 +218,28 @@ def _fetch_complete_body(initial_url: str, document_kind: DocumentKind) -> _Fetc
                     break
                 total += len(chunk)
                 if total > MAX_RESPONSE_BYTES:
-                    raise SourceFetchError("source_extraction_limit", "source exceeds the 64 MiB response limit")
+                    raise SourceFetchError(
+                        "source_extraction_limit",
+                        "source exceeds the 64 MiB response limit",
+                    )
                 chunks.append(chunk)
-            media_type = (response.getheader("Content-Type") or "application/octet-stream").split(";", 1)[0]
+            media_type = (
+                response.getheader("Content-Type") or "application/octet-stream"
+            ).split(";", 1)[0]
             return _FetchedBody(
                 final_url=current,
                 media_type=media_type.casefold(),
-                content_encoding=(response.getheader("Content-Encoding") or "").casefold(),
+                content_encoding=(
+                    response.getheader("Content-Encoding") or ""
+                ).casefold(),
                 body=b"".join(chunks),
             )
         except SourceFetchError:
             raise
         except (OSError, http.client.HTTPException, ValueError) as exc:
-            raise SourceFetchError("source_unavailable", f"source request failed: {exc}") from exc
+            raise SourceFetchError(
+                "source_unavailable", f"source request failed: {exc}"
+            ) from exc
         finally:
             connection.close()
     raise AssertionError("redirect loop must return or raise")
@@ -225,7 +265,9 @@ def _request_from_public_address(
             connection.connect()
         except ssl.SSLError as exc:
             connection.close()
-            raise SourceFetchError("source_unavailable", f"source request failed: {exc}") from exc
+            raise SourceFetchError(
+                "source_unavailable", f"source request failed: {exc}"
+            ) from exc
         except OSError as exc:
             last_connection_error = exc
             connection.close()
@@ -250,7 +292,9 @@ def _request_from_public_address(
             return connection, connection.getresponse()
         except (OSError, http.client.HTTPException, ValueError) as exc:
             connection.close()
-            raise SourceFetchError("source_unavailable", f"source request failed: {exc}") from exc
+            raise SourceFetchError(
+                "source_unavailable", f"source request failed: {exc}"
+            ) from exc
         except BaseException:
             connection.close()
             raise
@@ -265,12 +309,21 @@ def _validated_url(url: str) -> Any:
     parsed = urlsplit(url)
     if parsed.scheme not in {"http", "https"}:
         raise SourceFetchError("source_fetch_rejected", "source URL must use HTTP(S)")
-    if not parsed.hostname or parsed.username is not None or parsed.password is not None:
-        raise SourceFetchError("source_fetch_rejected", "source URL authority is invalid or contains credentials")
+    if (
+        not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        raise SourceFetchError(
+            "source_fetch_rejected",
+            "source URL authority is invalid or contains credentials",
+        )
     try:
         port = parsed.port
     except ValueError as exc:
-        raise SourceFetchError("source_fetch_rejected", "source URL port is invalid") from exc
+        raise SourceFetchError(
+            "source_fetch_rejected", "source URL port is invalid"
+        ) from exc
     if port is not None and not 1 <= port <= 65535:
         raise SourceFetchError("source_fetch_rejected", "source URL port is invalid")
     return parsed
@@ -281,21 +334,35 @@ def _validated_document_url(url: str, document_kind: DocumentKind) -> Any:
     host = parsed.hostname
     assert host is not None
     if host.split(".", 1)[0].casefold() == "api":
-        raise SourceFetchError("source_fetch_rejected", "API hostnames are not public-document sources")
+        raise SourceFetchError(
+            "source_fetch_rejected", "API hostnames are not public-document sources"
+        )
     _validate_percent_encoding(parsed.path)
     canonical_path = _fully_unquote_url_component(parsed.path)
     segments = {segment.casefold() for segment in canonical_path.split("/") if segment}
     if segments & _API_PATH_SEGMENTS:
-        raise SourceFetchError("source_fetch_rejected", "API, GraphQL, and REST paths are not document sources")
+        raise SourceFetchError(
+            "source_fetch_rejected",
+            "API, GraphQL, and REST paths are not document sources",
+        )
     _validate_percent_encoding(parsed.query)
     try:
         query_items = parse_qsl(parsed.query, keep_blank_values=True, errors="strict")
     except UnicodeDecodeError as exc:
-        raise SourceFetchError("source_fetch_rejected", "source URL contains invalid percent encoding") from exc
-    query_keys = {_fully_unquote_url_component(key).casefold() for key, _ in query_items}
+        raise SourceFetchError(
+            "source_fetch_rejected", "source URL contains invalid percent encoding"
+        ) from exc
+    query_keys = {
+        _fully_unquote_url_component(key).casefold() for key, _ in query_items
+    }
     if query_keys & _SENSITIVE_QUERY_KEYS:
-        raise SourceFetchError("source_fetch_rejected", "source URL contains credential-shaped query material")
-    if document_kind == "static_json" and (parsed.query or not parsed.path.casefold().endswith(".json")):
+        raise SourceFetchError(
+            "source_fetch_rejected",
+            "source URL contains credential-shaped query material",
+        )
+    if document_kind == "static_json" and (
+        parsed.query or not parsed.path.casefold().endswith(".json")
+    ):
         raise SourceFetchError(
             "source_fetch_rejected",
             "static JSON documents require a query-free .json URL",
@@ -305,7 +372,9 @@ def _validated_document_url(url: str, document_kind: DocumentKind) -> Any:
 
 def _validate_percent_encoding(value: str) -> None:
     if _INVALID_PERCENT_ESCAPE.search(value):
-        raise SourceFetchError("source_fetch_rejected", "source URL contains malformed percent encoding")
+        raise SourceFetchError(
+            "source_fetch_rejected", "source URL contains malformed percent encoding"
+        )
 
 
 def _fully_unquote_url_component(value: str) -> str:
@@ -317,12 +386,18 @@ def _fully_unquote_url_component(value: str) -> str:
         try:
             next_decoded = unquote(decoded, errors="strict")
         except UnicodeDecodeError as exc:
-            raise SourceFetchError("source_fetch_rejected", "source URL contains invalid percent encoding") from exc
+            raise SourceFetchError(
+                "source_fetch_rejected", "source URL contains invalid percent encoding"
+            ) from exc
         decoded = next_decoded
-    raise SourceFetchError("source_fetch_rejected", "source URL contains excessive nested percent encoding")
+    raise SourceFetchError(
+        "source_fetch_rejected", "source URL contains excessive nested percent encoding"
+    )
 
 
-def _validate_document_response(fetched: _FetchedBody, document_kind: DocumentKind) -> None:
+def _validate_document_response(
+    fetched: _FetchedBody, document_kind: DocumentKind
+) -> None:
     media_type = fetched.media_type
     path = urlsplit(fetched.final_url).path.casefold()
     valid = {
@@ -333,30 +408,47 @@ def _validate_document_response(fetched: _FetchedBody, document_kind: DocumentKi
         "static_json": "json" in media_type and path.endswith(".json"),
     }[document_kind]
     if not valid:
-        raise SourceFetchError("source_unavailable", "source response does not match the declared document kind")
+        raise SourceFetchError(
+            "source_unavailable",
+            "source response does not match the declared document kind",
+        )
 
 
 def _public_addresses(host: str, port: int) -> tuple[str, ...]:
     try:
         infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except socket.gaierror as exc:
-        raise SourceFetchError("source_unavailable", f"DNS resolution failed: {exc}") from exc
+        raise SourceFetchError(
+            "source_unavailable", f"DNS resolution failed: {exc}"
+        ) from exc
     addresses = tuple(sorted({str(item[4][0]) for item in infos}))
     if not addresses:
-        raise SourceFetchError("source_unavailable", "DNS resolution returned no addresses")
+        raise SourceFetchError(
+            "source_unavailable", "DNS resolution returned no addresses"
+        )
     for address in addresses:
         try:
             parsed = ipaddress.ip_address(address)
         except ValueError as exc:
-            raise SourceFetchError("source_fetch_rejected", "DNS returned an invalid address") from exc
+            raise SourceFetchError(
+                "source_fetch_rejected", "DNS returned an invalid address"
+            ) from exc
         if not parsed.is_global:
-            raise SourceFetchError("source_fetch_rejected", f"DNS returned non-public address {address}")
+            raise SourceFetchError(
+                "source_fetch_rejected", f"DNS returned non-public address {address}"
+            )
     return addresses
 
 
 async def _fetch_isolated(url: str, document_kind: DocumentKind) -> _FetchedBody:
     output = await _run_worker(
-        (sys.executable, "-m", "harnyx_commons.source_fetch_worker", url, document_kind),
+        (
+            sys.executable,
+            "-m",
+            "harnyx_commons.source_fetch_worker",
+            url,
+            document_kind,
+        ),
         input_payload=None,
         timeout_seconds=MAX_FETCH_WALL_SECONDS,
         timeout_code="source_unavailable",
@@ -365,15 +457,21 @@ async def _fetch_isolated(url: str, document_kind: DocumentKind) -> _FetchedBody
     if output[:1] == b"E":
         _raise_worker_error(output)
     if output[:1] != b"O" or len(output) < 5:
-        raise SourceFetchError("source_unavailable", "isolated source fetcher returned an invalid response")
+        raise SourceFetchError(
+            "source_unavailable", "isolated source fetcher returned an invalid response"
+        )
     header_length = int.from_bytes(output[1:5], "big")
     header_end = 5 + header_length
     if header_length <= 0 or header_end > len(output):
-        raise SourceFetchError("source_unavailable", "isolated source fetcher returned an invalid header")
+        raise SourceFetchError(
+            "source_unavailable", "isolated source fetcher returned an invalid header"
+        )
     header = _FetchedHeader.model_validate_json(output[5:header_end])
     body = output[header_end:]
     if len(body) != header.body_length:
-        raise SourceFetchError("source_unavailable", "isolated source fetcher returned an incomplete body")
+        raise SourceFetchError(
+            "source_unavailable", "isolated source fetcher returned an incomplete body"
+        )
     return _FetchedBody(
         final_url=header.final_url,
         media_type=header.media_type,
@@ -382,9 +480,18 @@ async def _fetch_isolated(url: str, document_kind: DocumentKind) -> _FetchedBody
     )
 
 
-async def _extract_isolated(body: bytes, media_type: str, encoding: str, url: str) -> _ExtractedSourcePayload:
+async def _extract_isolated(
+    body: bytes, media_type: str, encoding: str, url: str
+) -> _ExtractedSourcePayload:
     output = await _run_worker(
-        (sys.executable, "-m", "harnyx_commons.source_extractor_worker", media_type, encoding, url),
+        (
+            sys.executable,
+            "-m",
+            "harnyx_commons.source_extractor_worker",
+            media_type,
+            encoding,
+            url,
+        ),
         input_payload=body,
         timeout_seconds=MAX_WALL_SECONDS,
         timeout_code="source_extraction_limit",
@@ -394,10 +501,15 @@ async def _extract_isolated(body: bytes, media_type: str, encoding: str, url: st
         try:
             return _ExtractedSourcePayload.model_validate_json(output[1:])
         except Exception as exc:
-            raise SourceFetchError("source_unavailable", "isolated source extractor returned invalid metadata") from exc
+            raise SourceFetchError(
+                "source_unavailable",
+                "isolated source extractor returned invalid metadata",
+            ) from exc
     if output[:1] == b"E":
         _raise_worker_error(output)
-    raise SourceFetchError("source_unavailable", "isolated source extractor returned an invalid response")
+    raise SourceFetchError(
+        "source_unavailable", "isolated source extractor returned an invalid response"
+    )
 
 
 async def _run_worker(
@@ -410,7 +522,11 @@ async def _run_worker(
 ) -> bytes:
     process = await asyncio.create_subprocess_exec(
         *command,
-        stdin=asyncio.subprocess.PIPE if input_payload is not None else asyncio.subprocess.DEVNULL,
+        stdin=(
+            asyncio.subprocess.PIPE
+            if input_payload is not None
+            else asyncio.subprocess.DEVNULL
+        ),
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
     )

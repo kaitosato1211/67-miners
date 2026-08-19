@@ -47,13 +47,19 @@ class _OpenAiChoiceDelta(BaseModel):
     delta: _OpenAiMessageDelta | None = None
     message: _OpenAiMessageDelta | None = None
 
-    def message_delta(self, *, reasoning_keys: tuple[str, ...]) -> _OpenAiMessageDelta | None:
+    def message_delta(
+        self, *, reasoning_keys: tuple[str, ...]
+    ) -> _OpenAiMessageDelta | None:
         if self.delta is not None:
             return self.delta
         if self.message is not None:
             return self.message
         extra = self.model_extra or {}
-        payload = {key: extra[key] for key in ("content", "tool_calls", *reasoning_keys) if key in extra}
+        payload = {
+            key: extra[key]
+            for key in ("content", "tool_calls", *reasoning_keys)
+            if key in extra
+        }
         if not payload:
             return None
         return _OpenAiMessageDelta.model_validate(payload)
@@ -85,7 +91,10 @@ class _OpenAiStreamEnvelope(BaseModel):
         payload = json.loads(raw_payload)
         match payload:
             case {"error": error_payload}:
-                return cls(error=_OpenAiStreamErrorPayload.model_validate(error_payload)), payload
+                return (
+                    cls(error=_OpenAiStreamErrorPayload.model_validate(error_payload)),
+                    payload,
+                )
             case {"event": _}:
                 raise ValueError("wrapped event envelopes are not supported")
         return cls(), payload
@@ -128,7 +137,11 @@ class OpenAiStreamError(RuntimeError):
         status_code = _stream_error_status_code(self.code)
         if status_code is not None:
             return status_code == 429 or status_code >= 500
-        return self.error_type in {"rate_limit_error", "server_error", "overloaded_error"}
+        return self.error_type in {
+            "rate_limit_error",
+            "server_error",
+            "overloaded_error",
+        }
 
     @property
     def reason(self) -> str:
@@ -159,7 +172,9 @@ class OpenAiToolCallState(BaseModel):
         if payload.id is not None:
             if complete_snapshot:
                 if self.id is not None and payload.id != self.id:
-                    raise ValueError("tool call id changed across complete message snapshots")
+                    raise ValueError(
+                        "tool call id changed across complete message snapshots"
+                    )
                 self.id = payload.id
             else:
                 self.id = f"{self.id or ''}{payload.id}"
@@ -173,7 +188,9 @@ class OpenAiToolCallState(BaseModel):
         if function.name is not None:
             if complete_snapshot:
                 if self.name is not None and function.name != self.name:
-                    raise ValueError("tool call function name changed across complete message snapshots")
+                    raise ValueError(
+                        "tool call function name changed across complete message snapshots"
+                    )
                 self.name = function.name
             else:
                 self.name = f"{self.name or ''}{function.name}"
@@ -205,7 +222,9 @@ class OpenAiToolCallState(BaseModel):
                 parse_constant=_reject_non_finite_json_constant,
             )
         except (json.JSONDecodeError, ValueError) as exc:
-            raise ValueError("completed tool call arguments must encode a JSON object") from exc
+            raise ValueError(
+                "completed tool call arguments must encode a JSON object"
+            ) from exc
         if not isinstance(arguments, dict):
             raise ValueError("completed tool call arguments must encode a JSON object")
         return OpenAiToolCall(
@@ -261,8 +280,13 @@ class OpenAiChoiceState(BaseModel):
             self.content_parts.append(text)
             saw_output = True
         extra = message_payload.model_extra or {}
-        if "reasoning_details" in reasoning_keys and extra.get("reasoning_details") is not None:
-            self.reasoning_details.extend(_REASONING_DETAILS_ADAPTER.validate_python(extra["reasoning_details"]))
+        if (
+            "reasoning_details" in reasoning_keys
+            and extra.get("reasoning_details") is not None
+        ):
+            self.reasoning_details.extend(
+                _REASONING_DETAILS_ADAPTER.validate_python(extra["reasoning_details"])
+            )
             saw_output = True
         appended_reasoning: set[str] = set()
         for key in reasoning_keys:
@@ -286,11 +310,14 @@ class OpenAiChoiceState(BaseModel):
             return None
         try:
             tool_calls = [
-                self.tool_calls[index].to_tool_call(index=index) for index in sorted(self.tool_calls)
+                self.tool_calls[index].to_tool_call(index=index)
+                for index in sorted(self.tool_calls)
             ]
             call_ids = [tool_call.id for tool_call in tool_calls]
             if len(call_ids) != len(set(call_ids)):
-                raise ValueError("completed tool call IDs must be unique within each assistant block")
+                raise ValueError(
+                    "completed tool call IDs must be unique within each assistant block"
+                )
             return tuple(tool_calls) or None
         except ValueError as exc:
             raise OpenAiStreamError(
@@ -349,10 +376,16 @@ class OpenAiStreamState(BaseModel):
             self.usage = dict(event.usage)
 
         content_fragment = normalize_content_fragment or normalize_openai_text_fragments
-        reasoning_fragment = normalize_reasoning_fragment or normalize_openai_text_fragments
+        reasoning_fragment = (
+            normalize_reasoning_fragment or normalize_openai_text_fragments
+        )
         saw_output = False
         for fallback_index, choice_payload in enumerate(event.choices):
-            index = choice_payload.index if choice_payload.index is not None else fallback_index
+            index = (
+                choice_payload.index
+                if choice_payload.index is not None
+                else fallback_index
+            )
             if self.choice(index).merge_delta(
                 choice_payload,
                 reasoning_keys=reasoning_keys,

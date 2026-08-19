@@ -18,7 +18,9 @@ from harnyx_commons.llm.tool_models import (
 
 
 def test_tool_model_thinking_capabilities_share_the_canonical_model_owner() -> None:
-    deepseek = model_thinking_capability("deepseek-ai/deepseek-v3.2-tee", provider_name="chutes")
+    deepseek = model_thinking_capability(
+        "deepseek-ai/deepseek-v3.2-tee", provider_name="chutes"
+    )
     glm = model_thinking_capability("zai-org/GLM-5-TEE", provider_name="vertex")
     qwen36_chutes = model_thinking_capability(
         "Qwen/Qwen3.6-27B-TEE",
@@ -32,13 +34,18 @@ def test_tool_model_thinking_capabilities_share_the_canonical_model_owner() -> N
         "Qwen/Qwen3.6-27B-TEE",
         provider_name="custom-openai-compatible:qwen36-cloud-run",
     )
-    gemma_chutes = model_thinking_capability("google/gemma-4-31B-turbo-TEE", provider_name="chutes")
+    gemma_chutes = model_thinking_capability(
+        "google/gemma-4-31B-turbo-TEE", provider_name="chutes"
+    )
     gemma_custom = model_thinking_capability(
         "google/gemma-4-31B-turbo-TEE",
         provider_name="custom-openai-compatible:gemma4-cloud-run-turbo",
     )
 
-    assert resolve_tool_model("deepseek-ai/deepseek-v3.2-tee") == "deepseek-ai/DeepSeek-V3.2-TEE"
+    assert (
+        resolve_tool_model("deepseek-ai/deepseek-v3.2-tee")
+        == "deepseek-ai/DeepSeek-V3.2-TEE"
+    )
     assert resolve_tool_model("openai/gpt-oss-20b") == "openai/gpt-oss-20b"
     assert resolve_tool_model("openai/gpt-oss-120b") == "openai/gpt-oss-120b"
     assert resolve_tool_model("qwen/qwen3.6-27b-tee") == "Qwen/Qwen3.6-27B-TEE"
@@ -53,25 +60,43 @@ def test_tool_model_thinking_capabilities_share_the_canonical_model_owner() -> N
     assert qwen36_chutes is not None
     assert qwen36_chutes.chat_template_kwargs(enabled=True) == {"enable_thinking": True}
     assert qwen38_chutes is not None
-    assert qwen38_chutes.chat_template_kwargs(enabled=False) == {"enable_thinking": False}
+    assert qwen38_chutes.chat_template_kwargs(enabled=False) == {
+        "enable_thinking": False
+    }
     assert gemma_chutes is not None
-    assert gemma_chutes.chat_template_kwargs(enabled=False) == {"enable_thinking": False}
+    assert gemma_chutes.chat_template_kwargs(enabled=False) == {
+        "enable_thinking": False
+    }
     assert gemma_custom is not None
     assert gemma_custom.chat_template_kwargs(enabled=True) == {"enable_thinking": True}
-    assert model_thinking_capability("openai/gpt-oss-20b", provider_name="chutes") is None
-    assert model_thinking_capability("openai/gpt-oss-120b", provider_name="chutes") is None
-    assert model_thinking_capability("openai/gpt-oss-20b", provider_name="openrouter") is None
-    assert model_thinking_capability("openai/gpt-oss-120b", provider_name="openrouter") is None
+    assert (
+        model_thinking_capability("openai/gpt-oss-20b", provider_name="chutes") is None
+    )
+    assert (
+        model_thinking_capability("openai/gpt-oss-120b", provider_name="chutes") is None
+    )
+    assert (
+        model_thinking_capability("openai/gpt-oss-20b", provider_name="openrouter")
+        is None
+    )
+    assert (
+        model_thinking_capability("openai/gpt-oss-120b", provider_name="openrouter")
+        is None
+    )
 
 
-def test_benchmark_model_thinking_capability_does_not_expand_tool_authorization() -> None:
+def test_benchmark_model_thinking_capability_does_not_expand_tool_authorization() -> (
+    None
+):
     model = "deepseek-ai/DeepSeek-V4-Flash-0731-TEE"
 
     assert model not in ALLOWED_TOOL_MODELS
     assert model not in MINER_SELECTED_LLM_PROVIDER_MODELS["chutes"]
     with pytest.raises(ValueError, match="not allowed for validator tools"):
         parse_tool_model(model)
-    with pytest.raises(ValueError, match="not supported for miner-selected provider 'chutes'"):
+    with pytest.raises(
+        ValueError, match="not supported for miner-selected provider 'chutes'"
+    ):
         parse_miner_selected_llm_provider_model(provider="chutes", model=model)
     capability = model_thinking_capability(model.lower(), provider_name="chutes")
     assert capability is not None
@@ -133,8 +158,14 @@ def test_miner_selected_chutes_supports_only_chutes_models() -> None:
 
 
 def test_miner_selected_chutes_rejects_openrouter_only_models() -> None:
-    for model in ("openai/gpt-oss-20b", "openai/gpt-oss-120b", "deepseek/deepseek-v3.2"):
-        with pytest.raises(ValueError, match="not supported for miner-selected provider 'chutes'"):
+    for model in (
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "deepseek/deepseek-v3.2",
+    ):
+        with pytest.raises(
+            ValueError, match="not supported for miner-selected provider 'chutes'"
+        ):
             parse_miner_selected_llm_provider_model(provider="chutes", model=model)
 
 
@@ -160,7 +191,9 @@ def test_miner_selected_chutes_rejects_openrouter_only_models() -> None:
 def test_miner_selected_openrouter_uses_native_model_ids_without_translation(
     model: str,
 ) -> None:
-    resolved = parse_miner_selected_llm_provider_model(provider="openrouter", model=model)
+    resolved = parse_miner_selected_llm_provider_model(
+        provider="openrouter", model=model
+    )
 
     assert resolved.provider == "openrouter"
     assert resolved.model == model
@@ -184,8 +217,12 @@ def test_miner_selected_openrouter_uses_native_model_ids_without_translation(
         "alibaba/qwen3.8-27b",
     ),
 )
-def test_miner_selected_ai_gateway_uses_native_model_ids_without_translation(model: str) -> None:
-    resolved = parse_miner_selected_llm_provider_model(provider="ai_gateway", model=model)
+def test_miner_selected_ai_gateway_uses_native_model_ids_without_translation(
+    model: str,
+) -> None:
+    resolved = parse_miner_selected_llm_provider_model(
+        provider="ai_gateway", model=model
+    )
 
     assert resolved.provider == "ai_gateway"
     assert resolved.model == model
@@ -203,7 +240,10 @@ def test_new_chutes_provider_models_are_not_internal_canonical_models() -> None:
             parse_tool_model(model)
         assert model_thinking_capability(model, provider_name="chutes") is None
         assert model_thinking_capability(model, provider_name="vertex") is None
-        assert model_thinking_capability(model, provider_name="custom-openai-compatible") is None
+        assert (
+            model_thinking_capability(model, provider_name="custom-openai-compatible")
+            is None
+        )
 
 
 def test_qwen38_chutes_model_does_not_expand_internal_tool_authorization() -> None:
@@ -220,7 +260,9 @@ def test_retired_chutes_model_is_not_in_miner_selected_namespace() -> None:
 
 
 def test_miner_selected_ai_gateway_rejects_retired_qwen37_plus() -> None:
-    with pytest.raises(ValueError, match="not supported for miner-selected provider 'ai_gateway'"):
+    with pytest.raises(
+        ValueError, match="not supported for miner-selected provider 'ai_gateway'"
+    ):
         parse_miner_selected_llm_provider_model(
             provider="ai_gateway",
             model="alibaba/qwen3.7-plus",
@@ -238,13 +280,17 @@ def test_miner_selected_provider_model_sets_are_provider_namespaces() -> None:
 
 def test_miner_selected_openrouter_rejects_chutes_model_ids() -> None:
     for model in MINER_SELECTED_LLM_PROVIDER_MODELS["chutes"]:
-        with pytest.raises(ValueError, match="not supported for miner-selected provider 'openrouter'"):
+        with pytest.raises(
+            ValueError, match="not supported for miner-selected provider 'openrouter'"
+        ):
             parse_miner_selected_llm_provider_model(provider="openrouter", model=model)
 
 
 def test_miner_selected_ai_gateway_rejects_chutes_model_ids() -> None:
     for model in MINER_SELECTED_LLM_PROVIDER_MODELS["chutes"]:
-        with pytest.raises(ValueError, match="not supported for miner-selected provider 'ai_gateway'"):
+        with pytest.raises(
+            ValueError, match="not supported for miner-selected provider 'ai_gateway'"
+        ):
             parse_miner_selected_llm_provider_model(provider="ai_gateway", model=model)
 
 
@@ -260,15 +306,25 @@ def test_miner_selected_openrouter_supports_openrouter_only_gpt_models() -> None
 
 def test_miner_selected_ai_gateway_rejects_openrouter_only_non_gateway_models() -> None:
     for model in ("deepseek/deepseek-v3.2", "z-ai/glm-5", "qwen/qwen3.6-27b"):
-        with pytest.raises(ValueError, match="not supported for miner-selected provider 'ai_gateway'"):
+        with pytest.raises(
+            ValueError, match="not supported for miner-selected provider 'ai_gateway'"
+        ):
             parse_miner_selected_llm_provider_model(provider="ai_gateway", model=model)
 
 
 def test_openrouter_native_model_ids_are_not_valid_for_chutes() -> None:
-    with pytest.raises(ValueError, match="not supported for miner-selected provider 'chutes'"):
-        parse_miner_selected_llm_provider_model(provider="chutes", model="qwen/qwen3.6-27b")
+    with pytest.raises(
+        ValueError, match="not supported for miner-selected provider 'chutes'"
+    ):
+        parse_miner_selected_llm_provider_model(
+            provider="chutes", model="qwen/qwen3.6-27b"
+        )
 
 
 def test_unknown_miner_selected_llm_provider_is_rejected() -> None:
-    with pytest.raises(ValueError, match="miner-selected llm provider 'vertex' is not supported"):
-        parse_miner_selected_llm_provider_model(provider="vertex", model="openai/gpt-oss-20b")
+    with pytest.raises(
+        ValueError, match="miner-selected llm provider 'vertex' is not supported"
+    ):
+        parse_miner_selected_llm_provider_model(
+            provider="vertex", model="openai/gpt-oss-20b"
+        )

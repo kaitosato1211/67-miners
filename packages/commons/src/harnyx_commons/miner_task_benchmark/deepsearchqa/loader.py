@@ -35,7 +35,10 @@ def load_deepsearchqa_snapshot(
     if expected_version is None:
         expected_version = _current_deepsearchqa_version()
     for snapshot in snapshots:
-        snapshot_version = (snapshot.manifest.dataset_version, snapshot.manifest.scoring_version)
+        snapshot_version = (
+            snapshot.manifest.dataset_version,
+            snapshot.manifest.scoring_version,
+        )
         if snapshot_version == expected_version:
             return snapshot
     raise RuntimeError(
@@ -60,7 +63,9 @@ def list_deepsearchqa_snapshots() -> tuple[BenchmarkDatasetSnapshot, ...]:
 
 
 def _load_snapshot_from_dir(snapshot_dir: Traversable) -> BenchmarkDatasetSnapshot:
-    manifest_payload = json.loads(snapshot_dir.joinpath("manifest.json").read_text(encoding="utf-8"))
+    manifest_payload = json.loads(
+        snapshot_dir.joinpath("manifest.json").read_text(encoding="utf-8")
+    )
     manifest = BenchmarkDatasetManifest(**manifest_payload)
     if manifest.suite_slug != DEEPSEARCHQA_SUITE_SLUG:
         raise RuntimeError(
@@ -73,7 +78,9 @@ def _load_snapshot_from_dir(snapshot_dir: Traversable) -> BenchmarkDatasetSnapsh
     csv_path = snapshot_dir.joinpath(manifest.file_name)
     checksum = sha256(csv_path.read_bytes()).hexdigest()
     if checksum != manifest.sha256:
-        raise RuntimeError(f"DeepSearchQA checksum mismatch: expected {manifest.sha256} got {checksum}")
+        raise RuntimeError(
+            f"DeepSearchQA checksum mismatch: expected {manifest.sha256} got {checksum}"
+        )
     with io.StringIO(csv_path.read_text(encoding="utf-8")) as handle:
         rows = tuple(
             BenchmarkDatasetItem(
@@ -86,20 +93,26 @@ def _load_snapshot_from_dir(snapshot_dir: Traversable) -> BenchmarkDatasetSnapsh
             for index, row in enumerate(csv.DictReader(handle))
         )
     if len(rows) != manifest.row_count:
-        raise RuntimeError(f"DeepSearchQA row count mismatch: expected {manifest.row_count} got {len(rows)}")
+        raise RuntimeError(
+            f"DeepSearchQA row count mismatch: expected {manifest.row_count} got {len(rows)}"
+        )
     return BenchmarkDatasetSnapshot(manifest=manifest, items=rows)
 
 
 @lru_cache(maxsize=1)
 def _current_deepsearchqa_version() -> tuple[str, str]:
     data_dir = files(_DATA_PACKAGE)
-    payload = json.loads(data_dir.joinpath(_CURRENT_VERSION_FILE).read_text(encoding="utf-8"))
+    payload = json.loads(
+        data_dir.joinpath(_CURRENT_VERSION_FILE).read_text(encoding="utf-8")
+    )
     version = _expected_version(
         dataset_version=payload["dataset_version"],
         scoring_version=payload["scoring_version"],
     )
     if version is None:
-        raise RuntimeError("DeepSearchQA current version file must define dataset_version and scoring_version")
+        raise RuntimeError(
+            "DeepSearchQA current version file must define dataset_version and scoring_version"
+        )
     return version
 
 
@@ -111,7 +124,9 @@ def _expected_version(
     if dataset_version is None and scoring_version is None:
         return None
     if dataset_version is None or scoring_version is None:
-        raise RuntimeError("DeepSearchQA snapshot lookup requires both dataset_version and scoring_version")
+        raise RuntimeError(
+            "DeepSearchQA snapshot lookup requires both dataset_version and scoring_version"
+        )
     return dataset_version, scoring_version
 
 

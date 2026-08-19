@@ -9,7 +9,9 @@ import pytest
 
 from harnyx_commons.domain.miner_task import MinerTask, Query, ReferenceAnswer
 from harnyx_commons.domain.tool_usage import LlmUsageSummary, ToolUsageSummary
-from harnyx_commons.domain.tool_usage_accounting import known_zero_actual_cost_tool_usage
+from harnyx_commons.domain.tool_usage_accounting import (
+    known_zero_actual_cost_tool_usage,
+)
 from harnyx_commons.domain_tweak_generation import (
     AcceptedRouteContext,
     BatchTerminalGenerationError,
@@ -23,7 +25,9 @@ from harnyx_commons.domain_tweak_generation import (
     SlotAttemptEvent,
     StageRunResult,
 )
-from harnyx_commons.domain_tweak_generation import refill_pipeline as refill_pipeline_module
+from harnyx_commons.domain_tweak_generation import (
+    refill_pipeline as refill_pipeline_module,
+)
 
 
 class _PortfolioRunner:
@@ -36,7 +40,9 @@ class _PortfolioRunner:
         payload = _prompt_payload(prompt)
         rows = cast(list[dict[str, object]], payload["slots"])
         self.group_sizes.append(len(rows))
-        self.accepted_route_context_counts.append(len(payload["already_accepted_routes_to_avoid"]))
+        self.accepted_route_context_counts.append(
+            len(payload["already_accepted_routes_to_avoid"])
+        )
         packet = PortfolioPacket(
             allocations=tuple(
                 PortfolioAllocation(
@@ -46,11 +52,15 @@ class _PortfolioRunner:
                 for row in rows
             )
         )
-        return StageRunResult(packet, 1.0, known_zero_actual_cost_tool_usage(), actual_llm_cost_usd=0.0)
+        return StageRunResult(
+            packet, 1.0, known_zero_actual_cost_tool_usage(), actual_llm_cost_usd=0.0
+        )
 
 
 class _CandidatePipeline:
-    def __init__(self, outcomes: Sequence[DomainTweakFinalizedTask | CandidateFailure]) -> None:
+    def __init__(
+        self, outcomes: Sequence[DomainTweakFinalizedTask | CandidateFailure]
+    ) -> None:
         self.outcomes = list(outcomes)
         self.calls = 0
         self.preferences: list[tuple[int, str]] = []
@@ -127,7 +137,9 @@ class _BatchTerminalCandidatePipeline:
         self.sibling_cancelled = asyncio.Event()
         self.calls = 0
 
-    async def run(self, _allocation: PortfolioAllocation, *, capability_preference: str):
+    async def run(
+        self, _allocation: PortfolioAllocation, *, capability_preference: str
+    ):
         del capability_preference
         self.calls += 1
         if self.calls == 1:
@@ -152,7 +164,9 @@ class _CompletedSuccessRaceCandidatePipeline:
         self.success_returned = asyncio.Event()
         self.calls = 0
 
-    async def run(self, _allocation: PortfolioAllocation, *, capability_preference: str):
+    async def run(
+        self, _allocation: PortfolioAllocation, *, capability_preference: str
+    ):
         del capability_preference
         self.calls += 1
         if self.calls == 1:
@@ -232,7 +246,9 @@ class _UnexpectedPortfolioRunner:
 class _WrongTypePortfolioRunner:
     async def run_stage(self, **_kwargs: object) -> StageRunResult:
         output = PortfolioAllocation(slot=99, ecosystems=("a", "b", "c", "d", "e"))
-        return StageRunResult(output, 1.0, known_zero_actual_cost_tool_usage(), actual_llm_cost_usd=0.0)
+        return StageRunResult(
+            output, 1.0, known_zero_actual_cost_tool_usage(), actual_llm_cost_usd=0.0
+        )
 
 
 def _success(index: int) -> DomainTweakFinalizedTask:
@@ -283,7 +299,9 @@ def _usage(cost: float) -> ToolUsageSummary:
 async def test_refill_launches_only_current_shortfall_until_exact_completion() -> None:
     """Future failure: the old N-multiple over-generation strategy must not return."""
     runner = _PortfolioRunner()
-    candidates = _CandidatePipeline((_success(0), _failure(), _failure(), _success(1), _failure(), _success(2)))
+    candidates = _CandidatePipeline(
+        (_success(0), _failure(), _failure(), _success(1), _failure(), _success(2))
+    )
     accepted_slots: list[int] = []
 
     async def accept(slot: int, task: DomainTweakFinalizedTask) -> None:
@@ -317,7 +335,9 @@ async def test_refill_launches_only_current_shortfall_until_exact_completion() -
 
 
 @pytest.mark.anyio
-async def test_fourteen_output_slots_receive_fixed_preference_counts_without_quota_logic() -> None:
+async def test_fourteen_output_slots_receive_fixed_preference_counts_without_quota_logic() -> (
+    None
+):
     """Future failure: capability preferences must use ceil-per-kind then truncate in fixed order."""
     candidates = _CandidatePipeline(tuple(_success(index) for index in range(14)))
 
@@ -372,14 +392,20 @@ async def test_portfolio_and_candidate_work_run_inside_distinct_cost_free_parent
 
     def start(name: str, as_type: str, **kwargs: object) -> ObservationScope:
         observation = object()
-        starts.append({"name": name, "as_type": as_type, **kwargs, "observation": observation})
+        starts.append(
+            {"name": name, "as_type": as_type, **kwargs, "observation": observation}
+        )
         return ObservationScope(observation)
 
     def update(observation: object, **kwargs: object) -> None:
         updates.append((observation, kwargs))
 
-    monkeypatch.setattr(refill_pipeline_module, "start_metadata_only_observation", start)
-    monkeypatch.setattr(refill_pipeline_module, "update_observation_best_effort", update)
+    monkeypatch.setattr(
+        refill_pipeline_module, "start_metadata_only_observation", start
+    )
+    monkeypatch.setattr(
+        refill_pipeline_module, "update_observation_best_effort", update
+    )
 
     await ShortfallRefillPipeline(
         runner=_PortfolioRunner(),  # type: ignore[arg-type]
@@ -394,18 +420,29 @@ async def test_portfolio_and_candidate_work_run_inside_distinct_cost_free_parent
         "miner_task_generation.candidate_attempt",
     ]
     assert cast(dict[str, object], starts[0]["metadata"])["slot_count"] == 1
-    assert cast(dict[str, object], starts[1]["metadata"])["attempt_id"] == str(UUID(int=99))
-    assert [cast(dict[str, object], kwargs["metadata"])["outcome"] for _, kwargs in updates] == [
+    assert cast(dict[str, object], starts[1]["metadata"])["attempt_id"] == str(
+        UUID(int=99)
+    )
+    assert [
+        cast(dict[str, object], kwargs["metadata"])["outcome"] for _, kwargs in updates
+    ] == [
         "succeeded",
         "finalized",
     ]
-    assert all("cost_details" not in kwargs and "usage_details" not in kwargs for _, kwargs in updates)
+    assert all(
+        "cost_details" not in kwargs and "usage_details" not in kwargs
+        for _, kwargs in updates
+    )
 
 
 @pytest.mark.anyio
-async def test_unavailable_candidate_cost_makes_successful_batch_cost_unavailable() -> None:
+async def test_unavailable_candidate_cost_makes_successful_batch_cost_unavailable() -> (
+    None
+):
     """Future failure: exact completion must not turn one missing candidate bill into a known batch prefix."""
-    unknown_cost_success = _success(0).model_copy(update={"tool_usage": ToolUsageSummary.zero()})
+    unknown_cost_success = _success(0).model_copy(
+        update={"tool_usage": ToolUsageSummary.zero()}
+    )
 
     result = await ShortfallRefillPipeline(
         runner=_PortfolioRunner(),  # type: ignore[arg-type]
@@ -455,8 +492,12 @@ async def test_candidate_parent_uses_final_outcome_after_duplicate_reclassificat
     async def record(event: SlotAttemptEvent) -> None:
         events.append(event)
 
-    monkeypatch.setattr(refill_pipeline_module, "start_metadata_only_observation", start)
-    monkeypatch.setattr(refill_pipeline_module, "update_observation_best_effort", update)
+    monkeypatch.setattr(
+        refill_pipeline_module, "start_metadata_only_observation", start
+    )
+    monkeypatch.setattr(
+        refill_pipeline_module, "update_observation_best_effort", update
+    )
 
     await ShortfallRefillPipeline(
         runner=_PortfolioRunner(),  # type: ignore[arg-type]
@@ -469,7 +510,11 @@ async def test_candidate_parent_uses_final_outcome_after_duplicate_reclassificat
 
     assert len(events) == 3
     assert {event.attempt_id: event.outcome for event in events} == parent_outcomes
-    assert sorted(parent_outcomes.values()) == ["contract_invalid", "finalized", "finalized"]
+    assert sorted(parent_outcomes.values()) == [
+        "contract_invalid",
+        "finalized",
+        "finalized",
+    ]
 
 
 @pytest.mark.anyio
@@ -506,8 +551,12 @@ async def test_candidate_parent_keeps_final_outcome_when_finalized_callback_rais
     async def reject_persistence(_slot: int, _task: DomainTweakFinalizedTask) -> None:
         raise RuntimeError("persistence rejected")
 
-    monkeypatch.setattr(refill_pipeline_module, "start_metadata_only_observation", start)
-    monkeypatch.setattr(refill_pipeline_module, "update_observation_best_effort", update)
+    monkeypatch.setattr(
+        refill_pipeline_module, "start_metadata_only_observation", start
+    )
+    monkeypatch.setattr(
+        refill_pipeline_module, "update_observation_best_effort", update
+    )
 
     with pytest.raises(RuntimeError, match="persistence rejected"):
         await ShortfallRefillPipeline(
@@ -522,7 +571,9 @@ async def test_candidate_parent_keeps_final_outcome_when_finalized_callback_rais
 
 
 @pytest.mark.anyio
-async def test_more_than_ten_slots_groups_portfolios_without_surplus_candidates() -> None:
+async def test_more_than_ten_slots_groups_portfolios_without_surplus_candidates() -> (
+    None
+):
     runner = _PortfolioRunner()
     candidates = _CandidatePipeline(tuple(_success(index) for index in range(13)))
     result = await ShortfallRefillPipeline(
@@ -538,7 +589,9 @@ async def test_more_than_ten_slots_groups_portfolios_without_surplus_candidates(
 
 
 @pytest.mark.anyio
-async def test_failed_attempt_preserves_private_blocker_without_serializing_it() -> None:
+async def test_failed_attempt_preserves_private_blocker_without_serializing_it() -> (
+    None
+):
     """Future failure: orchestration needs the blocker, while telemetry must not expose model-authored text."""
     runner = _PortfolioRunner()
     candidates = _CandidatePipeline((_failure(), _success(0)))
@@ -567,7 +620,9 @@ async def test_failed_attempt_preserves_private_blocker_without_serializing_it()
 
 
 @pytest.mark.anyio
-async def test_one_failed_portfolio_group_preserves_other_successes_and_counts_shared_cost_once() -> None:
+async def test_one_failed_portfolio_group_preserves_other_successes_and_counts_shared_cost_once() -> (
+    None
+):
     """Future failure: one transient group must neither stop siblings nor duplicate its shared provider cost."""
     runner = _OneFailedPortfolioRunner()
     candidates = _CandidatePipeline(tuple(_success(index) for index in range(13)))
@@ -631,7 +686,9 @@ async def test_batch_terminal_candidate_failure_cancels_and_drains_siblings() ->
     async def record(event: SlotAttemptEvent) -> None:
         events.append(event)
 
-    with pytest.raises(BatchTerminalGenerationError, match="credentials rejected") as captured:
+    with pytest.raises(
+        BatchTerminalGenerationError, match="credentials rejected"
+    ) as captured:
         await pipeline.generate_batch(
             target_count=2,
             on_attempt_completed=record,
@@ -690,7 +747,9 @@ async def test_batch_terminal_portfolio_failure_cancels_and_drains_siblings() ->
     async def record(event: PortfolioCallEvent) -> None:
         events.append(event)
 
-    with pytest.raises(BatchTerminalGenerationError, match="credentials rejected") as captured:
+    with pytest.raises(
+        BatchTerminalGenerationError, match="credentials rejected"
+    ) as captured:
         await pipeline.generate_batch(
             target_count=13,
             on_portfolio_completed=record,
@@ -706,7 +765,9 @@ async def test_batch_terminal_portfolio_failure_cancels_and_drains_siblings() ->
 
 
 @pytest.mark.anyio
-async def test_completed_portfolio_call_is_recorded_before_terminal_propagates() -> None:
+async def test_completed_portfolio_call_is_recorded_before_terminal_propagates() -> (
+    None
+):
     """Future failure: a paid sibling portfolio result must not disappear during terminal reporting."""
     runner = _CompletedPortfolioRaceRunner()
     events: list[PortfolioCallEvent] = []
@@ -717,7 +778,9 @@ async def test_completed_portfolio_call_is_recorded_before_terminal_propagates()
             runner.release_success.set()
             await runner.success_returned.wait()
 
-    with pytest.raises(BatchTerminalGenerationError, match="credentials rejected") as captured:
+    with pytest.raises(
+        BatchTerminalGenerationError, match="credentials rejected"
+    ) as captured:
         await ShortfallRefillPipeline(
             runner=runner,  # type: ignore[arg-type]
             candidate_pipeline=_CandidatePipeline(()),  # type: ignore[arg-type]

@@ -45,10 +45,15 @@ from harnyx_commons.domain_tweak_generation.proof_validation import (
     validate_and_render_reference,
     validate_structured_payload,
 )
-from harnyx_commons.domain_tweak_generation.source_workspace import SourceFetcherPort, SourceWorkspace
+from harnyx_commons.domain_tweak_generation.source_workspace import (
+    SourceFetcherPort,
+    SourceWorkspace,
+)
 
 AGENT_STAGE_TIMEOUT_SECONDS = 600.0
-_OutputT = TypeVar("_OutputT", bound=GroundedQuestionDossier | ReferenceProof | AuditResult)
+_OutputT = TypeVar(
+    "_OutputT", bound=GroundedQuestionDossier | ReferenceProof | AuditResult
+)
 
 
 class CandidatePipeline:
@@ -84,11 +89,15 @@ class CandidatePipeline:
                 timeout_seconds=AGENT_STAGE_TIMEOUT_SECONDS,
                 web_search=True,
                 tool_set=workspace.question_generation_tools(self._source_fetcher),
-                output_validator=lambda output: _question_generation_contract_defects(output, workspace),
+                output_validator=lambda output: _question_generation_contract_defects(
+                    output, workspace
+                ),
             )
             usage = merge_complete_actual_cost_usage(usage, dossier_result.tool_usage)
             dossier = _typed_output(dossier_result, GroundedQuestionDossier)
-            summaries.append(_summary("question_generation", dossier.status, dossier_result))
+            summaries.append(
+                _summary("question_generation", dossier.status, dossier_result)
+            )
             if dossier.status == "no_generate":
                 assert dossier.failure_class is not None
                 return CandidateFailure(
@@ -160,9 +169,13 @@ class CandidatePipeline:
                         dossier=dossier,
                     ),
                 )
-                usage = merge_complete_actual_cost_usage(usage, repair_result.tool_usage)
+                usage = merge_complete_actual_cost_usage(
+                    usage, repair_result.tool_usage
+                )
                 repaired_proof = _typed_output(repair_result, ReferenceProof)
-                summaries.append(_summary("reference_repair", repaired_proof.status, repair_result))
+                summaries.append(
+                    _summary("reference_repair", repaired_proof.status, repair_result)
+                )
                 if repaired_proof.status == "giveup":
                     return CandidateFailure(
                         "audit_rejected",
@@ -173,9 +186,13 @@ class CandidatePipeline:
                     )
                 validated = _validate_reference(dossier, repaired_proof, workspace)
                 second_audit_result = await self._audit(validated, workspace)
-                usage = merge_complete_actual_cost_usage(usage, second_audit_result.tool_usage)
+                usage = merge_complete_actual_cost_usage(
+                    usage, second_audit_result.tool_usage
+                )
                 second_audit = _typed_output(second_audit_result, AuditResult)
-                summaries.append(_summary("audit", second_audit.status, second_audit_result))
+                summaries.append(
+                    _summary("audit", second_audit.status, second_audit_result)
+                )
                 if second_audit.status == "reject":
                     return CandidateFailure(
                         "audit_rejected",
@@ -188,7 +205,9 @@ class CandidatePipeline:
             return DomainTweakFinalizedTask(
                 task=MinerTask(
                     task_id=self._task_id_factory(),
-                    query=Query(text=dossier.question, output_schema=validated.output_schema),
+                    query=Query(
+                        text=dossier.question, output_schema=validated.output_schema
+                    ),
                     reference_answer=validated.reference_answer,
                 ),
                 stage_summaries=tuple(summaries),
@@ -255,7 +274,9 @@ class CandidatePipeline:
                 actual_llm_cost_usd=usage.llm.actual_cost,
             ) from exc
 
-    async def _audit(self, validated: ValidatedReference, workspace: SourceWorkspace) -> StageRunResult:
+    async def _audit(
+        self, validated: ValidatedReference, workspace: SourceWorkspace
+    ) -> StageRunResult:
         return await self._runner.run_stage(
             stage="audit",
             system_prompt=AUDIT_SYSTEM,
@@ -268,12 +289,18 @@ class CandidatePipeline:
 
 def _typed_output(result: StageRunResult, expected: type[_OutputT]) -> _OutputT:
     if not isinstance(result.output, expected):
-        raise ValueError(f"stage returned {type(result.output).__name__}, expected {expected.__name__}")
+        raise ValueError(
+            f"stage returned {type(result.output).__name__}, expected {expected.__name__}"
+        )
     return result.output
 
 
-def _summary(stage: StageName, outcome: str, result: StageRunResult) -> DomainTweakStageSummary:
-    return DomainTweakStageSummary(stage=stage, outcome=outcome, elapsed_ms=result.elapsed_ms)
+def _summary(
+    stage: StageName, outcome: str, result: StageRunResult
+) -> DomainTweakStageSummary:
+    return DomainTweakStageSummary(
+        stage=stage, outcome=outcome, elapsed_ms=result.elapsed_ms
+    )
 
 
 def _question_generation_contract_defects(
@@ -284,15 +311,23 @@ def _question_generation_contract_defects(
         if dossier.source_failure_id is not None:
             source_failure = workspace.source_failure(dossier.source_failure_id)
             if source_failure is None:
-                return ("question-generation source_failure_id was not observed by the workspace",)
+                return (
+                    "question-generation source_failure_id was not observed by the workspace",
+                )
             if source_failure.failure_class != dossier.failure_class:
-                return ("question-generation source_failure_id does not match its declared failure_class",)
+                return (
+                    "question-generation source_failure_id does not match its declared failure_class",
+                )
         return ()
     defects: list[str] = []
     evidence_ids = {item.evidence_id for item in workspace.evidence}
     if not evidence_ids:
         defects.append("ready question dossier has no registered evidence")
-    referenced = {evidence_id for fact in dossier.source_facts for evidence_id in fact.evidence_ids}
+    referenced = {
+        evidence_id
+        for fact in dossier.source_facts
+        for evidence_id in fact.evidence_ids
+    }
     if not referenced or not referenced <= evidence_ids:
         defects.append("question dossier references missing evidence IDs")
     if dossier.question is None:

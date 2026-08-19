@@ -12,7 +12,12 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
-from harnyx_commons.domain.miner_task import AnswerCitation, MinerTask, Query, ReferenceAnswer
+from harnyx_commons.domain.miner_task import (
+    AnswerCitation,
+    MinerTask,
+    Query,
+    ReferenceAnswer,
+)
 from harnyx_commons.domain.shared_config import COMMONS_STRICT_CONFIG
 from harnyx_commons.json_types import JsonObject
 from harnyx_commons.llm.json_utils import pydantic_postprocessor
@@ -38,9 +43,19 @@ _GENERATED_OUTPUT_SCHEMA_ANNOTATIONS = frozenset({"description", "title"})
 _GENERATED_OUTPUT_ARRAY_ASSERTIONS = frozenset({"maxItems", "minItems"})
 _GENERATED_OUTPUT_STRING_ASSERTIONS = frozenset({"maxLength", "minLength"})
 _GENERATED_OUTPUT_VALUE_ASSERTIONS = frozenset(
-    {"const", "enum", "exclusiveMaximum", "exclusiveMinimum", "maximum", "minimum", "multipleOf"}
+    {
+        "const",
+        "enum",
+        "exclusiveMaximum",
+        "exclusiveMinimum",
+        "maximum",
+        "minimum",
+        "multipleOf",
+    }
 )
-_GENERATED_OUTPUT_PRIMITIVE_SCHEMA_TYPES = frozenset({"string", "integer", "number", "boolean"})
+_GENERATED_OUTPUT_PRIMITIVE_SCHEMA_TYPES = frozenset(
+    {"string", "integer", "number", "boolean"}
+)
 
 _TASK_GENERATION_SYSTEM_PROMPT = (
     "You generate evaluation tasks for a generic query-answering system.\n"
@@ -337,7 +352,9 @@ class MinerTaskDatasetRequest(BaseModel):
 
     @field_validator("created_at")
     @classmethod
-    def _created_at_must_be_timezone_aware(cls, value: datetime | None) -> datetime | None:
+    def _created_at_must_be_timezone_aware(
+        cls, value: datetime | None
+    ) -> datetime | None:
         if value is not None and value.tzinfo is None:
             raise ValueError("created_at must be timezone-aware")
         return value
@@ -372,11 +389,16 @@ def validate_generated_output_schema(schema: JsonObject) -> tuple[str, ...]:
                 "required",
                 "additionalProperties",
             }
-            allowed_object_keys = required_object_keys | _GENERATED_OUTPUT_SCHEMA_ANNOTATIONS
+            allowed_object_keys = (
+                required_object_keys | _GENERATED_OUTPUT_SCHEMA_ANNOTATIONS
+            )
             if is_root:
                 allowed_object_keys.add("$schema")
             actual_object_keys = set(node_object) - ({"$schema"} if is_root else set())
-            if not required_object_keys <= actual_object_keys or not actual_object_keys <= allowed_object_keys:
+            if (
+                not required_object_keys <= actual_object_keys
+                or not actual_object_keys <= allowed_object_keys
+            ):
                 missing_keys = sorted(required_object_keys - actual_object_keys)
                 extra_keys = sorted(actual_object_keys - allowed_object_keys)
                 raise ValueError(
@@ -389,18 +411,26 @@ def validate_generated_output_schema(schema: JsonObject) -> tuple[str, ...]:
             if not isinstance(properties, dict) or not properties:
                 raise ValueError("object schemas require non-empty properties")
             properties_object = cast(dict[str, object], properties)
-            if not isinstance(required, list) or any(not isinstance(item, str) for item in required):
+            if not isinstance(required, list) or any(
+                not isinstance(item, str) for item in required
+            ):
                 raise ValueError("object schemas require a string required list")
             required_names = cast(list[str], required)
-            if len(required_names) != len(set(required_names)) or set(required_names) != set(properties_object):
+            if len(required_names) != len(set(required_names)) or set(
+                required_names
+            ) != set(properties_object):
                 raise ValueError("every object property must be required exactly once")
             if node_object.get("additionalProperties") is not False:
                 raise ValueError("object schemas require additionalProperties=false")
             for property_name, child in properties_object.items():
-                if not isinstance(property_name, str) or not _GENERATED_OUTPUT_SCHEMA_PROPERTY_NAME.fullmatch(
+                if not isinstance(
+                    property_name, str
+                ) or not _GENERATED_OUTPUT_SCHEMA_PROPERTY_NAME.fullmatch(
                     property_name
                 ):
-                    raise ValueError(f"unsafe generated property name: {property_name!r}")
+                    raise ValueError(
+                        f"unsafe generated property name: {property_name!r}"
+                    )
                 child_path = f"{path}.{property_name}" if path else property_name
                 visit(child, path=child_path, depth=depth + 1, is_root=False)
             return
@@ -414,7 +444,10 @@ def validate_generated_output_schema(schema: JsonObject) -> tuple[str, ...]:
                 | _GENERATED_OUTPUT_SCHEMA_ANNOTATIONS
                 | _GENERATED_OUTPUT_ARRAY_ASSERTIONS
             )
-            if not required_array_keys <= set(node_object) or not set(node_object) <= allowed_array_keys:
+            if (
+                not required_array_keys <= set(node_object)
+                or not set(node_object) <= allowed_array_keys
+            ):
                 missing_keys = sorted(required_array_keys - set(node_object))
                 extra_keys = sorted(set(node_object) - allowed_array_keys)
                 raise ValueError(
@@ -426,7 +459,9 @@ def validate_generated_output_schema(schema: JsonObject) -> tuple[str, ...]:
                 if assertion_name in node_object and (
                     not isinstance(assertion, int) or isinstance(assertion, bool)
                 ):
-                    raise ValueError(f"generated {assertion_name} must be a JSON integer")
+                    raise ValueError(
+                        f"generated {assertion_name} must be a JSON integer"
+                    )
             if node_object.get("maxItems") == 0:
                 raise ValueError(
                     "generated output schema constraints must not disclose the answer: "
@@ -458,7 +493,9 @@ def validate_generated_output_schema(schema: JsonObject) -> tuple[str, ...]:
                 if assertion_name in node_object and (
                     not isinstance(assertion, int) or isinstance(assertion, bool)
                 ):
-                    raise ValueError(f"generated {assertion_name} must be a JSON integer")
+                    raise ValueError(
+                        f"generated {assertion_name} must be a JSON integer"
+                    )
             if node_object.get("maxLength") == 0:
                 raise ValueError(
                     "generated output schema constraints must not disclose the answer: "
@@ -473,7 +510,9 @@ def validate_generated_output_schema(schema: JsonObject) -> tuple[str, ...]:
                     "generated output schema constraints must not disclose the answer: "
                     "minLength and maxLength must differ"
                 )
-        answer_assertions = sorted(set(node_object) & _GENERATED_OUTPUT_VALUE_ASSERTIONS)
+        answer_assertions = sorted(
+            set(node_object) & _GENERATED_OUTPUT_VALUE_ASSERTIONS
+        )
         if answer_assertions:
             raise ValueError(
                 "generated output schema constraints must not disclose the answer: "
@@ -481,7 +520,9 @@ def validate_generated_output_schema(schema: JsonObject) -> tuple[str, ...]:
             )
         unknown_keys = sorted(set(node_object) - allowed_primitive_keys)
         if unknown_keys:
-            raise ValueError(f"generated output schema contains unsafe keywords: {unknown_keys}")
+            raise ValueError(
+                f"generated output schema contains unsafe keywords: {unknown_keys}"
+            )
         leaf_paths.append(path)
         if len(leaf_paths) > GENERATED_OUTPUT_SCHEMA_MAX_LEAVES:
             raise ValueError("generated output schema exceeds maximum leaf count")
@@ -634,7 +675,9 @@ def build_miner_task_model_request(
         resolved_postprocessor = pydantic_postprocessor(output_schema)
     if require_grounding:
         if spec.provider != VERTEX_PROVIDER:
-            raise ValueError(f"grounded mode not supported for provider '{spec.provider}'")
+            raise ValueError(
+                f"grounded mode not supported for provider '{spec.provider}'"
+            )
         return GroundedLlmRequest(
             provider=spec.provider,
             model=spec.model,

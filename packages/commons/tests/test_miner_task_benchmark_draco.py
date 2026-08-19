@@ -33,12 +33,16 @@ def test_load_draco_snapshot_reads_pinned_manifest_and_rubric_items() -> None:
     assert snapshot.manifest.suite_slug == DRACO_SUITE_SLUG
     assert snapshot.manifest.suite_name == DRACO_SUITE_NAME
     assert snapshot.manifest.dataset_version == DRACO_DATASET_VERSION
-    assert snapshot.manifest.scoring_version == BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    assert (
+        snapshot.manifest.scoring_version == BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    )
     assert snapshot.manifest.sha256 == DRACO_CHECKSUM
     assert snapshot.manifest.row_count == 100
     assert len(snapshot.items) == 100
     assert [item.item_index for item in snapshot.items] == list(range(100))
-    assert {item.answer_type for item in snapshot.items} == {BenchmarkAnswerType.SINGLE_ANSWER}
+    assert {item.answer_type for item in snapshot.items} == {
+        BenchmarkAnswerType.SINGLE_ANSWER
+    }
     assert snapshot.items[0].source_item_id == "0c2c668a-c3bf-41af-93c9-b5614ff63508"
     assert snapshot.items[-1].source_item_id == "91408757-a874-44b5-ad5a-66a22b39141d"
     assert snapshot.items[0].problem_category == "Academic"
@@ -74,7 +78,11 @@ def test_draco_packaged_rubric_statistics_match_verified_source() -> None:
     for item in snapshot.items:
         row = json.loads(item.answer)
         section_orders.add(tuple(section["id"] for section in row["sections"]))
-        criteria.extend(criterion for section in row["sections"] for criterion in section["criteria"])
+        criteria.extend(
+            criterion
+            for section in row["sections"]
+            for criterion in section["criteria"]
+        )
 
     weights = tuple(int(criterion["weight"]) for criterion in criteria)
     assert section_orders == {
@@ -173,10 +181,13 @@ def test_draco_sampling_uses_fixed_snapshot_panel() -> None:
         94,
         95,
     ]
-    assert str(
-        benchmark_task_id_for_item(
-            suite_slug=snapshot.manifest.suite_slug,
-            run_id=run_id,
-            item_index=sampled[0].item_index,
+    assert (
+        str(
+            benchmark_task_id_for_item(
+                suite_slug=snapshot.manifest.suite_slug,
+                run_id=run_id,
+                item_index=sampled[0].item_index,
+            )
         )
-    ) == "ef30afcd-a058-5500-8640-a9dc88a1eb3e"
+        == "ef30afcd-a058-5500-8640-a9dc88a1eb3e"
+    )

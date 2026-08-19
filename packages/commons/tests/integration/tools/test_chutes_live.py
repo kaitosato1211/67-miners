@@ -111,7 +111,11 @@ def _thinking_request(*, model: str, enabled: bool) -> LlmRequest:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('Think briefly, then reply with only "ok".'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'Think briefly, then reply with only "ok".'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,
@@ -184,7 +188,11 @@ async def test_chutes_deepseek_v4_flash_reasoning_effort_live() -> None:
         messages=(
             LlmMessage(
                 role="user",
-                content=(LlmMessageContentPart.input_text('Think briefly, then reply with only "ok".'),),
+                content=(
+                    LlmMessageContentPart.input_text(
+                        'Think briefly, then reply with only "ok".'
+                    ),
+                ),
             ),
         ),
         temperature=0.0,
@@ -213,7 +221,9 @@ async def test_miner_paid_chutes_helper_completion_live() -> None:
         llm_settings=settings,
     )
     try:
-        response = await provider.invoke(_completion_request(model="google/gemma-4-31B-turbo-TEE"))
+        response = await provider.invoke(
+            _completion_request(model="google/gemma-4-31B-turbo-TEE")
+        )
     finally:
         await provider.aclose()
 
@@ -223,7 +233,9 @@ async def test_miner_paid_chutes_helper_completion_live() -> None:
 @pytest.mark.parametrize("model", CHUTES_TOOL_LOOP_MODELS)
 async def test_chutes_two_turn_function_tool_loop_live(model: str) -> None:
     api_key, timeout = _provider_settings()
-    provider = ChutesLlmProvider(base_url=CHUTES.base_url, api_key=api_key, timeout=timeout)
+    provider = ChutesLlmProvider(
+        base_url=CHUTES.base_url, api_key=api_key, timeout=timeout
+    )
     tool = LlmTool(
         type="function",
         function={

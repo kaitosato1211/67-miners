@@ -5,8 +5,14 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harnyx_validator.application.ports.platform import ChampionWeights, PlatformWeightsUnavailableError
-from harnyx_validator.application.ports.subtensor import ValidatorNodeInfo, WeightSubmissionTooEarlyError
+from harnyx_validator.application.ports.platform import (
+    ChampionWeights,
+    PlatformWeightsUnavailableError,
+)
+from harnyx_validator.application.ports.subtensor import (
+    ValidatorNodeInfo,
+    WeightSubmissionTooEarlyError,
+)
 from harnyx_validator.application.submit_weights import WeightSubmissionService
 from validator.tests.fixtures.subtensor import FakeSubtensorClient
 
@@ -125,7 +131,9 @@ def test_try_submit_attempts_submission_without_prechecking_cadence() -> None:
 def test_try_submit_returns_none_when_chain_reports_too_early() -> None:
     fake = FakeSubtensorClient()
     fake.validator_metadata = ValidatorNodeInfo(uid=7, version_key=None)
-    fake.submit_weights_exception = WeightSubmissionTooEarlyError("SettingWeightsTooFast")
+    fake.submit_weights_exception = WeightSubmissionTooEarlyError(
+        "SettingWeightsTooFast"
+    )
     platform = StubPlatform(weights={5: 1.0}, champion_uid=5)
     service = WeightSubmissionService(
         subtensor=fake,
@@ -163,7 +171,8 @@ def test_try_submit_skips_when_platform_weights_unavailable(
     record = next(
         record
         for record in caplog.records
-        if record.message == "weight submission skipped because platform weights are unavailable"
+        if record.message
+        == "weight submission skipped because platform weights are unavailable"
     )
     assert record.data == {
         "event": "validator_weight_submission_skipped",

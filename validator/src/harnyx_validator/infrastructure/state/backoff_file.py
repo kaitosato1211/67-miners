@@ -47,7 +47,9 @@ class FileBackoff:
         try:
             return int(text, 10)
         except ValueError as exc:  # pragma: no cover - defensive branch
-            raise ValueError(f"backoff file {path} contains invalid block value: {text!r}") from exc
+            raise ValueError(
+                f"backoff file {path} contains invalid block value: {text!r}"
+            ) from exc
 
     def _write_block(self, path: Path, block: int) -> None:
         if block < 0:

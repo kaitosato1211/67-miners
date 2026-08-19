@@ -35,7 +35,10 @@ def load_deepresearch9k_l2_snapshot(
     if expected_version is None:
         expected_version = _current_deepresearch9k_l2_version()
     for snapshot in snapshots:
-        snapshot_version = (snapshot.manifest.dataset_version, snapshot.manifest.scoring_version)
+        snapshot_version = (
+            snapshot.manifest.dataset_version,
+            snapshot.manifest.scoring_version,
+        )
         if snapshot_version == expected_version:
             return snapshot
     raise RuntimeError(
@@ -60,7 +63,9 @@ def list_deepresearch9k_l2_snapshots() -> tuple[BenchmarkDatasetSnapshot, ...]:
 
 
 def _load_snapshot_from_dir(snapshot_dir: Traversable) -> BenchmarkDatasetSnapshot:
-    manifest_payload = json.loads(snapshot_dir.joinpath("manifest.json").read_text(encoding="utf-8"))
+    manifest_payload = json.loads(
+        snapshot_dir.joinpath("manifest.json").read_text(encoding="utf-8")
+    )
     manifest = BenchmarkDatasetManifest(**manifest_payload)
     if manifest.suite_slug != DEEPRESEARCH9K_L2_SUITE_SLUG:
         raise RuntimeError(
@@ -99,7 +104,9 @@ def _load_snapshot_from_dir(snapshot_dir: Traversable) -> BenchmarkDatasetSnapsh
 @lru_cache(maxsize=1)
 def _current_deepresearch9k_l2_version() -> tuple[str, str]:
     data_dir = files(_DATA_PACKAGE)
-    payload = json.loads(data_dir.joinpath(_CURRENT_VERSION_FILE).read_text(encoding="utf-8"))
+    payload = json.loads(
+        data_dir.joinpath(_CURRENT_VERSION_FILE).read_text(encoding="utf-8")
+    )
     version = _expected_version(
         dataset_version=payload["dataset_version"],
         scoring_version=payload["scoring_version"],
@@ -119,7 +126,9 @@ def _expected_version(
     if dataset_version is None and scoring_version is None:
         return None
     if dataset_version is None or scoring_version is None:
-        raise RuntimeError("DeepResearch-9K L2 snapshot lookup requires both dataset_version and scoring_version")
+        raise RuntimeError(
+            "DeepResearch-9K L2 snapshot lookup requires both dataset_version and scoring_version"
+        )
     return dataset_version, scoring_version
 
 

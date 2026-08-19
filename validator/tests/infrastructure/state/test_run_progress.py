@@ -46,13 +46,17 @@ def _progress(tmp_path: Path) -> FileBackedRunProgress:
     return FileBackedRunProgress(storage_root=tmp_path / "run-progress")
 
 
-def _make_batch(*, batch_id: UUID | None = None, query_text: str = "example") -> MinerTaskBatchSpec:
+def _make_batch(
+    *, batch_id: UUID | None = None, query_text: str = "example"
+) -> MinerTaskBatchSpec:
     task = MinerTask(
         task_id=uuid4(),
         query=Query(text=query_text),
         reference_answer=ReferenceAnswer(text="reference"),
     )
-    artifact = ScriptArtifactSpec(uid=7, artifact_id=uuid4(), content_hash="abc", size_bytes=1)
+    artifact = ScriptArtifactSpec(
+        uid=7, artifact_id=uuid4(), content_hash="abc", size_bytes=1
+    )
     return MinerTaskBatchSpec(
         batch_id=batch_id or uuid4(),
         cutoff_at="2025-01-01T00:00:00Z",
@@ -76,8 +80,12 @@ def _make_multi_batch(*, batch_id: UUID | None = None) -> MinerTaskBatchSpec:
         ),
     )
     artifacts = (
-        ScriptArtifactSpec(uid=7, artifact_id=uuid4(), content_hash="abc", size_bytes=1),
-        ScriptArtifactSpec(uid=8, artifact_id=uuid4(), content_hash="def", size_bytes=2),
+        ScriptArtifactSpec(
+            uid=7, artifact_id=uuid4(), content_hash="abc", size_bytes=1
+        ),
+        ScriptArtifactSpec(
+            uid=8, artifact_id=uuid4(), content_hash="def", size_bytes=2
+        ),
     )
     return MinerTaskBatchSpec(
         batch_id=batch_id or uuid4(),
@@ -88,7 +96,9 @@ def _make_multi_batch(*, batch_id: UUID | None = None) -> MinerTaskBatchSpec:
     )
 
 
-def _make_submission(batch: MinerTaskBatchSpec, *, score: float = 1.0) -> MinerTaskRunSubmission:
+def _make_submission(
+    batch: MinerTaskBatchSpec, *, score: float = 1.0
+) -> MinerTaskRunSubmission:
     task = batch.tasks[0]
     artifact = batch.artifacts[0]
     run = MinerTaskRun(
@@ -229,7 +239,9 @@ def _make_distinct_multi_submissions(
 ) -> tuple[MinerTaskRunSubmission, ...]:
     template = _make_submission(batch)
 
-    def build_submission(*, artifact_index: int, task_index: int, score: float) -> MinerTaskRunSubmission:
+    def build_submission(
+        *, artifact_index: int, task_index: int, score: float
+    ) -> MinerTaskRunSubmission:
         details = template.run.details.model_copy(
             update={
                 "score_breakdown": ScoreBreakdown(
@@ -254,7 +266,9 @@ def _make_distinct_multi_submissions(
             uid=run.uid,
             task_id=run.task_id,
         )
-        return template.model_copy(update={"run": run, "session": session, "score": score})
+        return template.model_copy(
+            update={"run": run, "session": session, "score": score}
+        )
 
     return (
         build_submission(artifact_index=1, task_index=1, score=0.4),
@@ -264,7 +278,9 @@ def _make_distinct_multi_submissions(
     )
 
 
-def test_run_progress_recorded_pairs_returns_exact_finished_pairs(tmp_path: Path) -> None:
+def test_run_progress_recorded_pairs_returns_exact_finished_pairs(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     batch = _make_multi_batch()
     first_submission = _make_submission(batch)
@@ -319,7 +335,9 @@ def test_run_progress_register_rejects_conflicting_replay(tmp_path: Path) -> Non
 
     progress.register(batch)
 
-    with pytest.raises(RuntimeError, match="batch_id already exists with different contents"):
+    with pytest.raises(
+        RuntimeError, match="batch_id already exists with different contents"
+    ):
         progress.register(conflicting)
 
 
@@ -338,10 +356,19 @@ def test_run_progress_record_is_idempotent_for_duplicate_pair(tmp_path: Path) ->
     assert summary["completed"] == 1
     assert summary["remaining"] == 0
     assert summary["latest_sequence"] == 1
-    assert page["items"] == ({"sequence": 1, "kind": "completed_run", "submission": submission, "attempt": None},)
+    assert page["items"] == (
+        {
+            "sequence": 1,
+            "kind": "completed_run",
+            "submission": submission,
+            "attempt": None,
+        },
+    )
 
 
-def test_run_progress_terminated_attempts_round_trip_from_blob_store(tmp_path: Path) -> None:
+def test_run_progress_terminated_attempts_round_trip_from_blob_store(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     batch = _make_batch()
     base_attempt = _make_attempt(batch)
@@ -369,12 +396,24 @@ def test_run_progress_terminated_attempts_round_trip_from_blob_store(tmp_path: P
     page = progress.completed_run_page(batch.batch_id, after_sequence=0, limit=10)
 
     assert page["items"] == (
-        {"sequence": 1, "kind": "terminated_attempt", "submission": None, "attempt": attempt},
+        {
+            "sequence": 1,
+            "kind": "terminated_attempt",
+            "submission": None,
+            "attempt": attempt,
+        },
     )
     attempt_refs = progress.attempt_refs_by_session_by_batch[batch.batch_id]
     assert set(attempt_refs) == {attempt.validator_session_id}
-    assert attempt_refs[attempt.validator_session_id].segment_name.startswith("attempts-")
-    assert progress.next_attempt_number(batch.batch_id, attempt.artifact_id, attempt.task_id) == 2
+    assert attempt_refs[attempt.validator_session_id].segment_name.startswith(
+        "attempts-"
+    )
+    assert (
+        progress.next_attempt_number(
+            batch.batch_id, attempt.artifact_id, attempt.task_id
+        )
+        == 2
+    )
     restored = page["items"][0]["attempt"]
     assert restored is not None
     assert restored.delivery_failure_detail is not None
@@ -408,14 +447,18 @@ def test_run_progress_record_rejects_conflicting_duplicate_pair(tmp_path: Path) 
         progress.record(conflicting)
 
 
-def test_run_progress_includes_failure_reason_in_consumed_provider_failures(tmp_path: Path) -> None:
+def test_run_progress_includes_failure_reason_in_consumed_provider_failures(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     batch = _make_batch()
     session_id = uuid4()
 
     progress.register(batch)
     progress.register_task_session(batch_id=batch.batch_id, session_id=session_id)
-    progress.record_provider_call(session_id=session_id, provider="desearch", model="search_web")
+    progress.record_provider_call(
+        session_id=session_id, provider="desearch", model="search_web"
+    )
     progress.record_provider_failure(
         session_id=session_id,
         provider="desearch",
@@ -436,7 +479,9 @@ def test_run_progress_includes_failure_reason_in_consumed_provider_failures(tmp_
     assert progress.provider_evidence(batch.batch_id) == expected
 
 
-def test_run_progress_page_preserves_record_sequence_without_global_task_order(tmp_path: Path) -> None:
+def test_run_progress_page_preserves_record_sequence_without_global_task_order(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     batch = _make_multi_batch()
     submissions = _make_distinct_multi_submissions(batch)
@@ -448,7 +493,11 @@ def test_run_progress_page_preserves_record_sequence_without_global_task_order(t
     page = progress.completed_run_page(batch.batch_id, after_sequence=0, limit=10)
 
     assert tuple(
-        (item["sequence"], item["submission"].run.artifact_id, item["submission"].run.task_id)
+        (
+            item["sequence"],
+            item["submission"].run.artifact_id,
+            item["submission"].run.task_id,
+        )
         for item in page["items"]
     ) == (
         (1, batch.artifacts[1].artifact_id, batch.tasks[1].task_id),
@@ -458,7 +507,9 @@ def test_run_progress_page_preserves_record_sequence_without_global_task_order(t
     )
 
 
-def test_run_progress_page_returns_cursor_window_without_rescanning_prefix(tmp_path: Path) -> None:
+def test_run_progress_page_returns_cursor_window_without_rescanning_prefix(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     batch = _make_multi_batch()
     submissions = _make_distinct_multi_submissions(batch)
@@ -473,7 +524,12 @@ def test_run_progress_page_returns_cursor_window_without_rescanning_prefix(tmp_p
     assert page["next_after_sequence"] == 3
     assert page["has_more"] is True
     assert page["items"] == (
-        {"sequence": 3, "kind": "completed_run", "submission": submissions[2], "attempt": None},
+        {
+            "sequence": 3,
+            "kind": "completed_run",
+            "submission": submissions[2],
+            "attempt": None,
+        },
     )
 
 
@@ -489,11 +545,15 @@ def test_run_progress_page_rejects_missing_dense_sequence(tmp_path: Path) -> Non
     del progress.detail_by_sequence_by_batch[batch.batch_id][2]
     del progress.pair_by_sequence_by_batch[batch.batch_id][2]
 
-    with pytest.raises(RuntimeError, match="progress sequence points at missing detail"):
+    with pytest.raises(
+        RuntimeError, match="progress sequence points at missing detail"
+    ):
         progress.completed_run_page(batch.batch_id, after_sequence=0, limit=10)
 
 
-def test_run_progress_discard_batch_removes_indexes_and_blob_dir(tmp_path: Path) -> None:
+def test_run_progress_discard_batch_removes_indexes_and_blob_dir(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     batch = _make_batch()
     submission = _make_submission(batch)
@@ -501,7 +561,9 @@ def test_run_progress_discard_batch_removes_indexes_and_blob_dir(tmp_path: Path)
 
     progress.register(batch)
     progress.register_task_session(batch_id=batch.batch_id, session_id=session_id)
-    progress.record_provider_call(session_id=session_id, provider="desearch", model="search_web")
+    progress.record_provider_call(
+        session_id=session_id, provider="desearch", model="search_web"
+    )
     progress.record_provider_failure(
         session_id=session_id,
         provider="desearch",
@@ -535,7 +597,9 @@ def test_run_progress_discard_batch_removes_indexes_and_blob_dir(tmp_path: Path)
     }
 
 
-def test_run_progress_prunes_stale_attempt_blob_dirs_and_writer_state(tmp_path: Path) -> None:
+def test_run_progress_prunes_stale_attempt_blob_dirs_and_writer_state(
+    tmp_path: Path,
+) -> None:
     progress = _progress(tmp_path)
     now = datetime.now(UTC)
     cutoff = now - timedelta(hours=1)
@@ -653,6 +717,11 @@ def test_run_progress_completed_page_and_discard_are_lock_coordinated(
     assert not page_thread.is_alive()
     assert not discard_thread.is_alive()
     assert page_result["items"] == (
-        {"sequence": 1, "kind": "completed_run", "submission": submission, "attempt": None},
+        {
+            "sequence": 1,
+            "kind": "completed_run",
+            "submission": submission,
+            "attempt": None,
+        },
     )
     assert not (progress.storage_root / str(batch.batch_id)).exists()

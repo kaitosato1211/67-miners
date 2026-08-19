@@ -4,16 +4,26 @@ from uuid import UUID
 import pytest
 
 from harnyx_commons.domain.miner_task import MinerTask, Query, ReferenceAnswer
-from harnyx_commons.domain_tweak_generation import DomainTweakBatchGenerationResult, DomainTweakFinalizedTask
-from harnyx_commons.domain_tweak_generation.dataset_builder import DomainTweakMinerTaskDatasetBuilder
-from harnyx_commons.miner_task_generation import MinerTaskDatasetRequest, MinerTaskModelSpec
+from harnyx_commons.domain_tweak_generation import (
+    DomainTweakBatchGenerationResult,
+    DomainTweakFinalizedTask,
+)
+from harnyx_commons.domain_tweak_generation.dataset_builder import (
+    DomainTweakMinerTaskDatasetBuilder,
+)
+from harnyx_commons.miner_task_generation import (
+    MinerTaskDatasetRequest,
+    MinerTaskModelSpec,
+)
 
 
 class _Refill:
     def __init__(self) -> None:
         self.target_count: int | None = None
 
-    async def generate_batch(self, **kwargs: object) -> DomainTweakBatchGenerationResult:
+    async def generate_batch(
+        self, **kwargs: object
+    ) -> DomainTweakBatchGenerationResult:
         target_count = kwargs["target_count"]
         assert isinstance(target_count, int)
         self.target_count = target_count
@@ -34,7 +44,9 @@ def _finalized(index: int) -> DomainTweakFinalizedTask:
 
 
 @pytest.mark.anyio
-async def test_builder_delegates_exact_requested_count_without_attempt_multiplier() -> None:
+async def test_builder_delegates_exact_requested_count_without_attempt_multiplier() -> (
+    None
+):
     """Future failure: dataset adaptation must not expand N into an N-multiple candidate budget."""
     refill = _Refill()
     builder = DomainTweakMinerTaskDatasetBuilder(

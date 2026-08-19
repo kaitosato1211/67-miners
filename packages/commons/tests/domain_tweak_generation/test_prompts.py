@@ -14,10 +14,14 @@ from harnyx_commons.domain_tweak_generation.prompts import (
     portfolio_prompt,
     question_generation_prompt,
 )
-from harnyx_commons.domain_tweak_generation.source_workspace import _serialize_audit_packet
+from harnyx_commons.domain_tweak_generation.source_workspace import (
+    _serialize_audit_packet,
+)
 
 
-def test_portfolio_and_question_generation_prompts_have_no_source_form_boundary() -> None:
+def test_portfolio_and_question_generation_prompts_have_no_source_form_boundary() -> (
+    None
+):
     """Future failure: discovery must not regain source-form or benchmark-answer leakage."""
     hidden_form = "SECRET FORM OPERATION"
     allocation = PortfolioAllocation(slot=0, ecosystems=("a", "b", "c", "d", "e"))
@@ -32,10 +36,15 @@ def test_capability_preference_is_non_gating_and_response_mode_independent() -> 
     """Future failure: a capability work order must not become a classifier or response-mode quota."""
     allocation = PortfolioAllocation(slot=0, ecosystems=("a", "b", "c", "d", "e"))
 
-    calculation = question_generation_prompt(allocation, "evidence_grounded_calculation_or_proof")
+    calculation = question_generation_prompt(
+        allocation, "evidence_grounded_calculation_or_proof"
+    )
     structured = question_generation_prompt(allocation, "structured_field_semantics")
 
-    assert "never a classification, quota, acceptance gate, or no_generate reason" in calculation
+    assert (
+        "never a classification, quota, acceptance gate, or no_generate reason"
+        in calculation
+    )
     assert "Choose plain_text or structured independently" in calculation
     assert "plain-text route when structured output is not natural" in structured
     assert "response_mode" in QUESTION_GENERATION_SYSTEM
@@ -63,7 +72,12 @@ def test_portfolio_prompt_carries_only_bounded_prior_route_context() -> None:
 
 def test_every_llm_work_order_interprets_its_output_contract_and_examples() -> None:
     """Future failure: JSON Schema field names alone must not define stage semantics."""
-    for work_order in (PORTFOLIO_SYSTEM, QUESTION_GENERATION_SYSTEM, REFERENCE_SYSTEM, AUDIT_SYSTEM):
+    for work_order in (
+        PORTFOLIO_SYSTEM,
+        QUESTION_GENERATION_SYSTEM,
+        REFERENCE_SYSTEM,
+        AUDIT_SYSTEM,
+    ):
         assert "OUTPUT CONTRACT" in work_order
         assert "GOOD:" in work_order
         assert "BAD:" in work_order
@@ -84,7 +98,10 @@ def test_reference_work_orders_define_the_public_response_contract() -> None:
     assert "XML" in REFERENCE_SYSTEM
     assert "terse" in normalized_reference
     assert "explicit requested form" in normalized_reference
-    assert "correctness, requested coverage, instruction following, evidence support" in normalized_reference.casefold()
+    assert (
+        "correctness, requested coverage, instruction following, evidence support"
+        in normalized_reference.casefold()
+    )
     assert "calibrated uncertainty" in normalized_reference
     assert "prose-capable field" in normalized_reference
     assert "atomic field" in normalized_reference
@@ -105,10 +122,15 @@ def test_audit_work_order_owns_semantic_schema_disclosure() -> None:
     assert "ordinary field semantics" in normalized
     assert "actual canonical value" in normalized
     assert "independently re-fetched acceptance packet" in normalized
-    assert "do not infer omitted private proof fields or canonical_short_answers" in normalized
+    assert (
+        "do not infer omitted private proof fields or canonical_short_answers"
+        in normalized
+    )
 
 
-def test_audit_prompt_reuses_the_bounded_packet_serializer_without_format_drift() -> None:
+def test_audit_prompt_reuses_the_bounded_packet_serializer_without_format_drift() -> (
+    None
+):
     """Future failure: packet budgeting and the actual audit prompt must serialize identically."""
     packet = {
         "question": "Which value?",
@@ -123,16 +145,28 @@ def test_audit_prompt_reuses_the_bounded_packet_serializer_without_format_drift(
 
     assert _serialize_audit_packet(packet) == expected_json
     assert prompt == (
-        "Audit this proof packet and independently inspect the retained sources where needed:\n" + expected_json
+        "Audit this proof packet and independently inspect the retained sources where needed:\n"
+        + expected_json
     )
 
 
 def test_question_generation_work_order_preserves_ultra_agent_responsibility() -> None:
     """Future failure: final wording and source proof must not be split back into separate agents."""
     normalized = " ".join(QUESTION_GENERATION_SYSTEM.split())
-    assert "Own discovery, inspection, the positive answer route, and wording" in normalized
-    assert "inspect list_source_links; use regex_search before bounded read_lines" in normalized
+    assert (
+        "Own discovery, inspection, the positive answer route, and wording"
+        in normalized
+    )
+    assert (
+        "inspect list_source_links; use regex_search before bounded read_lines"
+        in normalized
+    )
     assert "publisher and version when relevant" in normalized
     assert "why_not_one_page" in QUESTION_GENERATION_SYSTEM
     assert "substantive_final_condition" in QUESTION_GENERATION_SYSTEM
-    assert set(GroundedQuestionDossier.model_fields) >= {"question", "answers", "derivation", "source_facts"}
+    assert set(GroundedQuestionDossier.model_fields) >= {
+        "question",
+        "answers",
+        "derivation",
+        "source_facts",
+    }

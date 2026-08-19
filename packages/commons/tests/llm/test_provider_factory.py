@@ -10,11 +10,17 @@ from harnyx_commons.config.llm import LlmSettings, OpenAiCompatibleEndpointConfi
 from harnyx_commons.config.vertex import VertexSettings
 from harnyx_commons.errors import ProviderCredentialUnavailableError
 from harnyx_commons.llm import provider_factory
-from harnyx_commons.llm.provider_types import AI_GATEWAY_PROVIDER, CHUTES_PROVIDER, OPENROUTER_PROVIDER
+from harnyx_commons.llm.provider_types import (
+    AI_GATEWAY_PROVIDER,
+    CHUTES_PROVIDER,
+    OPENROUTER_PROVIDER,
+)
 from harnyx_commons.llm.retry_utils import RetryPolicy
 
 
-def test_llm_settings_default_provider_concurrency_targets_match_activation_slice() -> None:
+def test_llm_settings_default_provider_concurrency_targets_match_activation_slice() -> (
+    None
+):
     assert LlmSettings.model_fields["bedrock_max_concurrent"].default == 100
     assert LlmSettings.model_fields["chutes_max_concurrent"].default == 100
     assert LlmSettings.model_fields["desearch_max_concurrent"].default == 100
@@ -270,7 +276,9 @@ def test_miner_paid_openrouter_provider_uses_explicit_key(
             self.delegate = delegate
             captured_adapters.append((provider_name, delegate))
 
-    monkeypatch.setattr(provider_factory, "OpenRouterLlmProvider", _FakeOpenRouterProvider)
+    monkeypatch.setattr(
+        provider_factory, "OpenRouterLlmProvider", _FakeOpenRouterProvider
+    )
     monkeypatch.setattr(provider_factory, "LlmProviderAdapter", _FakeAdapter)
 
     settings = LlmSettings(OPENROUTER_API_KEY="operator-openrouter-key")
@@ -305,7 +313,9 @@ def test_miner_paid_ai_gateway_provider_uses_explicit_key(
             self.delegate = delegate
             captured_adapters.append((provider_name, delegate))
 
-    monkeypatch.setattr(provider_factory, "AiGatewayLlmProvider", _FakeAiGatewayProvider)
+    monkeypatch.setattr(
+        provider_factory, "AiGatewayLlmProvider", _FakeAiGatewayProvider
+    )
     monkeypatch.setattr(provider_factory, "LlmProviderAdapter", _FakeAdapter)
 
     settings = LlmSettings(AI_GATEWAY_API_KEY="operator-ai-gateway-key")
@@ -354,7 +364,9 @@ async def test_build_cached_llm_provider_registry_closes_cached_providers_once(
         async def aclose(self) -> None:
             closed.append(self.provider_name)
 
-    def fake_build_provider(*, route_target, llm_settings, bedrock_settings, vertex_settings):
+    def fake_build_provider(
+        *, route_target, llm_settings, bedrock_settings, vertex_settings
+    ):
         _ = (llm_settings, bedrock_settings, vertex_settings)
         return _FakeProvider(provider_name=route_target)
 
@@ -396,7 +408,9 @@ async def test_build_cached_llm_provider_registry_closes_later_providers_after_f
             if self.provider_name == "chutes":
                 raise RuntimeError("boom")
 
-    def fake_build_provider(*, route_target, llm_settings, bedrock_settings, vertex_settings):
+    def fake_build_provider(
+        *, route_target, llm_settings, bedrock_settings, vertex_settings
+    ):
         _ = (llm_settings, bedrock_settings, vertex_settings)
         return _FakeProvider(provider_name=route_target)
 
@@ -421,7 +435,9 @@ async def test_build_cached_llm_provider_registry_closes_later_providers_after_f
 
     assert closed == ["chutes", "bedrock"]
     assert len(exc_info.value.exceptions) == 1
-    assert exc_info.value.exceptions[0].__notes__ == ["cached llm provider close failed: chutes"]
+    assert exc_info.value.exceptions[0].__notes__ == [
+        "cached llm provider close failed: chutes"
+    ]
 
 
 def test_build_cached_llm_provider_registry_caches_custom_openai_compatible_endpoint(
@@ -441,7 +457,9 @@ def test_build_cached_llm_provider_registry_caches_custom_openai_compatible_endp
             self.delegate = delegate
             captured_adapters.append((provider_name, delegate))
 
-    monkeypatch.setattr(provider_factory, "OpenAiCompatibleLlmProvider", _FakeOpenAiCompatibleProvider)
+    monkeypatch.setattr(
+        provider_factory, "OpenAiCompatibleLlmProvider", _FakeOpenAiCompatibleProvider
+    )
     monkeypatch.setattr(provider_factory, "LlmProviderAdapter", _FakeAdapter)
 
     registry = provider_factory.build_cached_llm_provider_registry(
@@ -467,7 +485,9 @@ def test_build_cached_llm_provider_registry_caches_custom_openai_compatible_endp
     assert captured_endpoints[0].id == "gemma4-cloud-run-turbo"
     first_adapter = cast(_FakeAdapter, first)
     first_delegate = cast(_FakeOpenAiCompatibleProvider, first_adapter.delegate)
-    assert captured_adapters == [("custom-openai-compatible:gemma4-cloud-run-turbo", first_delegate)]
+    assert captured_adapters == [
+        ("custom-openai-compatible:gemma4-cloud-run-turbo", first_delegate)
+    ]
     assert first_delegate.endpoint.id == "gemma4-cloud-run-turbo"
 
 
@@ -487,7 +507,9 @@ def test_build_cached_llm_provider_registry_builds_hardcoded_openrouter_target(
             self.delegate = delegate
             captured_adapters.append((provider_name, delegate))
 
-    monkeypatch.setattr(provider_factory, "OpenRouterLlmProvider", _FakeOpenRouterProvider)
+    monkeypatch.setattr(
+        provider_factory, "OpenRouterLlmProvider", _FakeOpenRouterProvider
+    )
     monkeypatch.setattr(provider_factory, "LlmProviderAdapter", _FakeAdapter)
 
     settings = LlmSettings(OPENROUTER_API_KEY="test-openrouter-key")
@@ -529,7 +551,9 @@ def test_build_cached_llm_provider_registry_builds_hardcoded_ai_gateway_target(
             self.delegate = delegate
             captured_adapters.append((provider_name, delegate))
 
-    monkeypatch.setattr(provider_factory, "AiGatewayLlmProvider", _FakeAiGatewayProvider)
+    monkeypatch.setattr(
+        provider_factory, "AiGatewayLlmProvider", _FakeAiGatewayProvider
+    )
     monkeypatch.setattr(provider_factory, "LlmProviderAdapter", _FakeAdapter)
 
     settings = LlmSettings(AI_GATEWAY_API_KEY="test-ai-gateway-key")
@@ -564,7 +588,9 @@ def test_build_cached_llm_provider_registry_does_not_treat_openrouter_as_configu
         def __init__(self, **kwargs: object) -> None:
             captured_openrouter.append(kwargs)
 
-    monkeypatch.setattr(provider_factory, "OpenRouterLlmProvider", _FakeOpenRouterProvider)
+    monkeypatch.setattr(
+        provider_factory, "OpenRouterLlmProvider", _FakeOpenRouterProvider
+    )
 
     registry = provider_factory.build_cached_llm_provider_registry(
         llm_settings=LlmSettings(OPENROUTER_API_KEY="operator-openrouter-key"),

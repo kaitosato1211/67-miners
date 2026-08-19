@@ -56,7 +56,11 @@ def test_build_tool_results_search_web_referenceable() -> None:
 def test_build_tool_results_fetch_page_referenceable() -> None:
     payload = {
         "data": [
-            {"url": "https://example.com/page-1", "content": "first page", "title": "Page"},
+            {
+                "url": "https://example.com/page-1",
+                "content": "first page",
+                "title": "Page",
+            },
             {"url": "https://example.com/page-2", "content": "second page"},
             {"url": None, "text": "missing url"},
         ],
@@ -69,7 +73,9 @@ def test_build_tool_results_fetch_page_referenceable() -> None:
     )
 
     assert len(results) == 2
-    assert [(result.index, result.url, result.note, result.title) for result in results] == [
+    assert [
+        (result.index, result.url, result.note, result.title) for result in results
+    ] == [
         (0, "https://example.com/page-1", "first page", "Page"),
         (1, "https://example.com/page-2", "second page", None),
     ]

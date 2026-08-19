@@ -42,12 +42,17 @@ async def test_desearch_client_posts_payload() -> None:
         client=client,
     )
 
-    request = SearchWebSearchRequest(provider="desearch", search_queries=("harnyx", "subnet"), num=5)
+    request = SearchWebSearchRequest(
+        provider="desearch", search_queries=("harnyx", "subnet"), num=5
+    )
     result = await adapter.search_links_web(request)
 
     assert result.data == []
     assert captured["method"] == "GET"
-    assert captured["url"] == "https://api.desearch.ai/web?query=%28harnyx%29+OR+%28subnet%29"
+    assert (
+        captured["url"]
+        == "https://api.desearch.ai/web?query=%28harnyx%29+OR+%28subnet%29"
+    )
     assert captured["headers"]["authorization"] == "test-key"
 
 
@@ -56,7 +61,13 @@ async def test_desearch_client_captures_json_object_cost_usd_body_metadata() -> 
         return httpx.Response(
             200,
             json={
-                "data": [{"link": "https://example.com", "title": "Example", "snippet": "Summary"}],
+                "data": [
+                    {
+                        "link": "https://example.com",
+                        "title": "Example",
+                        "snippet": "Summary",
+                    }
+                ],
                 "cost_usd": 0.00015,
                 "usage_count": 1,
                 "service": "web",
@@ -68,7 +79,9 @@ async def test_desearch_client_captures_json_object_cost_usd_body_metadata() -> 
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="test-key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="test-key", client=client
+    )
 
     result = await adapter.search_web(
         SearchWebSearchRequest(provider="desearch", search_queries=("harnyx",), num=5)
@@ -87,7 +100,13 @@ async def test_desearch_client_captures_array_cost_from_headers() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json=[{"link": "https://example.com", "title": "Example", "snippet": "Summary"}],
+            json=[
+                {
+                    "link": "https://example.com",
+                    "title": "Example",
+                    "snippet": "Summary",
+                }
+            ],
             headers={
                 "X-Desearch-Cost-Usd": "0.00017",
                 "X-Desearch-Usage-Count": "2",
@@ -100,7 +119,9 @@ async def test_desearch_client_captures_array_cost_from_headers() -> None:
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="test-key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="test-key", client=client
+    )
 
     result = await adapter.search_web(
         SearchWebSearchRequest(provider="desearch", search_queries=("harnyx",), num=5)
@@ -122,7 +143,9 @@ async def test_desearch_client_preserves_single_search_term() -> None:
         client=client,
     )
 
-    request = SearchWebSearchRequest(provider="desearch", search_queries=("United States",), num=5)
+    request = SearchWebSearchRequest(
+        provider="desearch", search_queries=("United States",), num=5
+    )
     result = await adapter.search_links_web(request)
 
     assert result.data == []
@@ -139,11 +162,15 @@ async def test_desearch_client_raises_on_error_status() -> None:
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="test-key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="test-key", client=client
+    )
 
     with pytest.raises(RuntimeError):
         await adapter.search_links_web(
-            SearchWebSearchRequest(provider="desearch", search_queries=("harnyx", "subnet"))
+            SearchWebSearchRequest(
+                provider="desearch", search_queries=("harnyx", "subnet")
+            )
         )
 
 
@@ -154,15 +181,21 @@ async def test_desearch_client_twitter_search() -> None:
         captured["method"] = request.method
         captured["url"] = str(request.url)
         captured["params"] = request.url.params
-        return httpx.Response(200, json=[{"text": "hello", "user": {"username": "foo"}}])
+        return httpx.Response(
+            200, json=[{"text": "hello", "user": {"username": "foo"}}]
+        )
 
     client = httpx.AsyncClient(
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
-    response = await adapter.search_links_twitter(SearchXSearchRequest(query="#harnyx", count=3))
+    response = await adapter.search_links_twitter(
+        SearchXSearchRequest(query="#harnyx", count=3)
+    )
 
     assert response.data[0].text == "hello"
     assert captured["method"] == "GET"
@@ -203,7 +236,9 @@ async def test_desearch_client_ai_search_twitter_posts_posts_payload() -> None:
             )
 
         if request.url.path == "/twitter/post":
-            raise AssertionError("ai_search_twitter_posts should not call /twitter/post when tweets are present")
+            raise AssertionError(
+                "ai_search_twitter_posts should not call /twitter/post when tweets are present"
+            )
 
         raise AssertionError(f"unexpected request: {request.method} {request.url}")
 
@@ -211,7 +246,9 @@ async def test_desearch_client_ai_search_twitter_posts_posts_payload() -> None:
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     response = await adapter.ai_search_twitter_posts(
         prompt="harnyx subnet",
@@ -224,13 +261,22 @@ async def test_desearch_client_ai_search_twitter_posts_posts_payload() -> None:
     assert response.completion == "hello"
 
 
-async def test_desearch_client_search_ai_clamps_count_and_preserves_retry_metadata() -> None:
+async def test_desearch_client_search_ai_clamps_count_and_preserves_retry_metadata() -> (
+    None
+):
     async def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path != "/desearch/ai/search":
             raise AssertionError(f"unexpected request: {request.method} {request.url}")
         payload = json.loads(request.content)
         assert payload["prompt"] == "harnyx subnet"
-        assert payload["tools"] == ["web", "hackernews", "reddit", "wikipedia", "youtube", "arxiv"]
+        assert payload["tools"] == [
+            "web",
+            "hackernews",
+            "reddit",
+            "wikipedia",
+            "youtube",
+            "arxiv",
+        ]
         assert payload["result_type"] == "LINKS_WITH_FINAL_SUMMARY"
         assert payload["system_message"] == ""
         assert payload["count"] == 10
@@ -252,7 +298,9 @@ async def test_desearch_client_search_ai_clamps_count_and_preserves_retry_metada
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     result = await adapter.search_ai(
         SearchAiSearchRequest(provider="desearch", prompt="harnyx subnet", count=10)
@@ -294,9 +342,13 @@ async def test_desearch_client_search_ai_accepts_summary_and_results_shape() -> 
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
-    result = await adapter.search_ai(SearchAiSearchRequest(provider="desearch", prompt="hamlet", count=10))
+    result = await adapter.search_ai(
+        SearchAiSearchRequest(provider="desearch", prompt="hamlet", count=10)
+    )
     response = result.response
 
     assert [item.model_dump(exclude_none=True) for item in response.data] == [
@@ -332,9 +384,13 @@ async def test_desearch_client_search_ai_accepts_sdk_search_results_shape() -> N
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
-    result = await adapter.search_ai(SearchAiSearchRequest(provider="desearch", prompt="hamlet", count=10))
+    result = await adapter.search_ai(
+        SearchAiSearchRequest(provider="desearch", prompt="hamlet", count=10)
+    )
     response = result.response
 
     assert [item.model_dump(exclude_none=True) for item in response.data] == [
@@ -346,22 +402,31 @@ async def test_desearch_client_search_ai_accepts_sdk_search_results_shape() -> N
     ]
 
 
-async def test_desearch_client_search_ai_summary_only_shape_returns_empty_results() -> None:
+async def test_desearch_client_search_ai_summary_only_shape_returns_empty_results() -> (
+    None
+):
     async def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path != "/desearch/ai/search":
             raise AssertionError(f"unexpected request: {request.method} {request.url}")
         return httpx.Response(
             200,
-            json={"summary": "Hamlet is a tragedy by Shakespeare.", "cost_usd": 0.00034},
+            json={
+                "summary": "Hamlet is a tragedy by Shakespeare.",
+                "cost_usd": 0.00034,
+            },
         )
 
     client = httpx.AsyncClient(
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
-    result = await adapter.search_ai(SearchAiSearchRequest(provider="desearch", prompt="hamlet", count=10))
+    result = await adapter.search_ai(
+        SearchAiSearchRequest(provider="desearch", prompt="hamlet", count=10)
+    )
     response = result.response
 
     assert response.data == []
@@ -375,15 +440,21 @@ async def test_desearch_client_fetch_page_text() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         captured["method"] = request.method
         captured["url"] = str(request.url)
-        return httpx.Response(200, text="example page content", headers={"X-Desearch-Cost-Usd": "0.00021"})
+        return httpx.Response(
+            200, text="example page content", headers={"X-Desearch-Cost-Usd": "0.00021"}
+        )
 
     client = httpx.AsyncClient(
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
-    result = await adapter.fetch_page(FetchPageRequest(provider="desearch", url="https://example.com"))
+    result = await adapter.fetch_page(
+        FetchPageRequest(provider="desearch", url="https://example.com")
+    )
     response = result.response
 
     assert response.data[0].url == "https://example.com"
@@ -391,7 +462,10 @@ async def test_desearch_client_fetch_page_text() -> None:
     assert response.attempts == 1
     assert response.retry_reasons == ()
     assert captured["method"] == "GET"
-    assert captured["url"] == "https://api.desearch.ai/web/crawl?url=https%3A%2F%2Fexample.com&format=text"
+    assert (
+        captured["url"]
+        == "https://api.desearch.ai/web/crawl?url=https%3A%2F%2Fexample.com&format=text"
+    )
 
 
 async def test_desearch_client_fetch_page_captures_text_cost_from_headers() -> None:
@@ -409,9 +483,13 @@ async def test_desearch_client_fetch_page_captures_text_cost_from_headers() -> N
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
-    result = await adapter.fetch_page(FetchPageRequest(provider="desearch", url="https://example.com"))
+    result = await adapter.fetch_page(
+        FetchPageRequest(provider="desearch", url="https://example.com")
+    )
 
     assert result.response.data[0].content == "example page content"
     assert result.billing is not None
@@ -420,11 +498,16 @@ async def test_desearch_client_fetch_page_captures_text_cost_from_headers() -> N
     assert result.billing.source == "response_headers"
 
 
-async def test_desearch_client_malformed_billing_metadata_returns_response_for_static_pricing() -> None:
+async def test_desearch_client_malformed_billing_metadata_returns_response_for_static_pricing() -> (
+    None
+):
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"data": [{"link": "https://example.com"}], "cost_usd": "not-a-number"},
+            json={
+                "data": [{"link": "https://example.com"}],
+                "cost_usd": "not-a-number",
+            },
             headers={"X-Desearch-Usage-Count": "also-not-a-number"},
         )
 
@@ -432,7 +515,9 @@ async def test_desearch_client_malformed_billing_metadata_returns_response_for_s
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     result = await adapter.search_web(
         SearchWebSearchRequest(provider="desearch", search_queries=("harnyx",), num=5)
@@ -457,11 +542,15 @@ async def test_desearch_client_rejects_nonfinite_billing_metadata() -> None:
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     with pytest.raises(ToolProviderError) as exc_info:
         await adapter.search_web(
-            SearchWebSearchRequest(provider="desearch", search_queries=("harnyx",), num=5)
+            SearchWebSearchRequest(
+                provider="desearch", search_queries=("harnyx",), num=5
+            )
         )
 
     assert isinstance(exc_info.value.__cause__, ValueError)
@@ -486,18 +575,24 @@ async def test_desearch_client_rejects_negative_billing_metadata(
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     with pytest.raises(ToolProviderError) as exc_info:
         await adapter.search_web(
-            SearchWebSearchRequest(provider="desearch", search_queries=("harnyx",), num=5)
+            SearchWebSearchRequest(
+                provider="desearch", search_queries=("harnyx",), num=5
+            )
         )
 
     assert isinstance(exc_info.value.__cause__, ValueError)
     assert "cost metadata must be non-negative" in str(exc_info.value.__cause__)
 
 
-async def test_desearch_client_partial_billing_metadata_returns_response_for_static_pricing() -> None:
+async def test_desearch_client_partial_billing_metadata_returns_response_for_static_pricing() -> (
+    None
+):
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -508,7 +603,9 @@ async def test_desearch_client_partial_billing_metadata_returns_response_for_sta
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     result = await adapter.search_web(
         SearchWebSearchRequest(provider="desearch", search_queries=("harnyx",), num=5)
@@ -529,10 +626,14 @@ async def test_desearch_client_fetch_page_raises_on_error_status() -> None:
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     with pytest.raises(RuntimeError):
-        await adapter.fetch_page(FetchPageRequest(provider="desearch", url="https://example.com"))
+        await adapter.fetch_page(
+            FetchPageRequest(provider="desearch", url="https://example.com")
+        )
 
 
 async def test_desearch_client_fetch_page_rejects_blank_text() -> None:
@@ -543,7 +644,11 @@ async def test_desearch_client_fetch_page_rejects_blank_text() -> None:
         base_url="https://api.desearch.ai",
         transport=httpx.MockTransport(handler),
     )
-    adapter = DeSearchClient(base_url="https://api.desearch.ai", api_key="key", client=client)
+    adapter = DeSearchClient(
+        base_url="https://api.desearch.ai", api_key="key", client=client
+    )
 
     with pytest.raises(ValueError):
-        await adapter.fetch_page(FetchPageRequest(provider="desearch", url="https://example.com"))
+        await adapter.fetch_page(
+            FetchPageRequest(provider="desearch", url="https://example.com")
+        )

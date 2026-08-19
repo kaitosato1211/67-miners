@@ -5,7 +5,13 @@ import json
 from pydantic import BaseModel
 
 from harnyx_commons.llm.json_utils import pydantic_postprocessor
-from harnyx_commons.llm.schema import LlmChoice, LlmChoiceMessage, LlmMessageContentPart, LlmResponse, LlmUsage
+from harnyx_commons.llm.schema import (
+    LlmChoice,
+    LlmChoiceMessage,
+    LlmMessageContentPart,
+    LlmResponse,
+    LlmUsage,
+)
 
 
 class _ExampleAnswer(BaseModel):
@@ -29,7 +35,9 @@ def _response(text: str) -> LlmResponse:
     )
 
 
-def test_pydantic_postprocessor_emits_recovery_context_for_json_decode_failure() -> None:
+def test_pydantic_postprocessor_emits_recovery_context_for_json_decode_failure() -> (
+    None
+):
     postprocessor = pydantic_postprocessor(_ExampleAnswer)
 
     result = postprocessor(_response("not valid json"))

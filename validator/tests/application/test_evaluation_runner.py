@@ -24,7 +24,12 @@ from harnyx_commons.domain.miner_task import (
     Response,
     ScoreBreakdown,
 )
-from harnyx_commons.domain.session import LlmUsageTotals, Session, SessionStatus, SessionUsage
+from harnyx_commons.domain.session import (
+    LlmUsageTotals,
+    Session,
+    SessionStatus,
+    SessionUsage,
+)
 from harnyx_commons.domain.tool_call import (
     SearchToolResult,
     ToolCall,
@@ -53,12 +58,17 @@ from harnyx_validator.application.dto.evaluation import (
     TokenUsageSummary,
     ValidatorBatchFailureDetail,
 )
-from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator, UsageSummarizer
+from harnyx_validator.application.evaluate_task_run import (
+    TaskRunOrchestrator,
+    UsageSummarizer,
+)
 from harnyx_validator.application.invoke_entrypoint import (
     MinerResponseValidationError,
     SandboxInvocationError,
 )
-from harnyx_validator.application.platform_tool_proxy import PlatformToolProxyScopeRegistry
+from harnyx_validator.application.platform_tool_proxy import (
+    PlatformToolProxyScopeRegistry,
+)
 from harnyx_validator.application.ports.platform import PlatformToolProxyControlError
 from harnyx_validator.application.ports.subtensor import ValidatorNodeInfo
 from harnyx_validator.application.scheduler import SchedulerConfig
@@ -69,15 +79,21 @@ from harnyx_validator.application.services.evaluation_runner import (
     ValidatorBatchFailedError,
 )
 from harnyx_validator.domain.evaluation import MinerTaskRun
-from harnyx_validator.infrastructure.scoring.vertex_embedding import VertexEmbeddingRetryExhaustedError
+from harnyx_validator.infrastructure.scoring.vertex_embedding import (
+    VertexEmbeddingRetryExhaustedError,
+)
 from harnyx_validator.infrastructure.state.run_progress import FileBackedRunProgress
 from validator.tests.fixtures.fakes import FakeReceiptLog, FakeSessionRegistry
 from validator.tests.fixtures.subtensor import FakeSubtensorClient
 
 pytestmark = pytest.mark.anyio("asyncio")
 _ASSIGNMENT_TOKEN = "assignment-token"  # noqa: S105 - fixed test-only assignment token
-_FAILED_ASSIGNMENT_TOKEN = "failed-assignment-token"  # noqa: S105 - fixed test-only assignment token
-_COMPLETED_ASSIGNMENT_TOKEN = "completed-assignment-token"  # noqa: S105 - fixed test-only assignment token
+_FAILED_ASSIGNMENT_TOKEN = (
+    "failed-assignment-token"  # noqa: S105 - fixed test-only assignment token
+)
+_COMPLETED_ASSIGNMENT_TOKEN = (
+    "completed-assignment-token"  # noqa: S105 - fixed test-only assignment token
+)
 
 
 class _AssignedWork:
@@ -93,7 +109,9 @@ class _AssignedWork:
         self.initial_claims: list[MinerTaskWorkAssignment] = []
         self.dispatch_claims: list[MinerTaskWorkAssignment] = []
         self.started: list[tuple[MinerTaskWorkAssignment, UUID]] = []
-        self.failed_before_start: list[tuple[MinerTaskWorkAssignment, PlatformOwnedTaskResult]] = []
+        self.failed_before_start: list[
+            tuple[MinerTaskWorkAssignment, PlatformOwnedTaskResult]
+        ] = []
 
     async def take_for_startup(self) -> MinerTaskWorkAssignment:
         return await self.queue.get()
@@ -112,7 +130,9 @@ class _AssignedWork:
     def mark_dispatch_ready(self) -> None:
         return None
 
-    def claim_initial_for_dispatch(self, assignment: MinerTaskWorkAssignment) -> _ClaimedAssignedTaskFake:
+    def claim_initial_for_dispatch(
+        self, assignment: MinerTaskWorkAssignment
+    ) -> _ClaimedAssignedTaskFake:
         self.initial_claims.append(assignment)
         return _ClaimedAssignedTaskFake(self, assignment)
 
@@ -126,17 +146,23 @@ class _AssignedWork:
         self.dispatch_claims.append(assignment)
         return _ClaimedAssignedTaskFake(self, assignment)
 
-    def _mark_started(self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID) -> None:
+    def _mark_started(
+        self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID
+    ) -> None:
         self.started.append((assignment, validator_session_id))
 
-    def _fail_before_start(self, assignment: MinerTaskWorkAssignment, result: PlatformOwnedTaskResult) -> None:
+    def _fail_before_start(
+        self, assignment: MinerTaskWorkAssignment, result: PlatformOwnedTaskResult
+    ) -> None:
         self.failed_before_start.append((assignment, result))
         if self.result_queue is not None:
             self.result_queue.put_nowait(result)
 
 
 class _ClaimedAssignedTaskFake:
-    def __init__(self, owner: _AssignedWork, assignment: MinerTaskWorkAssignment) -> None:
+    def __init__(
+        self, owner: _AssignedWork, assignment: MinerTaskWorkAssignment
+    ) -> None:
         self._owner = owner
         self._assignment = assignment
 
@@ -202,7 +228,9 @@ class _FailingTerminatedAttemptProgress(FileBackedRunProgress):
 
 class _ExplodingValidatorInfoSubtensorClient(FakeSubtensorClient):
     def validator_info(self) -> ValidatorNodeInfo:
-        raise AssertionError("assigned task result construction must not read validator UID")
+        raise AssertionError(
+            "assigned task result construction must not read validator UID"
+        )
 
 
 def _assigned_task_test_context(
@@ -228,7 +256,11 @@ def _assigned_task_test_context(
     session_manager = SessionManager(session_registry, InMemoryTokenRegistry())
     receipt_log = FakeReceiptLog()
     progress = _progress(tmp_path) if progress is None else progress
-    evaluation_records = _RecordingEvaluationStore() if evaluation_records is None else evaluation_records
+    evaluation_records = (
+        _RecordingEvaluationStore()
+        if evaluation_records is None
+        else evaluation_records
+    )
     runner = EvaluationRunner(
         subtensor_client=subtensor,
         session_manager=session_manager,
@@ -249,7 +281,16 @@ def _assigned_task_test_context(
         content_hash="artifact-hash",
         size_bytes=128,
     )
-    return runner, uuid4(), artifact, task, session_registry, receipt_log, progress, evaluation_records
+    return (
+        runner,
+        uuid4(),
+        artifact,
+        task,
+        session_registry,
+        receipt_log,
+        progress,
+        evaluation_records,
+    )
 
 
 def _assert_local_recording_warning(
@@ -272,7 +313,9 @@ def _assert_local_recording_warning(
     assert data["batch_id"] == str(batch_id)
     assert data["artifact_id"] == str(artifact.artifact_id)
     assert data["task_id"] == str(task.task_id)
-    assert data["validator_session_id"] == str(result.terminal_attempt.validator_session_id)
+    assert data["validator_session_id"] == str(
+        result.terminal_attempt.validator_session_id
+    )
     assert data["attempt_number"] == result.attempt_number
     assert data["max_attempts"] == result.terminal_attempt.max_attempts
     assert data["error_code"] == result.terminal_attempt.error_code
@@ -406,7 +449,8 @@ def _successful_execution(
         ),
         uid=request.uid,
         response=Response(text=f"execution {request.task.query.text}"),
-        execution_completed_at=completed_at or datetime(2025, 10, 17, 12, 3, tzinfo=UTC),
+        execution_completed_at=completed_at
+        or datetime(2025, 10, 17, 12, 3, tzinfo=UTC),
         usage=TokenUsageSummary.empty(),
         total_tool_usage=ToolUsageSummary.zero(),
         trace=EvaluationTrace(entrypoint_invocation_ms=12.0, scoring_ms=0.0),
@@ -500,7 +544,11 @@ def _platform_owned_task_result(
             miner_hotkey_ss58="miner-hotkey",
             started_at=now,
             finished_at=now,
-            status=MinerTaskAttemptStatus.FAILED if failed else MinerTaskAttemptStatus.SUCCEEDED,
+            status=(
+                MinerTaskAttemptStatus.FAILED
+                if failed
+                else MinerTaskAttemptStatus.SUCCEEDED
+            ),
             error_code="artifact_setup_failed" if failed else None,
             error_summary_code="artifact_setup_failed" if failed else None,
             retry_decision=MinerTaskAttemptRetryDecision.WILL_NOT_RETRY,
@@ -544,7 +592,9 @@ async def _run_assigned_task_queue_until_results(
     return tuple(results)
 
 
-async def test_evaluate_assigned_task_queue_success_queues_execution_before_scoring(tmp_path: Path) -> None:
+async def test_evaluate_assigned_task_queue_success_queues_execution_before_scoring(
+    tmp_path: Path,
+) -> None:
     runner, batch_id, artifact, task, _, _, _, _ = _assigned_task_test_context(tmp_path)
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
@@ -557,7 +607,9 @@ async def test_evaluate_assigned_task_queue_success_queues_execution_before_scor
     completed_at = datetime(2025, 10, 17, 12, 3, tzinfo=UTC)
 
     class _ExecutionOnlyOrchestrator:
-        async def execute(self, request: MinerTaskRunRequest, *, phase_recorder=None) -> TaskExecutionOutcome:
+        async def execute(
+            self, request: MinerTaskRunRequest, *, phase_recorder=None
+        ) -> TaskExecutionOutcome:
             _ = phase_recorder
             return TaskExecutionOutcome(
                 batch_id=request.batch_id,
@@ -581,7 +633,9 @@ async def test_evaluate_assigned_task_queue_success_queues_execution_before_scor
                 trace=EvaluationTrace(entrypoint_invocation_ms=12.0, scoring_ms=0.0),
             )
 
-    result_queue: asyncio.Queue[PlatformOwnedTaskExecution | PlatformOwnedTaskResult] = asyncio.Queue()
+    result_queue: asyncio.Queue[
+        PlatformOwnedTaskExecution | PlatformOwnedTaskResult
+    ] = asyncio.Queue()
     close_requested = asyncio.Event()
     execution_task = asyncio.create_task(
         runner.evaluate_assigned_task_queue(
@@ -673,7 +727,9 @@ async def test_evaluate_assigned_task_queue_drains_same_tick_results_before_deli
     async def evaluate_issued_assigned_task(**kwargs):
         return results_by_task[kwargs["task"].task_id]
 
-    monkeypatch.setattr(runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task)
+    monkeypatch.setattr(
+        runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task
+    )
 
     assigned_work = _AssignedWork()
     result_queue: asyncio.Queue[PlatformOwnedTaskResult] = asyncio.Queue()
@@ -692,10 +748,7 @@ async def test_evaluate_assigned_task_queue_drains_same_tick_results_before_deli
         failed_task.task_id,
         completed_task.task_id,
     }
-    assert {
-        result.terminal_attempt.terminal_effect
-        for result in results
-    } == {
+    assert {result.terminal_attempt.terminal_effect for result in results} == {
         MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE,
         MinerTaskAttemptTerminalEffect.TASK_RESULT,
     }
@@ -709,7 +762,9 @@ async def test_evaluate_assigned_task_queue_delivery_failure_does_not_cancel_sta
 ) -> None:
     """Prevent a delivery-wide failure from stealing the exit path of an already-started task."""
 
-    runner, batch_id, artifact, started_task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, started_task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     setup_failure_task = MinerTask(
         task_id=uuid4(),
         query=Query(text="setup failure"),
@@ -743,10 +798,14 @@ async def test_evaluate_assigned_task_queue_delivery_failure_does_not_cancel_sta
         return original_issue_session(**kwargs)
 
     class _BlockingOrchestrator:
-        async def evaluate(self, request: MinerTaskRunRequest, *, phase_recorder=None) -> TaskRunOutcome:
+        async def evaluate(
+            self, request: MinerTaskRunRequest, *, phase_recorder=None
+        ) -> TaskRunOutcome:
             _ = phase_recorder
             if request.task.task_id != started_task.task_id:
-                raise AssertionError("setup-failed assignment should not reach miner invocation")
+                raise AssertionError(
+                    "setup-failed assignment should not reach miner invocation"
+                )
             first_execution_entered.set()
             await release_first_execution.wait()
             return _successful_outcome(request, score=1.0)
@@ -768,14 +827,23 @@ async def test_evaluate_assigned_task_queue_delivery_failure_does_not_cancel_sta
         await asyncio.wait_for(first_execution_entered.wait(), timeout=1.0)
         delivery_result = await asyncio.wait_for(result_queue.get(), timeout=1.0)
         assert delivery_result.task_id == setup_failure_task.task_id
-        assert delivery_result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+        assert (
+            delivery_result.terminal_attempt.terminal_effect
+            is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+        )
         assert not execution.done()
 
         release_first_execution.set()
         started_result = await asyncio.wait_for(result_queue.get(), timeout=1.0)
         assert started_result.task_id == started_task.task_id
-        assert started_result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
-        assert session_registry.get(started_result.terminal_attempt.validator_session_id) is None
+        assert (
+            started_result.terminal_attempt.terminal_effect
+            is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        )
+        assert (
+            session_registry.get(started_result.terminal_attempt.validator_session_id)
+            is None
+        )
     finally:
         close_requested.set()
         release_first_execution.set()
@@ -838,7 +906,9 @@ async def test_evaluate_assigned_task_queue_converts_task_exception_and_drains_s
             terminal_effect=MinerTaskAttemptTerminalEffect.TASK_RESULT,
         )
 
-    monkeypatch.setattr(runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task)
+    monkeypatch.setattr(
+        runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task
+    )
 
     assigned_work = _AssignedWork()
     result_queue: asyncio.Queue[PlatformOwnedTaskResult] = asyncio.Queue()
@@ -853,16 +923,31 @@ async def test_evaluate_assigned_task_queue_converts_task_exception_and_drains_s
         expected_result_count=2,
     )
 
-    assert {result.task_id for result in results} == {failed_task.task_id, completed_task.task_id}
-    failure_result = next(result for result in results if result.task_id == failed_task.task_id)
+    assert {result.task_id for result in results} == {
+        failed_task.task_id,
+        completed_task.task_id,
+    }
+    failure_result = next(
+        result for result in results if result.task_id == failed_task.task_id
+    )
     assert failure_result.result is None
-    assert failure_result.terminal_attempt.error_code == str(MinerTaskErrorCode.UNEXPECTED_VALIDATOR_FAILURE)
-    assert failure_result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert failure_result.terminal_attempt.error_code == str(
+        MinerTaskErrorCode.UNEXPECTED_VALIDATOR_FAILURE
+    )
+    assert (
+        failure_result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert failure_result.terminal_attempt.terminal_effect is None
     assert failure_result.terminal_attempt.diagnostics is not None
     assert failure_result.terminal_attempt.diagnostics.failure_owner == "RuntimeError"
-    success_result = next(result for result in results if result.task_id == completed_task.task_id)
-    assert success_result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    success_result = next(
+        result for result in results if result.task_id == completed_task.task_id
+    )
+    assert (
+        success_result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     assert assigned_work.initial_claims == [failed_assignment, completed_assignment]
     assert result_queue.empty()
 
@@ -871,7 +956,9 @@ async def test_evaluate_assigned_task_queue_final_invocation_exception_becomes_a
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -884,7 +971,9 @@ async def test_evaluate_assigned_task_queue_final_invocation_exception_becomes_a
     async def evaluate_issued_assigned_task(**_kwargs):
         raise RuntimeError("miner invocation raised before task result")
 
-    monkeypatch.setattr(runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task)
+    monkeypatch.setattr(
+        runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task
+    )
 
     assigned_work = _AssignedWork()
     result_queue: asyncio.Queue[PlatformOwnedTaskResult] = asyncio.Queue()
@@ -901,8 +990,14 @@ async def test_evaluate_assigned_task_queue_final_invocation_exception_becomes_a
 
     (result,) = results
     assert result.result is None
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.ATTEMPT_FAILURE
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.ATTEMPT_FAILURE
+    )
     assert result.terminal_attempt.diagnostics is not None
     assert result.terminal_attempt.diagnostics.failure_owner == "RuntimeError"
     assert session_registry.get(result.terminal_attempt.validator_session_id) is None
@@ -928,7 +1023,9 @@ async def test_evaluation_runner_assigned_task_final_delivery_disqualifying_vali
         ),
     )
 
-    async def evaluate_task_attempt(**_kwargs) -> evaluation_runner_module.TaskAttemptDecision:
+    async def evaluate_task_attempt(
+        **_kwargs,
+    ) -> evaluation_runner_module.TaskAttemptDecision:
         return evaluation_runner_module._validator_batch_failure_decision(
             ValidatorBatchFailedError(
                 error_code=MinerTaskErrorCode.SANDBOX_START_FAILED,
@@ -951,9 +1048,17 @@ async def test_evaluation_runner_assigned_task_final_delivery_disqualifying_vali
 
     assert result.result is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
-    assert result.terminal_attempt.error_code == str(MinerTaskErrorCode.SANDBOX_START_FAILED)
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert result.terminal_attempt.error_code == str(
+        MinerTaskErrorCode.SANDBOX_START_FAILED
+    )
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
     assert result.terminal_attempt.delivery_failure_detail == failure_detail
 
 
@@ -972,7 +1077,9 @@ async def test_evaluation_runner_assigned_task_retryable_delivery_disqualifying_
         sandbox_diagnostics=SandboxFailureDiagnostics(exit_code=255),
     )
 
-    async def evaluate_task_attempt(**_kwargs) -> evaluation_runner_module.TaskAttemptDecision:
+    async def evaluate_task_attempt(
+        **_kwargs,
+    ) -> evaluation_runner_module.TaskAttemptDecision:
         return evaluation_runner_module._validator_batch_failure_decision(
             ValidatorBatchFailedError(
                 error_code=MinerTaskErrorCode.SANDBOX_START_FAILED,
@@ -995,8 +1102,13 @@ async def test_evaluation_runner_assigned_task_retryable_delivery_disqualifying_
 
     assert result.result is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
-    assert result.terminal_attempt.error_code == str(MinerTaskErrorCode.SANDBOX_START_FAILED)
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert result.terminal_attempt.error_code == str(
+        MinerTaskErrorCode.SANDBOX_START_FAILED
+    )
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert result.terminal_attempt.terminal_effect is None
     assert result.terminal_attempt.delivery_failure_detail is None
 
@@ -1005,7 +1117,9 @@ async def test_evaluate_assigned_task_queue_final_delivery_failure_closes_group_
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, started_task, _, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, started_task, _, _, _, _ = _assigned_task_test_context(
+        tmp_path
+    )
     delivery_failure_task = MinerTask(
         task_id=uuid4(),
         query=Query(text="delivery failure"),
@@ -1041,7 +1155,9 @@ async def test_evaluate_assigned_task_queue_final_delivery_failure_closes_group_
     result_queue: asyncio.Queue[PlatformOwnedTaskResult] = asyncio.Queue()
     close_requested = asyncio.Event()
 
-    async def evaluate_task_attempt(**kwargs) -> evaluation_runner_module.TaskAttemptDecision:
+    async def evaluate_task_attempt(
+        **kwargs,
+    ) -> evaluation_runner_module.TaskAttemptDecision:
         if kwargs["task"].task_id == delivery_failure_task.task_id:
             return evaluation_runner_module._validator_batch_failure_decision(
                 ValidatorBatchFailedError(
@@ -1077,14 +1193,22 @@ async def test_evaluate_assigned_task_queue_final_delivery_failure_closes_group_
         await asyncio.wait_for(started_entered.wait(), timeout=1.0)
         delivery_result = await asyncio.wait_for(result_queue.get(), timeout=1.0)
         assert delivery_result.task_id == delivery_failure_task.task_id
-        assert delivery_result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
-        assert delivery_result.terminal_attempt.delivery_failure_detail == failure_detail
+        assert (
+            delivery_result.terminal_attempt.terminal_effect
+            is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+        )
+        assert (
+            delivery_result.terminal_attempt.delivery_failure_detail == failure_detail
+        )
         assert not execution.done()
 
         release_started.set()
         started_result = await asyncio.wait_for(result_queue.get(), timeout=1.0)
         assert started_result.task_id == started_task.task_id
-        assert started_result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        assert (
+            started_result.terminal_attempt.terminal_effect
+            is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        )
     finally:
         close_requested.set()
         release_started.set()
@@ -1097,7 +1221,9 @@ async def test_evaluation_runner_assigned_task_final_validator_failure_becomes_a
 ) -> None:
     """Prevent a task-owned validator failure from becoming delivery-wide failure."""
 
-    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
 
     result = await runner.evaluate_assigned_task(
         batch_id=batch_id,
@@ -1108,22 +1234,34 @@ async def test_evaluation_runner_assigned_task_final_validator_failure_becomes_a
         assignment_token=_ASSIGNMENT_TOKEN,
         orchestrator=cast(
             TaskRunOrchestrator,
-            _GenericFailureOrchestrator(sessions=session_registry, receipt_log=receipt_log),
+            _GenericFailureOrchestrator(
+                sessions=session_registry, receipt_log=receipt_log
+            ),
         ),
     )
 
     assert result.result is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
-    assert result.terminal_attempt.error_code == str(MinerTaskErrorCode.UNEXPECTED_VALIDATOR_FAILURE)
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.ATTEMPT_FAILURE
+    assert result.terminal_attempt.error_code == str(
+        MinerTaskErrorCode.UNEXPECTED_VALIDATOR_FAILURE
+    )
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.ATTEMPT_FAILURE
+    )
     assert result.terminal_attempt.delivery_failure_detail is None
 
 
 async def test_evaluate_assigned_task_queue_invocation_timeout_records_phase_owned_diagnostics(
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -1134,7 +1272,9 @@ async def test_evaluate_assigned_task_queue_invocation_timeout_records_phase_own
     )
 
     class _TimeoutOrchestrator:
-        async def evaluate(self, request: MinerTaskRunRequest, *, phase_recorder=None) -> TaskRunOutcome:
+        async def evaluate(
+            self, request: MinerTaskRunRequest, *, phase_recorder=None
+        ) -> TaskRunOutcome:
             _ = request
             if phase_recorder is not None:
                 phase_recorder.mark("entrypoint_invocation")
@@ -1159,9 +1299,14 @@ async def test_evaluate_assigned_task_queue_invocation_timeout_records_phase_own
 
     (result,) = results
     assert result.result is None
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert result.terminal_attempt.terminal_effect is None
-    assert result.terminal_attempt.error_code == str(MinerTaskErrorCode.TIMEOUT_MINER_OWNED)
+    assert result.terminal_attempt.error_code == str(
+        MinerTaskErrorCode.TIMEOUT_MINER_OWNED
+    )
     assert result.terminal_attempt.diagnostics is not None
     assert result.terminal_attempt.diagnostics.phase == "entrypoint_invocation"
     assert result.terminal_attempt.diagnostics.timeout_owner == "sandbox_entrypoint"
@@ -1175,7 +1320,9 @@ async def test_evaluate_assigned_task_queue_platform_tool_proxy_timeout_records_
 ) -> None:
     """Keep platform-tool-proxy execution timeouts distinct from sandbox invocation timeouts."""
 
-    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -1186,7 +1333,9 @@ async def test_evaluate_assigned_task_queue_platform_tool_proxy_timeout_records_
     )
 
     class _TimeoutOrchestrator:
-        async def evaluate(self, request: MinerTaskRunRequest, *, phase_recorder=None) -> TaskRunOutcome:
+        async def evaluate(
+            self, request: MinerTaskRunRequest, *, phase_recorder=None
+        ) -> TaskRunOutcome:
             session = session_registry.get(request.session_id)
             assert session is not None
             if phase_recorder is not None:
@@ -1214,12 +1363,18 @@ async def test_evaluate_assigned_task_queue_platform_tool_proxy_timeout_records_
 
     (result,) = results
     assert result.result is None
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert result.terminal_attempt.terminal_effect is None
     assert result.terminal_attempt.error_code == "tool_timeout"
     assert result.terminal_attempt.diagnostics is not None
     assert result.terminal_attempt.diagnostics.phase == "platform_tool_proxy_execute"
-    assert result.terminal_attempt.diagnostics.timeout_owner == "platform_tool_proxy_execute"
+    assert (
+        result.terminal_attempt.diagnostics.timeout_owner
+        == "platform_tool_proxy_execute"
+    )
     assert result.terminal_attempt.diagnostics.platform_tool_activity_observed is True
 
 
@@ -1228,7 +1383,9 @@ async def test_evaluate_assigned_task_queue_final_platform_tool_proxy_timeout_re
 ) -> None:
     """Keep final platform-tool-proxy timeout diagnostics tied to the proxy execution phase."""
 
-    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -1239,7 +1396,9 @@ async def test_evaluate_assigned_task_queue_final_platform_tool_proxy_timeout_re
     )
 
     class _TimeoutOrchestrator:
-        async def evaluate(self, request: MinerTaskRunRequest, *, phase_recorder=None) -> TaskRunOutcome:
+        async def evaluate(
+            self, request: MinerTaskRunRequest, *, phase_recorder=None
+        ) -> TaskRunOutcome:
             session = session_registry.get(request.session_id)
             assert session is not None
             if phase_recorder is not None:
@@ -1269,15 +1428,26 @@ async def test_evaluate_assigned_task_queue_final_platform_tool_proxy_timeout_re
     assert result.result is not None
     assert result.result.run.details.error is not None
     assert result.result.run.details.error.code == "timeout_miner_owned"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     assert result.terminal_attempt.diagnostics is not None
     assert result.terminal_attempt.diagnostics.phase == "platform_tool_proxy_execute"
-    assert result.terminal_attempt.diagnostics.timeout_owner == "platform_tool_proxy_execute"
+    assert (
+        result.terminal_attempt.diagnostics.timeout_owner
+        == "platform_tool_proxy_execute"
+    )
     assert result.terminal_attempt.diagnostics.platform_tool_activity_observed is True
 
 
-async def test_evaluate_assigned_task_queue_waits_for_close_after_idle_result(tmp_path: Path) -> None:
+async def test_evaluate_assigned_task_queue_waits_for_close_after_idle_result(
+    tmp_path: Path,
+) -> None:
     """Prevent a worker poll from feeding assignments into an already-finished artifact executor."""
 
     runner, batch_id, artifact, task, _, _, _, _ = _assigned_task_test_context(tmp_path)
@@ -1307,7 +1477,10 @@ async def test_evaluate_assigned_task_queue_waits_for_close_after_idle_result(tm
     try:
         result = await asyncio.wait_for(result_queue.get(), timeout=1.0)
         await asyncio.sleep(0)
-        assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        assert (
+            result.terminal_attempt.terminal_effect
+            is MinerTaskAttemptTerminalEffect.TASK_RESULT
+        )
         assert not execution.done()
     finally:
         close_requested.set()
@@ -1319,7 +1492,9 @@ async def test_evaluate_assigned_task_queue_drains_active_failure_before_ready_q
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, delivery_task, _, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, delivery_task, _, _, _, _ = _assigned_task_test_context(
+        tmp_path
+    )
     completed_task = MinerTask(
         task_id=uuid4(),
         query=Query(text="completed active"),
@@ -1380,7 +1555,9 @@ async def test_evaluate_assigned_task_queue_drains_active_failure_before_ready_q
                 completed_assignment,
                 terminal_effect=MinerTaskAttemptTerminalEffect.TASK_RESULT,
             )
-        raise AssertionError("queued assignment should not start after active delivery failure")
+        raise AssertionError(
+            "queued assignment should not start after active delivery failure"
+        )
 
     class _ReadyQueuedAssignedWork(_AssignedWork):
         def claim_nowait_for_dispatch(self) -> _ClaimedAssignedTaskFake:
@@ -1388,7 +1565,9 @@ async def test_evaluate_assigned_task_queue_drains_active_failure_before_ready_q
 
     monkeypatch.setattr(evaluation_runner_module.asyncio, "wait", wait_after_ready_tick)
     monkeypatch.setattr(runner, "_issue_session", issue_session_with_task_record)
-    monkeypatch.setattr(runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task)
+    monkeypatch.setattr(
+        runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task
+    )
 
     assigned_work = _ReadyQueuedAssignedWork(queued=(queued_assignment,))
     result_queue: asyncio.Queue[PlatformOwnedTaskResult] = asyncio.Queue()
@@ -1404,10 +1583,15 @@ async def test_evaluate_assigned_task_queue_drains_active_failure_before_ready_q
         expected_result_count=2,
     )
 
-    assert {result.task_id for result in results} == {delivery_task.task_id, completed_task.task_id}
+    assert {result.task_id for result in results} == {
+        delivery_task.task_id,
+        completed_task.task_id,
+    }
     assert result_queue.empty()
     assert queued_assignment in assigned_work.dispatch_claims
-    assert queued_assignment not in [assignment for assignment, _session_id in assigned_work.started]
+    assert queued_assignment not in [
+        assignment for assignment, _session_id in assigned_work.started
+    ]
     assert queued_task.task_id not in issued_task_ids
 
 
@@ -1415,7 +1599,9 @@ async def test_evaluate_assigned_task_queue_drains_active_result_before_queue_st
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, completed_task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, completed_task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     blocking_task = MinerTask(
         task_id=uuid4(),
         query=Query(text="blocking active"),
@@ -1478,19 +1664,25 @@ async def test_evaluate_assigned_task_queue_drains_active_result_before_queue_st
         def claim_nowait_for_dispatch(self) -> _ClaimedAssignedTaskFake:
             raise asyncio.QueueEmpty
 
-        def _mark_started(self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID) -> None:
+        def _mark_started(
+            self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID
+        ) -> None:
             if assignment is queued_assignment:
                 self.started.append((assignment, validator_session_id))
                 raise RuntimeError("assigned work start mark failed")
             return super()._mark_started(assignment, validator_session_id)
 
-        def _fail_before_start(self, assignment: MinerTaskWorkAssignment, result: PlatformOwnedTaskResult) -> None:
+        def _fail_before_start(
+            self, assignment: MinerTaskWorkAssignment, result: PlatformOwnedTaskResult
+        ) -> None:
             super()._fail_before_start(assignment, result)
             if assignment is queued_assignment:
                 release_blocking.set()
 
     monkeypatch.setattr(evaluation_runner_module.asyncio, "wait", wait_after_ready_tick)
-    monkeypatch.setattr(runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task)
+    monkeypatch.setattr(
+        runner, "_evaluate_issued_assigned_task", evaluate_issued_assigned_task
+    )
 
     result_queue: asyncio.Queue[PlatformOwnedTaskResult] = asyncio.Queue()
     assigned_work = _QueueStartFailureAssignedWork(
@@ -1510,30 +1702,41 @@ async def test_evaluate_assigned_task_queue_drains_active_result_before_queue_st
     )
 
     results_by_task_id = {result.task_id: result for result in results}
-    assert results_by_task_id[completed_task.task_id].terminal_attempt.terminal_effect is (
-        MinerTaskAttemptTerminalEffect.TASK_RESULT
-    )
-    assert results_by_task_id[blocking_task.task_id].terminal_attempt.terminal_effect is (
-        MinerTaskAttemptTerminalEffect.TASK_RESULT
-    )
+    assert results_by_task_id[
+        completed_task.task_id
+    ].terminal_attempt.terminal_effect is (MinerTaskAttemptTerminalEffect.TASK_RESULT)
+    assert results_by_task_id[
+        blocking_task.task_id
+    ].terminal_attempt.terminal_effect is (MinerTaskAttemptTerminalEffect.TASK_RESULT)
     queued_failure = results_by_task_id[queued_task.task_id]
-    assert queued_failure.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        queued_failure.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert queued_failure.terminal_attempt.terminal_effect is None
     assert queued_failure.terminal_attempt.diagnostics is not None
     assert queued_failure.terminal_attempt.diagnostics.failure_owner == "RuntimeError"
     assert result_queue.empty()
     blocking_session_id = next(
-        session_id for assignment, session_id in assigned_work.started if assignment is blocking_assignment
+        session_id
+        for assignment, session_id in assigned_work.started
+        if assignment is blocking_assignment
     )
     queued_session_id = next(
-        session_id for assignment, session_id in assigned_work.started if assignment is queued_assignment
+        session_id
+        for assignment, session_id in assigned_work.started
+        if assignment is queued_assignment
     )
     assert session_registry.get(blocking_session_id) is None
     assert session_registry.get(queued_session_id) is None
 
 
-async def test_evaluate_assigned_task_calls_session_start_callback_after_session_issuance(tmp_path: Path) -> None:
-    runner, batch_id, artifact, task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+async def test_evaluate_assigned_task_calls_session_start_callback_after_session_issuance(
+    tmp_path: Path,
+) -> None:
+    runner, batch_id, artifact, task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     started_session_ids: list[UUID] = []
     evaluate_entered = asyncio.Event()
     release_evaluation = asyncio.Event()
@@ -1568,8 +1771,12 @@ async def test_evaluate_assigned_task_calls_session_start_callback_after_session
     assert result.terminal_attempt.validator_session_id == started_session_ids[0]
 
 
-async def test_evaluate_assigned_task_queue_marks_started_after_session_issuance(tmp_path: Path) -> None:
-    runner, batch_id, artifact, task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+async def test_evaluate_assigned_task_queue_marks_started_after_session_issuance(
+    tmp_path: Path,
+) -> None:
+    runner, batch_id, artifact, task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -1622,7 +1829,9 @@ async def test_evaluate_assigned_task_queue_marks_started_before_spawning_execut
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -1647,7 +1856,11 @@ async def test_evaluate_assigned_task_queue_marks_started_before_spawning_execut
             assert session_registry.get(session_id) is not None
         return real_create_task(coro, *args, **kwargs)
 
-    monkeypatch.setattr(evaluation_runner_module.asyncio, "create_task", create_task_with_start_boundary_check)
+    monkeypatch.setattr(
+        evaluation_runner_module.asyncio,
+        "create_task",
+        create_task_with_start_boundary_check,
+    )
 
     class _BlockingOrchestrator:
         async def evaluate(self, request: MinerTaskRunRequest) -> TaskRunOutcome:
@@ -1681,7 +1894,9 @@ async def test_evaluate_assigned_task_queue_marks_started_before_spawning_execut
 async def test_evaluate_assigned_task_queue_cancels_active_children_on_queue_cancellation(
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -1759,7 +1974,10 @@ async def test_evaluate_assigned_task_queue_session_issue_failure_returns_delive
 
     (result,) = results
     assert result.result is None
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
     assert assigned_work.started == []
 
 
@@ -1828,7 +2046,10 @@ async def test_evaluate_assigned_task_queue_partial_session_issue_failure_cleans
     (result,) = results
     assert result.result is None
     assert result.terminal_attempt.validator_session_id == issued_session_id
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert result.terminal_attempt.terminal_effect is None
     assert result.terminal_attempt.diagnostics is not None
     assert result.terminal_attempt.diagnostics.phase == "session_start"
@@ -1844,7 +2065,9 @@ async def test_evaluate_assigned_task_queue_partial_session_issue_failure_cleans
 async def test_evaluate_assigned_task_queue_mark_started_failure_cleans_issued_session(
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, task, session_registry, _, progress, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, session_registry, _, progress, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     assignment = MinerTaskWorkAssignment(
         batch_id=batch_id,
         artifact=artifact,
@@ -1856,11 +2079,15 @@ async def test_evaluate_assigned_task_queue_mark_started_failure_cleans_issued_s
     result_queue: asyncio.Queue[PlatformOwnedTaskResult] = asyncio.Queue()
 
     class _RejectingAssignedWork(_AssignedWork):
-        def __init__(self, result_queue: asyncio.Queue[PlatformOwnedTaskResult]) -> None:
+        def __init__(
+            self, result_queue: asyncio.Queue[PlatformOwnedTaskResult]
+        ) -> None:
             super().__init__(result_queue=result_queue)
             self.rejected: list[tuple[MinerTaskWorkAssignment, UUID]] = []
 
-        def _mark_started(self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID) -> None:
+        def _mark_started(
+            self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID
+        ) -> None:
             self.rejected.append((assignment, validator_session_id))
             raise RuntimeError("assigned work start mark failed")
 
@@ -1886,7 +2113,10 @@ async def test_evaluate_assigned_task_queue_mark_started_failure_cleans_issued_s
     assert rejected_assignment is assignment
     assert result.result is None
     assert result.terminal_attempt.validator_session_id == issued_session_id
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert result.terminal_attempt.terminal_effect is None
     assert result.terminal_attempt.diagnostics is not None
     assert result.terminal_attempt.diagnostics.phase == "session_start"
@@ -1899,7 +2129,9 @@ async def test_evaluate_assigned_task_queue_mark_started_failure_cleans_issued_s
 async def test_evaluate_assigned_task_queue_initial_start_failure_cleans_prior_child(
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, first_task, session_registry, _, _, _ = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, first_task, session_registry, _, _, _ = (
+        _assigned_task_test_context(tmp_path)
+    )
     second_task = MinerTask(
         task_id=uuid4(),
         query=Query(text="second initial assignment"),
@@ -1925,17 +2157,23 @@ async def test_evaluate_assigned_task_queue_initial_start_failure_cleans_prior_c
     release_first = asyncio.Event()
 
     class _RejectSecondAssignedWork(_AssignedWork):
-        def __init__(self, result_queue: asyncio.Queue[PlatformOwnedTaskResult]) -> None:
+        def __init__(
+            self, result_queue: asyncio.Queue[PlatformOwnedTaskResult]
+        ) -> None:
             super().__init__(result_queue=result_queue)
             self.rejected: list[tuple[MinerTaskWorkAssignment, UUID]] = []
 
-        def _mark_started(self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID) -> None:
+        def _mark_started(
+            self, assignment: MinerTaskWorkAssignment, validator_session_id: UUID
+        ) -> None:
             if assignment is second_assignment:
                 self.rejected.append((assignment, validator_session_id))
                 raise RuntimeError("assigned work start mark failed")
             return super()._mark_started(assignment, validator_session_id)
 
-        def _fail_before_start(self, assignment: MinerTaskWorkAssignment, result: PlatformOwnedTaskResult) -> None:
+        def _fail_before_start(
+            self, assignment: MinerTaskWorkAssignment, result: PlatformOwnedTaskResult
+        ) -> None:
             super()._fail_before_start(assignment, result)
             if assignment is second_assignment:
                 release_first.set()
@@ -1966,7 +2204,10 @@ async def test_evaluate_assigned_task_queue_initial_start_failure_cleans_prior_c
     )
     second_result = results_by_task_id[second_task.task_id]
     assert second_result.terminal_attempt.validator_session_id == second_session_id
-    assert second_result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        second_result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert second_result.terminal_attempt.terminal_effect is None
     assert second_result.terminal_attempt.diagnostics is not None
     assert second_result.terminal_attempt.diagnostics.failure_owner == "RuntimeError"
@@ -1974,7 +2215,9 @@ async def test_evaluate_assigned_task_queue_initial_start_failure_cleans_prior_c
     assert session_registry.get(second_session_id) is None
 
 
-async def test_evaluate_assigned_task_queue_internal_issue_registration_failure_cleans_session(tmp_path: Path) -> None:
+async def test_evaluate_assigned_task_queue_internal_issue_registration_failure_cleans_session(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -2039,7 +2282,10 @@ async def test_evaluate_assigned_task_queue_internal_issue_registration_failure_
     (result,) = results
     assert result.result is None
     assert result.terminal_attempt.validator_session_id == issued_session_id
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert result.terminal_attempt.terminal_effect is None
     assert result.terminal_attempt.diagnostics is not None
     assert result.terminal_attempt.diagnostics.phase == "session_start"
@@ -2052,7 +2298,9 @@ async def test_evaluate_assigned_task_queue_internal_issue_registration_failure_
         platform_tool_proxy_scopes.require_session(issued_session_id)
 
 
-async def test_evaluation_runner_assigned_success_does_not_read_validator_uid(tmp_path: Path) -> None:
+async def test_evaluation_runner_assigned_success_does_not_read_validator_uid(
+    tmp_path: Path,
+) -> None:
     runner, batch_id, artifact, task, _, _, _, _ = _assigned_task_test_context(
         tmp_path,
         subtensor=_ExplodingValidatorInfoSubtensorClient(),
@@ -2069,10 +2317,15 @@ async def test_evaluation_runner_assigned_success_does_not_read_validator_uid(tm
     )
 
     assert result.result is not None
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
 
 
-async def test_evaluation_runner_assigned_task_failure_does_not_read_validator_uid(tmp_path: Path) -> None:
+async def test_evaluation_runner_assigned_task_failure_does_not_read_validator_uid(
+    tmp_path: Path,
+) -> None:
     runner, batch_id, artifact, task, _, _, _, _ = _assigned_task_test_context(
         tmp_path,
         subtensor=_ExplodingValidatorInfoSubtensorClient(),
@@ -2090,7 +2343,10 @@ async def test_evaluation_runner_assigned_task_failure_does_not_read_validator_u
 
     assert result.result is not None
     assert result.terminal_attempt.error_code == "scoring_llm_retry_exhausted"
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
 
 
 async def test_evaluation_runner_assigned_pre_session_failure_returns_delivery_failure(
@@ -2116,8 +2372,13 @@ async def test_evaluation_runner_assigned_pre_session_failure_returns_delivery_f
 
     assert result.result is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
-    assert result.terminal_attempt.error_code == str(MinerTaskErrorCode.UNEXPECTED_VALIDATOR_FAILURE)
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    assert result.terminal_attempt.error_code == str(
+        MinerTaskErrorCode.UNEXPECTED_VALIDATOR_FAILURE
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.DELIVERY_FAILURE
+    )
 
 
 async def test_evaluation_runner_assigned_result_survives_cleanup_failure(
@@ -2142,10 +2403,15 @@ async def test_evaluation_runner_assigned_result_survives_cleanup_failure(
     )
 
     assert result.result is not None
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
 
 
-def test_usage_summarizer_falls_back_to_referenceable_result_count_when_search_cost_is_missing() -> None:
+def test_usage_summarizer_falls_back_to_referenceable_result_count_when_search_cost_is_missing() -> (
+    None
+):
     session = Session(
         session_id=uuid4(),
         uid=7,
@@ -2167,8 +2433,12 @@ def test_usage_summarizer_falls_back_to_referenceable_result_count_when_search_c
             response_hash="res",
             cost_usd=None,
             results=(
-                SearchToolResult(index=0, result_id="result-1", url="https://a.example", note="A"),
-                SearchToolResult(index=1, result_id="result-2", url="https://b.example", note="B"),
+                SearchToolResult(
+                    index=0, result_id="result-1", url="https://a.example", note="A"
+                ),
+                SearchToolResult(
+                    index=1, result_id="result-2", url="https://b.example", note="B"
+                ),
             ),
         ),
     )
@@ -2216,7 +2486,10 @@ def test_usage_summarizer_ignores_failed_search_receipts() -> None:
             response_hash=None,
             response_payload=None,
             cost_usd=None,
-            extra={"error_type": "ToolProviderError", "error_message": "tool provider failed"},
+            extra={
+                "error_type": "ToolProviderError",
+                "error_message": "tool provider failed",
+            },
         ),
     )
 
@@ -2372,7 +2645,9 @@ def test_usage_summarizer_prices_openrouter_native_llm_summary() -> None:
     assert model_usage.cost == pytest.approx(0.0042)
 
 
-def test_receipt_usage_uses_actual_llm_provider_from_platform_tool_proxy_receipt() -> None:
+def test_receipt_usage_uses_actual_llm_provider_from_platform_tool_proxy_receipt() -> (
+    None
+):
     model = "openai/gpt-oss-120b"
     receipt = ToolCall(
         receipt_id="llm-openrouter",
@@ -2387,7 +2662,11 @@ def test_receipt_usage_uses_actual_llm_provider_from_platform_tool_proxy_receipt
             response_hash="llm-openrouter-res",
             response_payload={
                 "message": {"role": "assistant", "content": "ok"},
-                "usage": {"prompt_tokens": 2, "completion_tokens": 3, "total_tokens": 5},
+                "usage": {
+                    "prompt_tokens": 2,
+                    "completion_tokens": 3,
+                    "total_tokens": 5,
+                },
             },
             cost_usd=0.02,
             actual_cost_usd=0.02,
@@ -2421,7 +2700,11 @@ def test_receipt_usage_rejects_successful_llm_receipt_without_provider() -> None
             response_hash="llm-missing-provider-res",
             response_payload={
                 "message": {"role": "assistant", "content": "ok"},
-                "usage": {"prompt_tokens": 2, "completion_tokens": 3, "total_tokens": 5},
+                "usage": {
+                    "prompt_tokens": 2,
+                    "completion_tokens": 3,
+                    "total_tokens": 5,
+                },
             },
             cost_usd=0.02,
             actual_cost_usd=0.02,
@@ -2443,7 +2726,9 @@ def test_receipt_usage_rejects_divergent_search_receipt_costs() -> None:
         outcome=ToolCallOutcome.OK,
         details=ToolCallDetails(
             request_hash="search-parallel-req",
-            request_payload={"kwargs": {"provider": "parallel", "search_queries": ["harnyx"]}},
+            request_payload={
+                "kwargs": {"provider": "parallel", "search_queries": ["harnyx"]}
+            },
             response_hash="search-parallel-res",
             response_payload={"data": []},
             cost_usd=0.0,
@@ -2639,7 +2924,9 @@ class _ExhaustingOrchestrator:
                 ),
             )
         )
-        raise SessionBudgetExhaustedError("session exhausted during entrypoint invocation")
+        raise SessionBudgetExhaustedError(
+            "session exhausted during entrypoint invocation"
+        )
 
 
 class _ExhaustingAfterPlatformToolProxyControlReceiptOrchestrator:
@@ -2672,7 +2959,9 @@ class _ExhaustingAfterPlatformToolProxyControlReceiptOrchestrator:
             },
         )
         self._sessions.update(session.mark_exhausted())
-        raise SessionBudgetExhaustedError("session exhausted after proxy control failure")
+        raise SessionBudgetExhaustedError(
+            "session exhausted after proxy control failure"
+        )
 
 
 class _RetryThenSuccessOrchestrator:
@@ -3041,7 +3330,9 @@ class _ProviderFailureThenSuccessOrchestrator:
         _record_provider_failure(self._progress, request=request)
         return _successful_outcome(request)
 
-    async def execute(self, request: MinerTaskRunRequest, *, phase_recorder=None) -> TaskExecutionOutcome:
+    async def execute(
+        self, request: MinerTaskRunRequest, *, phase_recorder=None
+    ) -> TaskExecutionOutcome:
         _ = phase_recorder
         self.calls += 1
         _record_provider_failure(self._progress, request=request)
@@ -3427,15 +3718,24 @@ async def test_evaluation_runner_records_exhausted_submission(tmp_path: Path) ->
     assert submission.run.response is None
     assert submission.run.details.error is not None
     assert submission.run.details.error.code == "session_budget_exhausted"
-    assert submission.run.details.error.message == "session exhausted during entrypoint invocation"
+    assert (
+        submission.run.details.error.message
+        == "session exhausted during entrypoint invocation"
+    )
     assert submission.run.details.total_tool_usage.search_tool.call_count == 1
-    assert submission.run.details.total_tool_usage.search_tool_cost == pytest.approx(0.25)
-    assert tuple(receipt.receipt_id for receipt in submission.execution_log) == ("receipt-1",)
+    assert submission.run.details.total_tool_usage.search_tool_cost == pytest.approx(
+        0.25
+    )
+    assert tuple(receipt.receipt_id for receipt in submission.execution_log) == (
+        "receipt-1",
+    )
     assert receipt_log.for_session(submission.run.session_id) == ()
     assert evaluation_store.records == [submission]
 
 
-async def test_evaluation_runner_assigned_final_timeout_returns_terminal_failed_result(tmp_path: Path) -> None:
+async def test_evaluation_runner_assigned_final_timeout_returns_terminal_failed_result(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -3488,8 +3788,14 @@ async def test_evaluation_runner_assigned_final_timeout_returns_terminal_failed_
     assert result.result is not None
     assert result.result.run.details.error is not None
     assert result.result.run.details.error.code == "timeout_miner_owned"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     assert result.terminal_attempt.max_attempts == 2
     assert evaluation_store.records == [result.result]
 
@@ -3518,8 +3824,14 @@ async def test_evaluation_runner_assigned_task_returns_platform_result_when_subm
     assert result.result is not None
     assert result.result.run.details.error is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.SUCCEEDED
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     _assert_local_recording_warning(
         caplog,
         batch_id=batch_id,
@@ -3555,8 +3867,14 @@ async def test_evaluation_runner_assigned_task_returns_platform_result_when_eval
     assert result.result is not None
     assert result.result.run.details.error is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.SUCCEEDED
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     _assert_local_recording_warning(
         caplog,
         batch_id=batch_id,
@@ -3592,7 +3910,10 @@ async def test_evaluation_runner_assigned_task_returns_platform_result_when_term
     assert result.result is not None
     assert result.result.run.details.error is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.SUCCEEDED
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     _assert_local_recording_warning(
         caplog,
         batch_id=batch_id,
@@ -3637,7 +3958,10 @@ async def test_evaluation_runner_assigned_setup_failure_returns_platform_result_
     assert result.result is not None
     assert result.result.run.details.error is not None
     assert result.result.run.details.error.code == "script_validation_failed"
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     _assert_local_recording_warning(
         caplog,
         batch_id=batch_id,
@@ -3673,8 +3997,14 @@ async def test_evaluation_runner_assigned_task_result_survives_local_recording_f
     assert result.result is not None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
     assert result.terminal_attempt.error_code == "scoring_llm_retry_exhausted"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     _assert_local_recording_warning(
         caplog,
         batch_id=batch_id,
@@ -3710,7 +4040,10 @@ async def test_evaluation_runner_assigned_retry_result_survives_local_recording_
     assert result.result is None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
     assert result.terminal_attempt.error_code == "SandboxTimeout"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_RETRY
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_RETRY
+    )
     assert result.terminal_attempt.terminal_effect is None
     _assert_local_recording_warning(
         caplog,
@@ -3735,10 +4068,12 @@ async def test_evaluation_runner_assigned_final_timeout_result_survives_local_re
         datetime(2025, 10, 17, 12, 2, tzinfo=UTC),
         datetime(2025, 10, 17, 12, 3, tzinfo=UTC),
     )
-    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = _assigned_task_test_context(
-        tmp_path,
-        evaluation_records=evaluation_store,
-        clock=clock,
+    runner, batch_id, artifact, task, session_registry, receipt_log, _, _ = (
+        _assigned_task_test_context(
+            tmp_path,
+            evaluation_records=evaluation_store,
+            clock=clock,
+        )
     )
     orchestrator = _AlwaysMinerTimeoutOrchestrator(
         sessions=session_registry,
@@ -3762,8 +4097,14 @@ async def test_evaluation_runner_assigned_final_timeout_result_survives_local_re
     assert result.result.run.details.error.code == "timeout_miner_owned"
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
     assert result.terminal_attempt.error_code == "timeout_miner_owned"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     _assert_local_recording_warning(
         caplog,
         batch_id=batch_id,
@@ -3778,7 +4119,9 @@ async def test_evaluation_runner_assigned_final_timeout_result_survives_local_re
 async def test_evaluation_runner_whole_batch_evaluation_still_records_local_submissions(
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, task, _, _, progress, evaluation_store = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, _, _, progress, evaluation_store = (
+        _assigned_task_test_context(tmp_path)
+    )
 
     outcome = await runner.evaluate_artifact(
         batch_id=batch_id,
@@ -3789,9 +4132,9 @@ async def test_evaluation_runner_whole_batch_evaluation_still_records_local_subm
 
     assert outcome.submissions
     page = progress.completed_run_page(batch_id=batch_id, after_sequence=0, limit=10)
-    assert [item["submission"] for item in page["items"] if item["submission"] is not None] == list(
-        outcome.submissions
-    )
+    assert [
+        item["submission"] for item in page["items"] if item["submission"] is not None
+    ] == list(outcome.submissions)
     assert evaluation_store.records == list(outcome.submissions)
 
 
@@ -3838,8 +4181,14 @@ async def test_evaluation_runner_assigned_task_final_scoring_failure_stays_task_
     assert result.result is not None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
     assert result.terminal_attempt.error_code == "scoring_llm_retry_exhausted"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     assert evaluation_store.records[0].run.details.error == EvaluationError(
         code="scoring_llm_retry_exhausted",
         message="embedding retries exhausted",
@@ -3849,7 +4198,9 @@ async def test_evaluation_runner_assigned_task_final_scoring_failure_stays_task_
 async def test_evaluation_runner_assigned_task_final_scoring_failure_records_partial_judge_usage(
     tmp_path: Path,
 ) -> None:
-    runner, batch_id, artifact, task, _, _, _, evaluation_store = _assigned_task_test_context(tmp_path)
+    runner, batch_id, artifact, task, _, _, _, evaluation_store = (
+        _assigned_task_test_context(tmp_path)
+    )
 
     result = await runner.evaluate_assigned_task(
         batch_id=batch_id,
@@ -3858,12 +4209,17 @@ async def test_evaluation_runner_assigned_task_final_scoring_failure_records_par
         attempt_number=1,
         max_attempts=1,
         assignment_token=_ASSIGNMENT_TOKEN,
-        orchestrator=cast(TaskRunOrchestrator, _ScoringRetryExhaustedWithJudgeUsageOrchestrator()),
+        orchestrator=cast(
+            TaskRunOrchestrator, _ScoringRetryExhaustedWithJudgeUsageOrchestrator()
+        ),
     )
 
     assert result.result is not None
     assert result.terminal_attempt.error_code == "scoring_llm_retry_exhausted"
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     assert evaluation_store.records[0].run.details.error == EvaluationError(
         code="scoring_llm_retry_exhausted",
         message="embedding retries exhausted",
@@ -3937,8 +4293,14 @@ async def test_evaluation_runner_assigned_task_final_sandbox_invocation_failure_
     assert result.result is not None
     assert result.terminal_attempt.status is MinerTaskAttemptStatus.FAILED
     assert result.terminal_attempt.error_code == "sandbox_invocation_failed"
-    assert result.terminal_attempt.retry_decision is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.retry_decision
+        is MinerTaskAttemptRetryDecision.WILL_NOT_RETRY
+    )
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     assert evaluation_store.records[0].run.details.error == EvaluationError(
         code="sandbox_invocation_failed",
         message="sandbox entrypoint request timed out",
@@ -3980,7 +4342,9 @@ async def test_evaluation_runner_proxy_control_receipt_overrides_later_budget_ex
         receipt_log=receipt_log,
     )
 
-    with pytest.raises(ValidatorBatchFailedError, match="platform tool proxy control failure") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="platform tool proxy control failure"
+    ) as exc_info:
         await runner.evaluate_artifact_with_state(
             batch_id=uuid4(),
             artifact=artifact,
@@ -3988,7 +4352,10 @@ async def test_evaluation_runner_proxy_control_receipt_overrides_later_budget_ex
             orchestrator=cast(TaskRunOrchestrator, orchestrator),
         )
     assert exc_info.value.error_code == "unexpected_validator_failure"
-    assert exc_info.value.failure_detail.exception_type == "PlatformToolProxyInvocationError"
+    assert (
+        exc_info.value.failure_detail.exception_type
+        == "PlatformToolProxyInvocationError"
+    )
     assert exc_info.value.failure_detail.error_message == (
         "platform tool proxy control failure: platform_tool_proxy_denied"
     )
@@ -4045,8 +4412,12 @@ async def test_evaluation_runner_retries_transient_invocation_with_new_session_a
     assert submission.run.session_id == orchestrator.session_ids[-1]
     assert submission.score == pytest.approx(0.75)
     assert submission.run.details.total_tool_usage.search_tool.call_count == 1
-    assert submission.run.details.total_tool_usage.search_tool_cost == pytest.approx(0.25)
-    assert sorted(receipt.receipt_id for receipt in submission.execution_log) == ["receipt-2"]
+    assert submission.run.details.total_tool_usage.search_tool_cost == pytest.approx(
+        0.25
+    )
+    assert sorted(receipt.receipt_id for receipt in submission.execution_log) == [
+        "receipt-2"
+    ]
     assert receipt_log.for_session(submission.run.session_id) == ()
     assert evaluation_store.records == [submission]
     page = progress.completed_run_page(batch_id, after_sequence=0, limit=10)
@@ -4058,7 +4429,9 @@ async def test_evaluation_runner_retries_transient_invocation_with_new_session_a
     assert attempt_logs == [("receipt-1",), ("receipt-2",)]
 
 
-async def test_evaluation_runner_fails_batch_on_generic_post_invoke_failure(tmp_path: Path) -> None:
+async def test_evaluation_runner_fails_batch_on_generic_post_invoke_failure(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4102,7 +4475,9 @@ async def test_evaluation_runner_fails_batch_on_generic_post_invoke_failure(tmp_
     assert evaluation_store.records == []
 
 
-async def test_evaluation_runner_retries_scoring_timeout_with_new_session_before_success(tmp_path: Path) -> None:
+async def test_evaluation_runner_retries_scoring_timeout_with_new_session_before_success(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4254,7 +4629,9 @@ async def test_evaluation_runner_sandbox_timeout_uses_configured_attempt_budget_
     assert evaluation_store.records == list(result.submissions)
 
 
-async def test_evaluation_runner_fails_batch_after_scoring_timeout_retry_exhaustion(tmp_path: Path) -> None:
+async def test_evaluation_runner_fails_batch_after_scoring_timeout_retry_exhaustion(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4286,7 +4663,9 @@ async def test_evaluation_runner_fails_batch_after_scoring_timeout_retry_exhaust
         sessions=session_registry,
     )
 
-    with pytest.raises(ValidatorBatchFailedError, match="embedding timed out") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="embedding timed out"
+    ) as exc_info:
         await runner.evaluate_artifact(
             batch_id=uuid4(),
             artifact=artifact,
@@ -4299,7 +4678,9 @@ async def test_evaluation_runner_fails_batch_after_scoring_timeout_retry_exhaust
     assert evaluation_store.records == []
 
 
-async def test_evaluation_runner_records_sandbox_boundary_timeout_as_miner_owned(tmp_path: Path) -> None:
+async def test_evaluation_runner_records_sandbox_boundary_timeout_as_miner_owned(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4346,7 +4727,9 @@ async def test_evaluation_runner_records_sandbox_boundary_timeout_as_miner_owned
     )
 
 
-async def test_evaluation_runner_treats_http_client_timeoutexception_as_sandbox_timeout(tmp_path: Path) -> None:
+async def test_evaluation_runner_treats_http_client_timeoutexception_as_sandbox_timeout(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4447,9 +4830,12 @@ async def test_evaluation_runner_records_current_attempt_log_after_sandbox_timeo
         message=TERMINAL_TIMEOUT_ERROR_MESSAGE,
     )
     assert result.submissions[0].session.status is SessionStatus.ERROR
-    assert tuple(receipt.receipt_id for receipt in result.submissions[0].execution_log) == ("timeout-3",)
+    assert tuple(
+        receipt.receipt_id for receipt in result.submissions[0].execution_log
+    ) == ("timeout-3",)
     assert all(
-        receipt.details.extra == {"session_active_attempt": "1"} for receipt in result.submissions[0].execution_log
+        receipt.details.extra == {"session_active_attempt": "1"}
+        for receipt in result.submissions[0].execution_log
     )
     page = progress.completed_run_page(batch_id, after_sequence=0, limit=10)
     attempt_logs = [
@@ -4460,7 +4846,9 @@ async def test_evaluation_runner_records_current_attempt_log_after_sandbox_timeo
     assert attempt_logs == [("timeout-1",), ("timeout-2",), ("timeout-3",)]
 
 
-async def test_evaluation_runner_does_not_treat_non_504_timeouterror_as_sandbox_timeout(tmp_path: Path) -> None:
+async def test_evaluation_runner_does_not_treat_non_504_timeouterror_as_sandbox_timeout(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4516,7 +4904,9 @@ async def test_evaluation_runner_does_not_treat_non_504_timeouterror_as_sandbox_
     assert exc.remaining_tasks == ()
 
 
-async def test_evaluation_runner_terminalizes_sandbox_timeout_without_receipts(tmp_path: Path) -> None:
+async def test_evaluation_runner_terminalizes_sandbox_timeout_without_receipts(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4609,7 +4999,9 @@ async def test_evaluation_runner_records_current_attempt_receipts_for_terminal_t
     )
 
 
-async def test_evaluation_runner_records_zero_score_for_invalid_miner_response(tmp_path: Path) -> None:
+async def test_evaluation_runner_records_zero_score_for_invalid_miner_response(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4654,7 +5046,9 @@ async def test_evaluation_runner_records_zero_score_for_invalid_miner_response(t
     assert evaluation_store.records == [submission]
 
 
-async def test_evaluation_runner_records_zero_score_for_scoring_retry_exhaustion(tmp_path: Path) -> None:
+async def test_evaluation_runner_records_zero_score_for_scoring_retry_exhaustion(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4682,12 +5076,16 @@ async def test_evaluation_runner_records_zero_score_for_scoring_retry_exhaustion
         size_bytes=128,
     )
 
-    with pytest.raises(ValidatorBatchFailedError, match="embedding retries exhausted") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="embedding retries exhausted"
+    ) as exc_info:
         await runner.evaluate_artifact(
             batch_id=uuid4(),
             artifact=artifact,
             tasks=(task,),
-            orchestrator=cast(TaskRunOrchestrator, _ScoringRetryExhaustedOrchestrator()),
+            orchestrator=cast(
+                TaskRunOrchestrator, _ScoringRetryExhaustedOrchestrator()
+            ),
         )
     assert exc_info.value.error_code == MinerTaskErrorCode.SCORING_LLM_RETRY_EXHAUSTED
     assert exc_info.value.completed_submissions is not None
@@ -4715,7 +5113,9 @@ async def test_evaluation_runner_logs_session_summary_for_success(
     def capture_info(message: str, *args, **kwargs) -> None:
         captured_logs.append((message, dict(kwargs["extra"]["data"])))
 
-    monkeypatch.setattr(evaluation_runner_module.measurement_logger, "info", capture_info)
+    monkeypatch.setattr(
+        evaluation_runner_module.measurement_logger, "info", capture_info
+    )
 
     runner = EvaluationRunner(
         subtensor_client=subtensor,
@@ -4746,7 +5146,11 @@ async def test_evaluation_runner_logs_session_summary_for_success(
         orchestrator=cast(TaskRunOrchestrator, _SuccessfulOrchestrator()),
     )
     assert len(result.submissions) == 1
-    session_logs = [extra for message, extra in captured_logs if message == "miner-task session finished"]
+    session_logs = [
+        extra
+        for message, extra in captured_logs
+        if message == "miner-task session finished"
+    ]
     assert len(session_logs) == 1
     payload = session_logs[0]
     assert payload["batch_id"] == str(batch_id)
@@ -4775,7 +5179,9 @@ async def test_evaluation_runner_logs_session_summary_for_scoring_retry_exhausti
     def capture_info(message: str, *args, **kwargs) -> None:
         captured_logs.append((message, dict(kwargs["extra"]["data"])))
 
-    monkeypatch.setattr(evaluation_runner_module.measurement_logger, "info", capture_info)
+    monkeypatch.setattr(
+        evaluation_runner_module.measurement_logger, "info", capture_info
+    )
 
     runner = EvaluationRunner(
         subtensor_client=subtensor,
@@ -4799,16 +5205,24 @@ async def test_evaluation_runner_logs_session_summary_for_scoring_retry_exhausti
     )
     batch_id = uuid4()
 
-    with pytest.raises(ValidatorBatchFailedError, match="embedding retries exhausted") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="embedding retries exhausted"
+    ) as exc_info:
         await runner.evaluate_artifact(
             batch_id=batch_id,
             artifact=artifact,
             tasks=(task,),
-            orchestrator=cast(TaskRunOrchestrator, _ScoringRetryExhaustedOrchestrator()),
+            orchestrator=cast(
+                TaskRunOrchestrator, _ScoringRetryExhaustedOrchestrator()
+            ),
         )
     assert exc_info.value.completed_submissions is not None
     submission = exc_info.value.completed_submissions[0]
-    session_logs = [extra for message, extra in captured_logs if message == "miner-task session finished"]
+    session_logs = [
+        extra
+        for message, extra in captured_logs
+        if message == "miner-task session finished"
+    ]
     assert len(session_logs) == 1
     payload = session_logs[0]
     assert payload["batch_id"] == str(batch_id)
@@ -4837,7 +5251,9 @@ async def test_evaluation_runner_logs_session_summary_for_timeout_submission(
     def capture_info(message: str, *args, **kwargs) -> None:
         captured_logs.append((message, dict(kwargs["extra"]["data"])))
 
-    monkeypatch.setattr(evaluation_runner_module.measurement_logger, "info", capture_info)
+    monkeypatch.setattr(
+        evaluation_runner_module.measurement_logger, "info", capture_info
+    )
 
     runner = EvaluationRunner(
         subtensor_client=subtensor,
@@ -4877,7 +5293,11 @@ async def test_evaluation_runner_logs_session_summary_for_timeout_submission(
         ),
     )
 
-    session_logs = [extra for message, extra in captured_logs if message == "miner-task session finished"]
+    session_logs = [
+        extra
+        for message, extra in captured_logs
+        if message == "miner-task session finished"
+    ]
     assert len(session_logs) == 1
     payload = session_logs[0]
     assert payload["batch_id"] == str(batch_id)
@@ -4894,7 +5314,9 @@ async def test_evaluation_runner_logs_session_summary_for_timeout_submission(
     )
 
 
-async def test_evaluation_runner_records_embedding_retry_exhausted_submission(tmp_path: Path) -> None:
+async def test_evaluation_runner_records_embedding_retry_exhausted_submission(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4922,12 +5344,16 @@ async def test_evaluation_runner_records_embedding_retry_exhausted_submission(tm
         size_bytes=128,
     )
 
-    with pytest.raises(ValidatorBatchFailedError, match="embedding retries exhausted") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="embedding retries exhausted"
+    ) as exc_info:
         await runner.evaluate_artifact(
             batch_id=uuid4(),
             artifact=artifact,
             tasks=(task,),
-            orchestrator=cast(TaskRunOrchestrator, _EmbeddingRetryExhaustedOrchestrator()),
+            orchestrator=cast(
+                TaskRunOrchestrator, _EmbeddingRetryExhaustedOrchestrator()
+            ),
         )
     assert exc_info.value.error_code == MinerTaskErrorCode.SCORING_LLM_RETRY_EXHAUSTED
     assert exc_info.value.completed_submissions is not None
@@ -4940,7 +5366,9 @@ async def test_evaluation_runner_records_embedding_retry_exhausted_submission(tm
     assert evaluation_store.records == [submission]
 
 
-async def test_evaluation_runner_records_budget_exhausted_when_retry_starts_near_limit(tmp_path: Path) -> None:
+async def test_evaluation_runner_records_budget_exhausted_when_retry_starts_near_limit(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -4994,7 +5422,9 @@ async def test_evaluation_runner_records_budget_exhausted_when_retry_starts_near
         message="session exhausted during retry",
     )
     assert submission.run.details.total_tool_usage.search_tool.call_count == 0
-    assert submission.run.details.total_tool_usage.search_tool_cost == pytest.approx(0.0)
+    assert submission.run.details.total_tool_usage.search_tool_cost == pytest.approx(
+        0.0
+    )
     assert evaluation_store.records == [submission]
 
 
@@ -5085,7 +5515,9 @@ async def test_evaluation_runner_platform_proxy_control_categories_fail_validato
         query=Query(text=f"{error_code} caught"),
         reference_answer=ReferenceAnswer(text="reference"),
     )
-    artifact = ScriptArtifactSpec(uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128)
+    artifact = ScriptArtifactSpec(
+        uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128
+    )
     orchestrator = _PlatformToolProxyReceiptOrchestrator(
         sessions=session_registry,
         receipt_log=receipt_log,
@@ -5093,7 +5525,9 @@ async def test_evaluation_runner_platform_proxy_control_categories_fail_validato
         caught_by_miner=True,
     )
 
-    with pytest.raises(ValidatorBatchFailedError, match="platform tool proxy control failure") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="platform tool proxy control failure"
+    ) as exc_info:
         await runner.evaluate_artifact_with_state(
             batch_id=uuid4(),
             artifact=artifact,
@@ -5101,12 +5535,17 @@ async def test_evaluation_runner_platform_proxy_control_categories_fail_validato
             orchestrator=cast(TaskRunOrchestrator, orchestrator),
         )
     assert exc_info.value.error_code == "unexpected_validator_failure"
-    assert exc_info.value.failure_detail.exception_type == "PlatformToolProxyInvocationError"
+    assert (
+        exc_info.value.failure_detail.exception_type
+        == "PlatformToolProxyInvocationError"
+    )
     assert orchestrator.calls == 1
     assert evaluation_store.records == []
 
 
-@pytest.mark.parametrize("error_code", ["platform_tool_proxy_execution_failed", "platform_error"])
+@pytest.mark.parametrize(
+    "error_code", ["platform_tool_proxy_execution_failed", "platform_error"]
+)
 async def test_evaluation_runner_platform_proxy_execution_categories_do_not_fail_validator_when_caught(
     tmp_path: Path,
     error_code: str,
@@ -5131,7 +5570,9 @@ async def test_evaluation_runner_platform_proxy_execution_categories_do_not_fail
         query=Query(text=f"{error_code} caught"),
         reference_answer=ReferenceAnswer(text="reference"),
     )
-    artifact = ScriptArtifactSpec(uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128)
+    artifact = ScriptArtifactSpec(
+        uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128
+    )
     orchestrator = _PlatformToolProxyReceiptOrchestrator(
         sessions=session_registry,
         receipt_log=receipt_log,
@@ -5152,7 +5593,9 @@ async def test_evaluation_runner_platform_proxy_execution_categories_do_not_fail
     assert evaluation_store.records == list(result.submissions)
 
 
-@pytest.mark.parametrize("error_code", ["platform_tool_proxy_execution_failed", "platform_error"])
+@pytest.mark.parametrize(
+    "error_code", ["platform_tool_proxy_execution_failed", "platform_error"]
+)
 async def test_evaluation_runner_platform_proxy_execution_categories_are_pair_scoped_when_uncaught(
     tmp_path: Path,
     error_code: str,
@@ -5177,7 +5620,9 @@ async def test_evaluation_runner_platform_proxy_execution_categories_are_pair_sc
         query=Query(text=f"{error_code} uncaught"),
         reference_answer=ReferenceAnswer(text="reference"),
     )
-    artifact = ScriptArtifactSpec(uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128)
+    artifact = ScriptArtifactSpec(
+        uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128
+    )
     orchestrator = _PlatformToolProxyReceiptOrchestrator(
         sessions=session_registry,
         receipt_log=receipt_log,
@@ -5195,7 +5640,10 @@ async def test_evaluation_runner_platform_proxy_execution_categories_are_pair_sc
     assert orchestrator.calls == 1
     assert len(result.submissions) == 1
     assert result.submissions[0].run.details.error is not None
-    assert result.submissions[0].run.details.error.code is MinerTaskErrorCode.MINER_UNHANDLED_EXCEPTION
+    assert (
+        result.submissions[0].run.details.error.code
+        is MinerTaskErrorCode.MINER_UNHANDLED_EXCEPTION
+    )
     assert evaluation_store.records == list(result.submissions)
 
 
@@ -5238,7 +5686,9 @@ async def test_evaluation_runner_platform_proxy_miner_owned_categories_do_not_fa
         query=Query(text=f"{error_code} caught"),
         reference_answer=ReferenceAnswer(text="reference"),
     )
-    artifact = ScriptArtifactSpec(uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128)
+    artifact = ScriptArtifactSpec(
+        uid=7, artifact_id=uuid4(), content_hash="artifact-hash", size_bytes=128
+    )
     orchestrator = _PlatformToolProxyReceiptOrchestrator(
         sessions=session_registry,
         receipt_log=receipt_log,
@@ -5385,7 +5835,10 @@ async def test_evaluation_runner_records_platform_tool_proxy_timeout_as_miner_ow
         for item in page["items"]
         if item["kind"] == "terminated_attempt" and item["attempt"] is not None
     ]
-    assert attempt_logs == [("platform-tool-proxy-timeout-1",), ("platform-tool-proxy-timeout-2",)]
+    assert attempt_logs == [
+        ("platform-tool-proxy-timeout-1",),
+        ("platform-tool-proxy-timeout-2",),
+    ]
     assert len(submission.execution_log) == 1
     assert evaluation_store.records == [submission]
 
@@ -5591,12 +6044,17 @@ async def test_evaluation_runner_assigned_task_records_task_result_when_executio
     )
 
     assert result.result is not None
-    assert result.terminal_attempt.terminal_effect is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    assert (
+        result.terminal_attempt.terminal_effect
+        is MinerTaskAttemptTerminalEffect.TASK_RESULT
+    )
     assert result.terminal_attempt.delivery_failure_detail is None
     assert orchestrator.calls == 1
 
 
-async def test_evaluation_runner_keeps_provider_caused_terminal_failure_pair_scoped(tmp_path: Path) -> None:
+async def test_evaluation_runner_keeps_provider_caused_terminal_failure_pair_scoped(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -5652,7 +6110,9 @@ async def test_evaluation_runner_keeps_provider_caused_terminal_failure_pair_sco
     assert evaluation_store.records == list(result.submissions)
 
 
-async def test_evaluation_runner_records_zero_score_for_unhandled_miner_exception(tmp_path: Path) -> None:
+async def test_evaluation_runner_records_zero_score_for_unhandled_miner_exception(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -5697,7 +6157,9 @@ async def test_evaluation_runner_records_zero_score_for_unhandled_miner_exceptio
     assert evaluation_store.records == [submission]
 
 
-async def test_evaluation_runner_keeps_query_runtime_type_error_as_miner_unhandled_exception(tmp_path: Path) -> None:
+async def test_evaluation_runner_keeps_query_runtime_type_error_as_miner_unhandled_exception(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -5857,7 +6319,9 @@ async def test_evaluate_artifact_with_state_preserves_sandbox_infrastructure_fai
     assert exc.failure_detail.error_code == "sandbox_invocation_failed"
 
 
-async def test_evaluation_runner_does_not_let_stale_provider_marker_poison_later_attempt(tmp_path: Path) -> None:
+async def test_evaluation_runner_does_not_let_stale_provider_marker_poison_later_attempt(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -5889,7 +6353,9 @@ async def test_evaluation_runner_does_not_let_stale_provider_marker_poison_later
     )
     orchestrator = _ProviderFailureThenSandboxFailureOrchestrator(progress=progress)
 
-    with pytest.raises(ValidatorBatchFailedError, match="plain sandbox failure") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="plain sandbox failure"
+    ) as exc_info:
         await runner.evaluate_artifact(
             batch_id=batch_id,
             artifact=artifact,
@@ -5909,7 +6375,9 @@ async def test_evaluation_runner_does_not_let_stale_provider_marker_poison_later
     assert evaluation_store.records == list(exc.completed_submissions)
 
 
-async def test_evaluation_runner_uses_bounded_continuous_worker_pool(tmp_path: Path) -> None:
+async def test_evaluation_runner_uses_bounded_continuous_worker_pool(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -5992,11 +6460,15 @@ async def test_evaluation_runner_uses_bounded_continuous_worker_pool(tmp_path: P
         for release_event in orchestrator.release_by_text.values():
             release_event.set()
     assert orchestrator.max_active == 5
-    assert [submission.run.task_id for submission in result.submissions] == [task.task_id for task in tasks]
+    assert [submission.run.task_id for submission in result.submissions] == [
+        task.task_id for task in tasks
+    ]
     assert len(evaluation_store.records) == 6
 
 
-async def test_evaluation_runner_keeps_miner_failures_local_and_preserves_input_order(tmp_path: Path) -> None:
+async def test_evaluation_runner_keeps_miner_failures_local_and_preserves_input_order(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -6076,7 +6548,9 @@ async def test_evaluation_runner_keeps_miner_failures_local_and_preserves_input_
     finally:
         for release_event in orchestrator.release_by_text.values():
             release_event.set()
-    assert [submission.run.task_id for submission in result.submissions] == [task.task_id for task in tasks]
+    assert [submission.run.task_id for submission in result.submissions] == [
+        task.task_id for task in tasks
+    ]
     assert [submission.score for submission in result.submissions] == [1.0, 0.0, 1.0]
     assert result.submissions[1].run.details.error == EvaluationError(
         code="miner_unhandled_exception",
@@ -6085,7 +6559,9 @@ async def test_evaluation_runner_keeps_miner_failures_local_and_preserves_input_
     assert len(evaluation_store.records) == 3
 
 
-async def test_evaluation_runner_fails_batch_after_first_conclusive_validator_owned_submission(tmp_path: Path) -> None:
+async def test_evaluation_runner_fails_batch_after_first_conclusive_validator_owned_submission(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -6127,7 +6603,9 @@ async def test_evaluation_runner_fails_batch_after_first_conclusive_validator_ow
             self.first_wave_started = asyncio.Event()
             self.conclusive_failure_recorded = asyncio.Event()
             self.release_by_text = {task.query.text: asyncio.Event() for task in tasks}
-            self.second_attempt_release_by_text = {task.query.text: asyncio.Event() for task in tasks[:2]}
+            self.second_attempt_release_by_text = {
+                task.query.text: asyncio.Event() for task in tasks[:2]
+            }
             self.attempts_by_text: dict[str, int] = {}
 
         async def evaluate(self, request: MinerTaskRunRequest) -> TaskRunOutcome:
@@ -6160,11 +6638,16 @@ async def test_evaluation_runner_fails_batch_after_first_conclusive_validator_ow
         await asyncio.wait_for(orchestrator.first_wave_started.wait(), timeout=1.0)
         orchestrator.release_by_text["task-0"].set()
         orchestrator.release_by_text["task-1"].set()
-        while orchestrator.attempts_by_text.get("task-0", 0) < 2 or orchestrator.attempts_by_text.get("task-1", 0) < 2:
+        while (
+            orchestrator.attempts_by_text.get("task-0", 0) < 2
+            or orchestrator.attempts_by_text.get("task-1", 0) < 2
+        ):
             await asyncio.sleep(0)
         orchestrator.second_attempt_release_by_text["task-0"].set()
         orchestrator.second_attempt_release_by_text["task-1"].set()
-        await asyncio.wait_for(orchestrator.conclusive_failure_recorded.wait(), timeout=1.0)
+        await asyncio.wait_for(
+            orchestrator.conclusive_failure_recorded.wait(), timeout=1.0
+        )
 
         for task in tasks[1:]:
             orchestrator.release_by_text[task.query.text].set()
@@ -6181,7 +6664,9 @@ async def test_evaluation_runner_fails_batch_after_first_conclusive_validator_ow
     exc = exc_info.value
     assert exc.error_code == MinerTaskErrorCode.SANDBOX_INVOCATION_FAILED
     assert exc.completed_submissions is not None
-    assert [submission.run.task_id for submission in exc.completed_submissions] == [task.task_id for task in tasks[:5]]
+    assert [submission.run.task_id for submission in exc.completed_submissions] == [
+        task.task_id for task in tasks[:5]
+    ]
     assert exc.remaining_tasks == (tasks[5],)
     recorded_ids = [record.run.task_id for record in evaluation_store.records]
     assert recorded_ids[:5] == [task.task_id for task in tasks[:5]]
@@ -6234,7 +6719,9 @@ async def test_evaluate_artifact_with_state_preserves_earlier_submissions_for_co
         async def evaluate(self, _request: MinerTaskRunRequest) -> TaskRunOutcome:
             raise _sandbox_invocation_error("shared sandbox failure")
 
-    with pytest.raises(ValidatorBatchFailedError, match="shared sandbox failure") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="shared sandbox failure"
+    ) as exc_info:
         await runner.evaluate_artifact_with_state(
             batch_id=batch_id,
             artifact=artifact,
@@ -6322,7 +6809,9 @@ async def test_evaluate_artifact_with_state_preserves_partial_submissions_for_va
 
     runner._run_artifact_worker = run_artifact_worker  # type: ignore[method-assign]
 
-    with pytest.raises(ValidatorBatchFailedError, match="validator timeout") as exc_info:
+    with pytest.raises(
+        ValidatorBatchFailedError, match="validator timeout"
+    ) as exc_info:
         await runner.evaluate_artifact_with_state(
             batch_id=batch_id,
             artifact=artifact,
@@ -6380,7 +6869,9 @@ async def test_evaluate_task_retry_loop_records_validator_batch_failure_detail(
         ),
     )
 
-    async def evaluate_task_attempt(**kwargs) -> evaluation_runner_module.TaskAttemptDecision:
+    async def evaluate_task_attempt(
+        **kwargs,
+    ) -> evaluation_runner_module.TaskAttemptDecision:
         return evaluation_runner_module._validator_batch_failure_decision(
             ValidatorBatchFailedError(
                 error_code="validator_internal_timeout",
@@ -6399,7 +6890,9 @@ async def test_evaluate_task_retry_loop_records_validator_batch_failure_detail(
             orchestrator=cast(TaskRunOrchestrator, object()),
         )
 
-    attempts = progress.completed_run_page(batch_id, after_sequence=0, limit=10)["items"]
+    attempts = progress.completed_run_page(batch_id, after_sequence=0, limit=10)[
+        "items"
+    ]
     terminal_attempt = attempts[-1]["attempt"]
     assert terminal_attempt.delivery_failure_detail == failure_detail
 
@@ -6456,7 +6949,9 @@ async def test_evaluate_artifact_with_state_preserves_partial_submissions_for_un
 
     runner._run_artifact_worker = record_then_fail  # type: ignore[method-assign]
 
-    with pytest.raises(UnexpectedArtifactExecutionError, match="progress store failed") as exc_info:
+    with pytest.raises(
+        UnexpectedArtifactExecutionError, match="progress store failed"
+    ) as exc_info:
         await runner.evaluate_artifact_with_state(
             batch_id=batch_id,
             artifact=artifact,
@@ -6470,7 +6965,9 @@ async def test_evaluate_artifact_with_state_preserves_partial_submissions_for_un
     assert isinstance(exc.cause, RuntimeError)
 
 
-async def test_record_failure_for_artifact_preserves_partial_submissions_when_recording_fails(tmp_path: Path) -> None:
+async def test_record_failure_for_artifact_preserves_partial_submissions_when_recording_fails(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -6503,7 +7000,9 @@ async def test_record_failure_for_artifact_preserves_partial_submissions_when_re
         size_bytes=128,
     )
 
-    with pytest.raises(UnexpectedArtifactExecutionError, match="evaluation record write failed") as exc_info:
+    with pytest.raises(
+        UnexpectedArtifactExecutionError, match="evaluation record write failed"
+    ) as exc_info:
         await runner.record_failure_for_artifact(
             batch_id=uuid4(),
             artifact=artifact,
@@ -6519,7 +7018,9 @@ async def test_record_failure_for_artifact_preserves_partial_submissions_when_re
     assert isinstance(exc.cause, RuntimeError)
 
 
-async def test_evaluation_runner_supports_serialized_artifact_execution(tmp_path: Path) -> None:
+async def test_evaluation_runner_supports_serialized_artifact_execution(
+    tmp_path: Path,
+) -> None:
     subtensor = FakeSubtensorClient()
     subtensor.validator_metadata = ValidatorNodeInfo(uid=41, version_key=None)
     session_registry = FakeSessionRegistry()
@@ -6601,5 +7102,7 @@ async def test_evaluation_runner_supports_serialized_artifact_execution(tmp_path
         for release_event in orchestrator.release_by_text.values():
             release_event.set()
     assert orchestrator.max_active == 1
-    assert [submission.run.task_id for submission in result.submissions] == [task.task_id for task in tasks]
+    assert [submission.run.task_id for submission in result.submissions] == [
+        task.task_id for task in tasks
+    ]
     assert len(evaluation_store.records) == 3

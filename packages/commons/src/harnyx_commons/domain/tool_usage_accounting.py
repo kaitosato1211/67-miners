@@ -68,14 +68,19 @@ def tool_usage_from_llm_usage(
     )
 
 
-def merge_tool_usage_summaries(left: ToolUsageSummary, right: ToolUsageSummary) -> ToolUsageSummary:
+def merge_tool_usage_summaries(
+    left: ToolUsageSummary, right: ToolUsageSummary
+) -> ToolUsageSummary:
     """Merge two shared tool-usage summaries without dropping cost subtotals."""
     return ToolUsageSummary(
         search_tool=SearchToolUsageSummary(
             call_count=left.search_tool.call_count + right.search_tool.call_count,
             cost=left.search_tool.cost + right.search_tool.cost,
-            reference_cost=left.search_tool.reference_cost + right.search_tool.reference_cost,
-            actual_cost=_merge_optional_cost(left.search_tool.actual_cost, right.search_tool.actual_cost),
+            reference_cost=left.search_tool.reference_cost
+            + right.search_tool.reference_cost,
+            actual_cost=_merge_optional_cost(
+                left.search_tool.actual_cost, right.search_tool.actual_cost
+            ),
         ),
         search_tool_cost=left.search_tool_cost + right.search_tool_cost,
         llm=LlmUsageSummary(
@@ -86,23 +91,33 @@ def merge_tool_usage_summaries(left: ToolUsageSummary, right: ToolUsageSummary) 
             reasoning_tokens=left.llm.reasoning_tokens + right.llm.reasoning_tokens,
             cost=left.llm.cost + right.llm.cost,
             reference_cost=left.llm.reference_cost + right.llm.reference_cost,
-            actual_cost=_merge_optional_cost(left.llm.actual_cost, right.llm.actual_cost),
-            providers=_merge_llm_provider_usage(left.llm.providers, right.llm.providers),
+            actual_cost=_merge_optional_cost(
+                left.llm.actual_cost, right.llm.actual_cost
+            ),
+            providers=_merge_llm_provider_usage(
+                left.llm.providers, right.llm.providers
+            ),
         ),
         llm_cost=left.llm_cost + right.llm_cost,
         embedding=EmbeddingToolUsageSummary(
             call_count=left.embedding.call_count + right.embedding.call_count,
             cost=left.embedding.cost + right.embedding.cost,
-            reference_cost=left.embedding.reference_cost + right.embedding.reference_cost,
-            actual_cost=_merge_optional_cost(left.embedding.actual_cost, right.embedding.actual_cost),
+            reference_cost=left.embedding.reference_cost
+            + right.embedding.reference_cost,
+            actual_cost=_merge_optional_cost(
+                left.embedding.actual_cost, right.embedding.actual_cost
+            ),
         ),
         embedding_cost=left.embedding_cost + right.embedding_cost,
-        reference_total_cost_usd=left.reference_total_cost_usd + right.reference_total_cost_usd,
+        reference_total_cost_usd=left.reference_total_cost_usd
+        + right.reference_total_cost_usd,
         reference_cost_by_provider=_merge_cost_by_provider(
             left.reference_cost_by_provider,
             right.reference_cost_by_provider,
         ),
-        actual_total_cost_usd=_merge_optional_cost(left.actual_total_cost_usd, right.actual_total_cost_usd),
+        actual_total_cost_usd=_merge_optional_cost(
+            left.actual_total_cost_usd, right.actual_total_cost_usd
+        ),
         actual_cost_by_provider=_merge_cost_by_provider(
             left.actual_cost_by_provider,
             right.actual_cost_by_provider,
@@ -120,10 +135,15 @@ def known_zero_actual_cost_tool_usage() -> ToolUsageSummary:
     )
 
 
-def merge_complete_actual_cost_usage(left: ToolUsageSummary, right: ToolUsageSummary) -> ToolUsageSummary:
+def merge_complete_actual_cost_usage(
+    left: ToolUsageSummary, right: ToolUsageSummary
+) -> ToolUsageSummary:
     """Merge usage while requiring actual cost from every contained operation."""
     merged = merge_tool_usage_summaries(left, right)
-    if left.actual_total_cost_usd is not None and right.actual_total_cost_usd is not None:
+    if (
+        left.actual_total_cost_usd is not None
+        and right.actual_total_cost_usd is not None
+    ):
         return merged
     providers = {
         provider: {
@@ -156,7 +176,9 @@ def _merge_optional_cost(left: float | None, right: float | None) -> float | Non
     return (left or 0.0) + (right or 0.0)
 
 
-def _merge_cost_by_provider(left: Mapping[str, float], right: Mapping[str, float]) -> dict[str, float]:
+def _merge_cost_by_provider(
+    left: Mapping[str, float], right: Mapping[str, float]
+) -> dict[str, float]:
     return {
         provider: left.get(provider, 0.0) + right.get(provider, 0.0)
         for provider in set(left) | set(right)
@@ -190,12 +212,14 @@ def _merge_model_usage(
     return LlmModelUsageCost(
         usage=LlmUsageTotals(
             prompt_tokens=left_usage.prompt_tokens + right_usage.prompt_tokens,
-            completion_tokens=left_usage.completion_tokens + right_usage.completion_tokens,
+            completion_tokens=left_usage.completion_tokens
+            + right_usage.completion_tokens,
             total_tokens=left_usage.total_tokens + right_usage.total_tokens,
             reasoning_tokens=left_usage.reasoning_tokens + right_usage.reasoning_tokens,
             call_count=left_usage.call_count + right_usage.call_count,
         ),
-        cost=(left.cost if left is not None else 0.0) + (right.cost if right is not None else 0.0),
+        cost=(left.cost if left is not None else 0.0)
+        + (right.cost if right is not None else 0.0),
         reference_cost=(
             (left.reference_cost if left is not None else 0.0)
             + (right.reference_cost if right is not None else 0.0)

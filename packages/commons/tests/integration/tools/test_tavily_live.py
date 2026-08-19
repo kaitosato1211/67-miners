@@ -7,7 +7,11 @@ from harnyx_commons.config.llm import LlmSettings
 from harnyx_commons.tools.search_models import FetchPageRequest, SearchWebSearchRequest
 from harnyx_commons.tools.tavily import TavilyClient
 
-pytestmark = [pytest.mark.integration, pytest.mark.expensive, pytest.mark.anyio("asyncio")]
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.expensive,
+    pytest.mark.anyio("asyncio"),
+]
 
 
 async def test_tavily_live_search_and_extract_contract() -> None:

@@ -52,7 +52,9 @@ def test_benchmark_registry_loads_deepsearchqa_snapshot_generically() -> None:
     assert load_current_benchmark_snapshot("deepsearchqa") == snapshot
 
 
-def test_benchmark_registry_has_eight_current_suites_without_single_active_default() -> None:
+def test_benchmark_registry_has_eight_current_suites_without_single_active_default() -> (
+    None
+):
     snapshots = list_current_benchmark_snapshots()
 
     assert tuple(snapshot.manifest.suite_slug for snapshot in snapshots) == (
@@ -75,13 +77,18 @@ def test_benchmark_registry_has_eight_current_suites_without_single_active_defau
         "webwalkerqa-multi-source-medium",
         "webwalkerqa-single-source-medium",
     )
-    assert load_current_benchmark_snapshot(DEEPRESEARCH9K_L1_SUITE_SLUG).manifest.row_count == 3000
+    assert (
+        load_current_benchmark_snapshot(DEEPRESEARCH9K_L1_SUITE_SLUG).manifest.row_count
+        == 3000
+    )
     try:
         load_active_benchmark_snapshot()
     except RuntimeError as exc:
         assert "ambiguous" in str(exc)
     else:
-        raise AssertionError("load_active_benchmark_snapshot must not resolve when multiple suites are current")
+        raise AssertionError(
+            "load_active_benchmark_snapshot must not resolve when multiple suites are current"
+        )
 
 
 def test_deepsearchqa_loader_retains_current_snapshot_in_version_catalog() -> None:
@@ -91,18 +98,26 @@ def test_deepsearchqa_loader_retains_current_snapshot_in_version_catalog() -> No
     assert snapshots == (snapshot,)
 
 
-def test_load_deepsearchqa_snapshot_manifest_checksum_matches_versioned_packaged_csv() -> None:
+def test_load_deepsearchqa_snapshot_manifest_checksum_matches_versioned_packaged_csv() -> (
+    None
+):
     snapshot = load_deepsearchqa_snapshot()
-    version_dir = files("harnyx_commons.miner_task_benchmark.deepsearchqa.data").joinpath(
+    version_dir = files(
+        "harnyx_commons.miner_task_benchmark.deepsearchqa.data"
+    ).joinpath(
         "versions",
         f"{snapshot.manifest.dataset_version}__{snapshot.manifest.scoring_version}",
     )
-    checksum = sha256(version_dir.joinpath(snapshot.manifest.file_name).read_bytes()).hexdigest()
+    checksum = sha256(
+        version_dir.joinpath(snapshot.manifest.file_name).read_bytes()
+    ).hexdigest()
 
     assert checksum == snapshot.manifest.sha256
 
 
-def test_load_deepsearchqa_snapshot_current_version_points_at_versioned_payload() -> None:
+def test_load_deepsearchqa_snapshot_current_version_points_at_versioned_payload() -> (
+    None
+):
     snapshot = load_deepsearchqa_snapshot()
     data_dir = files("harnyx_commons.miner_task_benchmark.deepsearchqa.data")
     current_version = json.loads(
@@ -193,12 +208,16 @@ def test_benchmark_identity_helpers_match_existing_public_values() -> None:
     )
 
     assert str(run_id) == "d40019ec-5d16-5ba1-b30d-545c8c5d252d"
-    assert str(benchmark_backing_batch_id_for_run(suite_slug="deepsearchqa", run_id=run_id)) == (
-        "d4ca3d15-ca41-5af1-a692-1f150d0a8463"
-    )
-    assert str(benchmark_task_id_for_item(suite_slug="deepsearchqa", run_id=run_id, item_index=0)) == (
-        "b46064ba-ed49-5552-a61a-8c9dbc7913e6"
-    )
-    assert str(benchmark_task_id_for_item(suite_slug="deepsearchqa", run_id=run_id, item_index=17)) == (
-        "8b511d85-6c81-58c4-a101-7feef9999c73"
-    )
+    assert str(
+        benchmark_backing_batch_id_for_run(suite_slug="deepsearchqa", run_id=run_id)
+    ) == ("d4ca3d15-ca41-5af1-a692-1f150d0a8463")
+    assert str(
+        benchmark_task_id_for_item(
+            suite_slug="deepsearchqa", run_id=run_id, item_index=0
+        )
+    ) == ("b46064ba-ed49-5552-a61a-8c9dbc7913e6")
+    assert str(
+        benchmark_task_id_for_item(
+            suite_slug="deepsearchqa", run_id=run_id, item_index=17
+        )
+    ) == ("8b511d85-6c81-58c4-a101-7feef9999c73")

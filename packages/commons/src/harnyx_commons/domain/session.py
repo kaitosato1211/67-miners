@@ -100,7 +100,9 @@ class SessionUsage:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "reference_total_cost_usd", self.total_cost_usd)
-        object.__setattr__(self, "reference_cost_by_provider", dict(self.cost_by_provider))
+        object.__setattr__(
+            self, "reference_cost_by_provider", dict(self.cost_by_provider)
+        )
         if self.total_cost_usd < 0.0:
             raise ValueError("total_cost_usd must be non-negative")
         if self.reference_total_cost_usd < 0.0:
@@ -125,12 +127,22 @@ class SessionUsage:
         """Return a new usage record with updated counters."""
         # Keep compatibility parameters accepted while normalizing them to the session cost fields.
         _ = reference_total_cost_usd, reference_cost_by_provider
-        updated_total = self.total_cost_usd if total_cost_usd is None else total_cost_usd
-        updated_provider_costs = self.cost_by_provider if cost_by_provider is None else cost_by_provider
+        updated_total = (
+            self.total_cost_usd if total_cost_usd is None else total_cost_usd
+        )
+        updated_provider_costs = (
+            self.cost_by_provider if cost_by_provider is None else cost_by_provider
+        )
         return replace(
             self,
-            llm_tokens_last_call=(self.llm_tokens_last_call if llm_tokens_last_call is None else llm_tokens_last_call),
-            llm_usage_totals=self.llm_usage_totals if llm_usage_totals is None else llm_usage_totals,
+            llm_tokens_last_call=(
+                self.llm_tokens_last_call
+                if llm_tokens_last_call is None
+                else llm_tokens_last_call
+            ),
+            llm_usage_totals=(
+                self.llm_usage_totals if llm_usage_totals is None else llm_usage_totals
+            ),
             total_cost_usd=updated_total,
             cost_by_provider=updated_provider_costs,
             reference_total_cost_usd=updated_total,
@@ -141,7 +153,9 @@ class SessionUsage:
                 else cast(float | None, actual_total_cost_usd)
             ),
             actual_cost_by_provider=(
-                self.actual_cost_by_provider if actual_cost_by_provider is None else actual_cost_by_provider
+                self.actual_cost_by_provider
+                if actual_cost_by_provider is None
+                else actual_cost_by_provider
             ),
         )
 
@@ -150,7 +164,9 @@ class SessionUsage:
         if not self.llm_usage_totals:
             raise ValueError("llm usage totals missing for session usage")
 
-        return {provider: dict(models) for provider, models in self.llm_usage_totals.items()}
+        return {
+            provider: dict(models) for provider, models in self.llm_usage_totals.items()
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,7 +181,9 @@ class Session:
     budget_usd: float
     hard_limit_usd: float | None = None
     miner_hotkey_ss58: str | None = None
-    provider_credential_source: ProviderCredentialSource = ProviderCredentialSource.MINER
+    provider_credential_source: ProviderCredentialSource = (
+        ProviderCredentialSource.MINER
+    )
     usage: SessionUsage = field(default_factory=SessionUsage)
     status: SessionStatus = SessionStatus.ACTIVE
     active_attempt: int = 0
@@ -184,7 +202,9 @@ class Session:
         if self.hard_limit_usd is not None and self.hard_limit_usd < 0.0:
             raise ValueError("hard_limit_usd must be non-negative")
         if self.effective_hard_limit_usd < self.budget_usd:
-            raise ValueError("hard_limit_usd must be greater than or equal to budget_usd")
+            raise ValueError(
+                "hard_limit_usd must be greater than or equal to budget_usd"
+            )
         if self.active_attempt < 0:
             raise ValueError("active_attempt must be non-negative")
         if self.failure_code is None and self.failure_attempt is not None:
@@ -193,7 +213,10 @@ class Session:
             raise ValueError("failure_code requires failure_attempt")
         if self.failure_attempt is not None and self.failure_attempt < 0:
             raise ValueError("failure_attempt must be non-negative")
-        if self.failure_attempt is not None and self.failure_attempt > self.active_attempt:
+        if (
+            self.failure_attempt is not None
+            and self.failure_attempt > self.active_attempt
+        ):
             raise ValueError("failure_attempt must not exceed active_attempt")
 
     @property

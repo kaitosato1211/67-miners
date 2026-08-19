@@ -32,22 +32,31 @@ _SINGLE_SOURCE_MEDIUM_VERSION = "2026-07-22-webwalkerqa-test-single-source-mediu
 _MULTI_SOURCE_MEDIUM_VERSION = "2026-07-22-webwalkerqa-test-multi-source-medium"
 
 
-def test_load_webwalkerqa_snapshot_reads_packaged_manifest_and_filters_easy_single_source_rows() -> None:
+def test_load_webwalkerqa_snapshot_reads_packaged_manifest_and_filters_easy_single_source_rows() -> (
+    None
+):
     snapshot = load_webwalkerqa_snapshot()
 
     assert snapshot.manifest.suite_slug == "webwalkerqa"
     assert snapshot.manifest.suite_name == "WebWalkerQA Easy"
-    assert snapshot.manifest.dataset_version == "2026-05-14-webwalkerqa-test-single-source-easy"
+    assert (
+        snapshot.manifest.dataset_version
+        == "2026-05-14-webwalkerqa-test-single-source-easy"
+    )
     assert snapshot.manifest.scoring_version == "correctness-v1"
     assert snapshot.manifest.row_count == 80
     assert len(snapshot.items) == 80
     assert snapshot.items[0].item_index == 40
     assert snapshot.items[-1].item_index == 647
     assert {item.problem_category for item in snapshot.items} == {"single_source_easy"}
-    assert {item.answer_type for item in snapshot.items} == {BenchmarkAnswerType.SINGLE_ANSWER}
+    assert {item.answer_type for item in snapshot.items} == {
+        BenchmarkAnswerType.SINGLE_ANSWER
+    }
 
 
-def test_webwalkerqa_easy_validates_task_fields_only_for_selected_rows(tmp_path: Path) -> None:
+def test_webwalkerqa_easy_validates_task_fields_only_for_selected_rows(
+    tmp_path: Path,
+) -> None:
     rows = [
         {
             "Question": "Selected question",
@@ -120,7 +129,10 @@ def test_webwalkerqa_manifest_checksum_matches_upstream_raw_test_json() -> None:
 
     assert len(raw_rows) == 680
     assert sha256(raw_bytes).hexdigest() == snapshot.manifest.sha256
-    assert snapshot.manifest.sha256 == "26743935e573cca30571793bc28f3798d2a7ce73c6c0981e1bd54a5fe476fe46"
+    assert (
+        snapshot.manifest.sha256
+        == "26743935e573cca30571793bc28f3798d2a7ce73c6c0981e1bd54a5fe476fe46"
+    )
 
 
 def test_webwalkerqa_current_version_points_at_versioned_payload() -> None:
@@ -159,7 +171,9 @@ def test_benchmark_registry_loads_webwalkerqa_current_and_explicit_snapshot() ->
         "webwalkerqa-multi-source-medium",
         "webwalkerqa-single-source-medium",
     )
-    assert {item.manifest.suite_slug for item in list_current_benchmark_snapshots()} == {
+    assert {
+        item.manifest.suite_slug for item in list_current_benchmark_snapshots()
+    } == {
         "browsecomp",
         "deepresearch9k-l1",
         "deepresearch9k-l2",
@@ -190,15 +204,19 @@ def test_webwalkerqa_identity_and_sampling_use_fixed_snapshot_panel() -> None:
     )
 
     assert str(run_id) == "5dba4369-0152-5553-876e-61afc2066201"
-    assert str(benchmark_backing_batch_id_for_run(suite_slug="webwalkerqa", run_id=run_id)) == (
-        "837e691c-0dec-5a1e-8eb5-f936dd9ac2bb"
-    )
-    assert str(benchmark_task_id_for_item(suite_slug="webwalkerqa", run_id=run_id, item_index=40)) == (
-        "3bcb5b02-2003-581e-8512-15a6640fdaf6"
-    )
-    assert str(benchmark_task_id_for_item(suite_slug="webwalkerqa", run_id=run_id, item_index=647)) == (
-        "31e0c534-8de3-5563-9184-86f8f8293629"
-    )
+    assert str(
+        benchmark_backing_batch_id_for_run(suite_slug="webwalkerqa", run_id=run_id)
+    ) == ("837e691c-0dec-5a1e-8eb5-f936dd9ac2bb")
+    assert str(
+        benchmark_task_id_for_item(
+            suite_slug="webwalkerqa", run_id=run_id, item_index=40
+        )
+    ) == ("3bcb5b02-2003-581e-8512-15a6640fdaf6")
+    assert str(
+        benchmark_task_id_for_item(
+            suite_slug="webwalkerqa", run_id=run_id, item_index=647
+        )
+    ) == ("31e0c534-8de3-5563-9184-86f8f8293629")
     assert [item.item_index for item in sampled_items] == [
         40,
         122,
@@ -269,13 +287,55 @@ def test_webwalkerqa_medium_sampling_uses_fixed_snapshot_panels() -> None:
         (
             load_webwalkerqa_single_source_medium_snapshot(),
             UUID("00000000-0000-4000-8000-00000000d903"),
-            [21, 38, 80, 81, 82, 201, 207, 219, 227, 233, 249, 252, 253, 257, 269, 284, 291, 295, 637, 648],
+            [
+                21,
+                38,
+                80,
+                81,
+                82,
+                201,
+                207,
+                219,
+                227,
+                233,
+                249,
+                252,
+                253,
+                257,
+                269,
+                284,
+                291,
+                295,
+                637,
+                648,
+            ],
             "e5eb6fcf-8577-59f6-bfde-715ae840f3ec",
         ),
         (
             load_webwalkerqa_multi_source_medium_snapshot(),
             UUID("00000000-0000-4000-8000-00000000d904"),
-            [8, 11, 26, 32, 53, 56, 93, 106, 112, 484, 487, 492, 497, 503, 506, 515, 638, 660, 666, 675],
+            [
+                8,
+                11,
+                26,
+                32,
+                53,
+                56,
+                93,
+                106,
+                112,
+                484,
+                487,
+                492,
+                497,
+                503,
+                506,
+                515,
+                638,
+                660,
+                666,
+                675,
+            ],
             "78786263-1ab5-5dbb-9028-6ebac61dfe5a",
         ),
     )
@@ -290,10 +350,13 @@ def test_webwalkerqa_medium_sampling_uses_fixed_snapshot_panels() -> None:
         )
 
         assert [item.item_index for item in sampled] == expected_indices
-        assert str(
-            benchmark_task_id_for_item(
-                suite_slug=snapshot.manifest.suite_slug,
-                run_id=run_id,
-                item_index=sampled[0].item_index,
+        assert (
+            str(
+                benchmark_task_id_for_item(
+                    suite_slug=snapshot.manifest.suite_slug,
+                    run_id=run_id,
+                    item_index=sampled[0].item_index,
+                )
             )
-        ) == expected_first_task_id
+            == expected_first_task_id
+        )

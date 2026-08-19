@@ -115,7 +115,9 @@ class AgentRegistry:
             last_synced_at=at,
         )
 
-    def disable(self, *, reason: str | None = None, at: datetime | None = None) -> AgentRegistry:
+    def disable(
+        self, *, reason: str | None = None, at: datetime | None = None
+    ) -> AgentRegistry:
         """Disable the agent while preserving the last sync metadata."""
         if reason is not None and not reason.strip():
             raise ValueError("reason must not be empty when supplied")

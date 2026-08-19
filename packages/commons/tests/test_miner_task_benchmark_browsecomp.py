@@ -52,8 +52,13 @@ def test_load_browsecomp_snapshot_reads_strict_pinned_source() -> None:
     assert len(snapshot.items) == 1266
     assert snapshot.items[0].item_index == 0
     assert snapshot.items[-1].item_index == 1265
-    assert {item.answer_type for item in snapshot.items} == {BenchmarkAnswerType.SINGLE_ANSWER}
-    assert all(item.problem and item.answer and item.problem_category for item in snapshot.items)
+    assert {item.answer_type for item in snapshot.items} == {
+        BenchmarkAnswerType.SINGLE_ANSWER
+    }
+    assert all(
+        item.problem and item.answer and item.problem_category
+        for item in snapshot.items
+    )
 
 
 def test_browsecomp_snapshot_decodes_stable_rows_without_exposing_plaintext() -> None:
@@ -145,9 +150,9 @@ def test_browsecomp_sampling_uses_fixed_snapshot_panel() -> None:
 def test_browsecomp_packaged_source_and_license_match_pinned_bytes() -> None:
     version_dir = _version_dir()
 
-    assert sha256(version_dir.joinpath("browse_comp_test_set.csv").read_bytes()).hexdigest() == (
-        _SOURCE_SHA256
-    )
+    assert sha256(
+        version_dir.joinpath("browse_comp_test_set.csv").read_bytes()
+    ).hexdigest() == (_SOURCE_SHA256)
     license_bytes = version_dir.joinpath("LICENSE.openai-simple-evals").read_bytes()
     assert len(license_bytes) == 1063
     assert sha256(license_bytes).hexdigest() == _LICENSE_SHA256
@@ -156,7 +161,9 @@ def test_browsecomp_packaged_source_and_license_match_pinned_bytes() -> None:
 def test_browsecomp_current_pointer_matches_pinned_version() -> None:
     data_dir = files("harnyx_commons.miner_task_benchmark.browsecomp.data")
 
-    assert json.loads(data_dir.joinpath("current_version.json").read_text(encoding="utf-8")) == {
+    assert json.loads(
+        data_dir.joinpath("current_version.json").read_text(encoding="utf-8")
+    ) == {
         "dataset_version": _DATASET_VERSION,
         "scoring_version": _SCORING_VERSION,
     }
@@ -177,7 +184,9 @@ def test_browsecomp_parser_rejects_malformed_rows(raw: bytes, message: str) -> N
         _parse_rows(raw)
 
 
-def test_browsecomp_decryption_rejects_invalid_base64_empty_ciphertext_and_utf8() -> None:
+def test_browsecomp_decryption_rejects_invalid_base64_empty_ciphertext_and_utf8() -> (
+    None
+):
     with pytest.raises(RuntimeError, match="problem.*base64"):
         _decrypt_required("not base64!", "canary", field="problem")
     with pytest.raises(RuntimeError, match="problem.*empty ciphertext"):
@@ -216,6 +225,10 @@ def _version_dir():
 def _copy_version_dir(root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     version_dir = _version_dir()
-    for name in ("manifest.json", "browse_comp_test_set.csv", "LICENSE.openai-simple-evals"):
+    for name in (
+        "manifest.json",
+        "browse_comp_test_set.csv",
+        "LICENSE.openai-simple-evals",
+    ):
         copyfile(version_dir.joinpath(name), root / name)
     return root

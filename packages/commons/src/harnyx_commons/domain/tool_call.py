@@ -106,7 +106,10 @@ class ToolCallDetails:
             raise ValueError("reference_cost_usd must be non-negative when supplied")
         if self.actual_cost_usd is not None and self.actual_cost_usd < 0.0:
             raise ValueError("actual_cost_usd must be non-negative when supplied")
-        if self.actual_cost_provider is not None and not self.actual_cost_provider.strip():
+        if (
+            self.actual_cost_provider is not None
+            and not self.actual_cost_provider.strip()
+        ):
             raise ValueError("actual_cost_provider must not be empty when supplied")
 
 
@@ -142,7 +145,11 @@ def ordered_tool_calls(receipts: Iterable[ToolCall]) -> tuple[ToolCall, ...]:
 
 def _tool_call_chronology_key(receipt: ToolCall) -> tuple[datetime, datetime, str]:
     execution = receipt.details.execution
-    started_at = receipt.issued_at if execution is None or execution.started_at is None else execution.started_at
+    started_at = (
+        receipt.issued_at
+        if execution is None or execution.started_at is None
+        else execution.started_at
+    )
     return started_at, receipt.issued_at, receipt.receipt_id
 
 
@@ -220,10 +227,16 @@ class StartedToolCall:
             details=ToolCallDetails(
                 request_hash=_hash_json_payload(self.request_payload),
                 request_payload=self.request_payload,
-                response_hash=(None if response_payload is None else _hash_json_payload(response_payload)),
+                response_hash=(
+                    None
+                    if response_payload is None
+                    else _hash_json_payload(response_payload)
+                ),
                 response_payload=response_payload,
                 results=results,
-                result_policy=(self.result_policy if result_policy is None else result_policy),
+                result_policy=(
+                    self.result_policy if result_policy is None else result_policy
+                ),
                 cost_usd=cost_usd,
                 reference_cost_usd=reference_cost_usd,
                 actual_cost_usd=actual_cost_usd,
@@ -235,7 +248,9 @@ class StartedToolCall:
 
 
 def _hash_json_payload(payload: JsonValue | None) -> str:
-    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
     return sha256(serialized).hexdigest()
 
 

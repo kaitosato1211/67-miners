@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import os
 
-from harnyx_miner_sdk.tools.proxy import PLATFORM_TOOL_PROXY_SANDBOX_REQUEST_TIMEOUT_SECONDS
+from harnyx_miner_sdk.tools.proxy import (
+    PLATFORM_TOOL_PROXY_SANDBOX_REQUEST_TIMEOUT_SECONDS,
+)
 
 ENTRYPOINT_TIMEOUT_ENV_VAR = "ENTRYPOINT_TIMEOUT_SECONDS"
 
 
 def load_entrypoint_timeout_seconds() -> float:
-    raw_timeout = os.getenv(ENTRYPOINT_TIMEOUT_ENV_VAR, str(PLATFORM_TOOL_PROXY_SANDBOX_REQUEST_TIMEOUT_SECONDS))
+    raw_timeout = os.getenv(
+        ENTRYPOINT_TIMEOUT_ENV_VAR,
+        str(PLATFORM_TOOL_PROXY_SANDBOX_REQUEST_TIMEOUT_SECONDS),
+    )
     try:
         timeout_seconds = float(raw_timeout)
     except ValueError as exc:

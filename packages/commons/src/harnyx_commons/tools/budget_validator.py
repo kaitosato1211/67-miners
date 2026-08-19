@@ -23,4 +23,3 @@ class BudgetValidator:
                 "cost budget exhausted "
                 f"(limit=${self._limit:.3f}, used=${projected_total_usd:.3f})"
             )
-

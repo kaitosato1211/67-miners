@@ -8,7 +8,9 @@ from fastapi.testclient import TestClient
 from harnyx_validator.infrastructure.http.middleware import request_logging_middleware
 
 
-def test_request_logging_middleware_includes_method_path_query_and_truncated_body(caplog) -> None:
+def test_request_logging_middleware_includes_method_path_query_and_truncated_body(
+    caplog,
+) -> None:
     app = FastAPI()
     app.middleware("http")(request_logging_middleware)
 
@@ -37,7 +39,9 @@ def test_request_logging_middleware_includes_method_path_query_and_truncated_bod
 
     assert response.status_code == 200
 
-    records = [record for record in caplog.records if record.name == "harnyx_validator.http"]
+    records = [
+        record for record in caplog.records if record.name == "harnyx_validator.http"
+    ]
     received = next(record for record in records if record.msg == "request_received")
     completed = next(record for record in records if record.msg == "request_completed")
 
@@ -81,7 +85,9 @@ def test_request_logging_middleware_downgrades_probe_paths_to_debug(caplog) -> N
 
     assert response.status_code == 200
 
-    records = [record for record in caplog.records if record.name == "harnyx_validator.http"]
+    records = [
+        record for record in caplog.records if record.name == "harnyx_validator.http"
+    ]
     received = next(record for record in records if record.msg == "request_received")
     completed = next(record for record in records if record.msg == "request_completed")
 

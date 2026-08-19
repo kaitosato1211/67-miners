@@ -49,7 +49,9 @@ def load_submittable_agent_bytes(agent_path: Path) -> bytes:
 
 def validate_agent_bytes(agent_bytes: bytes, *, label: str = "agent script") -> bytes:
     if len(agent_bytes) > MAX_AGENT_BYTES:
-        raise ValueError(f"{label} exceeds {MAX_AGENT_BYTES} bytes ({len(agent_bytes)} bytes)")
+        raise ValueError(
+            f"{label} exceeds {MAX_AGENT_BYTES} bytes ({len(agent_bytes)} bytes)"
+        )
     try:
         source = agent_bytes.decode("utf-8")
     except UnicodeDecodeError as exc:

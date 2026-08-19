@@ -23,7 +23,9 @@ class RuntimeSubtensorClient(SubtensorClientPort):
         self,
         settings: SubtensorSettings,
         *,
-        client_factory: Callable[[SubtensorSettings], SubtensorClientPort] | None = None,
+        client_factory: (
+            Callable[[SubtensorSettings], SubtensorClientPort] | None
+        ) = None,
     ) -> None:
         self._settings = settings
         self._factory = client_factory or (lambda cfg: BittensorSubtensorClient(cfg))

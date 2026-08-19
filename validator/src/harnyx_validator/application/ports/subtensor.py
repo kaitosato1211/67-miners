@@ -50,7 +50,9 @@ class SubtensorClientPort(Protocol):
     def fetch_commitment(self, uid: int) -> CommitmentRecord | None:
         """Return the latest commitment for ``uid`` when available."""
 
-    def publish_commitment(self, data: str, *, blocks_until_reveal: int = 1) -> CommitmentRecord:
+    def publish_commitment(
+        self, data: str, *, blocks_until_reveal: int = 1
+    ) -> CommitmentRecord:
         """Publish a new commitment for the validator."""
 
     def current_block(self) -> int:

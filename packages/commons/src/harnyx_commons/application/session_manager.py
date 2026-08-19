@@ -41,7 +41,9 @@ class SessionManager:
         )
         self._sessions.create(session)
         token_hash = self._tokens.register(session.session_id, request.token)
-        return SessionIssued(session=session, token=request.token, token_hash=token_hash)
+        return SessionIssued(
+            session=session, token=request.token, token_hash=token_hash
+        )
 
     def load(self, session_id: UUID) -> SessionEnvelope | None:
         """Return the session envelope if it exists."""
@@ -62,21 +64,31 @@ class SessionManager:
 
     def mark_status(self, session_id: UUID, status: SessionStatus) -> SessionEnvelope:
         """Update the session status and persist it."""
-        return self._mutate_session(session_id, lambda session: _transition_status(session, status))
+        return self._mutate_session(
+            session_id, lambda session: _transition_status(session, status)
+        )
 
     def begin_attempt(self, session_id: UUID, *, token: str) -> SessionIssued:
         """Advance the active retry attempt and clear stale failure markers."""
         token_hash = self._tokens.register(session_id, token)
-        updated = self._sessions.mutate(session_id, lambda session: session.begin_attempt())
+        updated = self._sessions.mutate(
+            session_id, lambda session: session.begin_attempt()
+        )
         return SessionIssued(session=updated, token=token, token_hash=token_hash)
 
-    def mark_failure_code(self, session_id: UUID, failure_code: SessionFailureCode) -> SessionEnvelope:
+    def mark_failure_code(
+        self, session_id: UUID, failure_code: SessionFailureCode
+    ) -> SessionEnvelope:
         """Attach a transient execution failure marker to the session."""
-        return self._mutate_session(session_id, lambda session: session.mark_failure_code(failure_code))
+        return self._mutate_session(
+            session_id, lambda session: session.mark_failure_code(failure_code)
+        )
 
     def clear_failure_code(self, session_id: UUID) -> SessionEnvelope:
         """Clear any transient execution failure marker from the session."""
-        return self._mutate_session(session_id, lambda session: session.clear_failure_code())
+        return self._mutate_session(
+            session_id, lambda session: session.clear_failure_code()
+        )
 
     def consume_failure_code(self, session_id: UUID) -> SessionFailureCode | None:
         """Return and clear the current-attempt failure marker, if present."""

@@ -10,7 +10,11 @@ from harnyx_miner.agent_source import (
     validate_agent_bytes,
     validate_agent_query_entrypoint,
 )
-from harnyx_miner_sdk.decorators import clear_entrypoints, entrypoint_exists, get_entrypoint
+from harnyx_miner_sdk.decorators import (
+    clear_entrypoints,
+    entrypoint_exists,
+    get_entrypoint,
+)
 
 
 def _write_agent(path: Path, source: str) -> Path:
@@ -49,7 +53,9 @@ def test_validate_agent_bytes_rejects_limit_plus_one() -> None:
         validate_agent_bytes(source)
 
 
-def test_load_agent_query_entrypoint_keeps_registered_query_available(tmp_path: Path) -> None:
+def test_load_agent_query_entrypoint_keeps_registered_query_available(
+    tmp_path: Path,
+) -> None:
     agent_path = _write_agent(
         tmp_path / "agent.py",
         "from harnyx_miner_sdk.decorators import entrypoint\n"
@@ -66,7 +72,9 @@ def test_load_agent_query_entrypoint_keeps_registered_query_available(tmp_path: 
     clear_entrypoints()
 
 
-def test_validate_agent_query_entrypoint_rejects_invalid_query_signature(tmp_path: Path) -> None:
+def test_validate_agent_query_entrypoint_rejects_invalid_query_signature(
+    tmp_path: Path,
+) -> None:
     agent_path = _write_agent(
         tmp_path / "agent.py",
         "from harnyx_miner_sdk.decorators import entrypoint\n"
@@ -80,7 +88,9 @@ def test_validate_agent_query_entrypoint_rejects_invalid_query_signature(tmp_pat
         validate_agent_query_entrypoint(agent_path)
 
 
-def test_validate_agent_query_entrypoint_clears_registry_after_submit_preflight(tmp_path: Path) -> None:
+def test_validate_agent_query_entrypoint_clears_registry_after_submit_preflight(
+    tmp_path: Path,
+) -> None:
     agent_path = _write_agent(
         tmp_path / "agent.py",
         "from harnyx_miner_sdk.decorators import entrypoint\n"

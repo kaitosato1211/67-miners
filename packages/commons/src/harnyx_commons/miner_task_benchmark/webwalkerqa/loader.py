@@ -136,12 +136,16 @@ def list_webwalkerqa_snapshots() -> tuple[BenchmarkDatasetSnapshot, ...]:
 
 
 @lru_cache(maxsize=1)
-def list_webwalkerqa_single_source_medium_snapshots() -> tuple[BenchmarkDatasetSnapshot, ...]:
+def list_webwalkerqa_single_source_medium_snapshots() -> (
+    tuple[BenchmarkDatasetSnapshot, ...]
+):
     return _list_snapshots(_WEBWALKERQA_SINGLE_SOURCE_MEDIUM)
 
 
 @lru_cache(maxsize=1)
-def list_webwalkerqa_multi_source_medium_snapshots() -> tuple[BenchmarkDatasetSnapshot, ...]:
+def list_webwalkerqa_multi_source_medium_snapshots() -> (
+    tuple[BenchmarkDatasetSnapshot, ...]
+):
     return _list_snapshots(_WEBWALKERQA_MULTI_SOURCE_MEDIUM)
 
 
@@ -160,7 +164,10 @@ def _load_snapshot(
     if expected_version is None:
         expected_version = _current_version(spec)
     for snapshot in snapshots:
-        snapshot_version = (snapshot.manifest.dataset_version, snapshot.manifest.scoring_version)
+        snapshot_version = (
+            snapshot.manifest.dataset_version,
+            snapshot.manifest.scoring_version,
+        )
         if snapshot_version == expected_version:
             return snapshot
     raise RuntimeError(
@@ -169,7 +176,9 @@ def _load_snapshot(
     )
 
 
-def _list_snapshots(spec: _WebWalkerQASuiteSpec) -> tuple[BenchmarkDatasetSnapshot, ...]:
+def _list_snapshots(
+    spec: _WebWalkerQASuiteSpec,
+) -> tuple[BenchmarkDatasetSnapshot, ...]:
     data_dir = files(spec.data_package)
     sources_dir = files(_DATA_PACKAGE).joinpath(_SOURCES_DIR)
     versions_dir = data_dir.joinpath(_VERSIONS_DIR)
@@ -205,12 +214,17 @@ def _load_snapshot_from_dir(
     raw_bytes = json_path.read_bytes()
     checksum = sha256(raw_bytes).hexdigest()
     if checksum != manifest.sha256:
-        raise RuntimeError(f"{spec.name} checksum mismatch: expected {manifest.sha256} got {checksum}")
+        raise RuntimeError(
+            f"{spec.name} checksum mismatch: expected {manifest.sha256} got {checksum}"
+        )
     source_rows = _RAW_ROWS_ADAPTER.validate_json(raw_bytes)
     items: list[BenchmarkDatasetItem] = []
     for source_index, source_row in enumerate(source_rows):
         selector = _ROW_SELECTOR_ADAPTER.validate_python(source_row)
-        if selector.source_type != spec.source_type or selector.difficulty != spec.difficulty:
+        if (
+            selector.source_type != spec.source_type
+            or selector.difficulty != spec.difficulty
+        ):
             continue
         row = _ROW_ADAPTER.validate_python(source_row)
         items.append(_item_from_row(source_index=source_index, row=row, spec=spec))
@@ -262,7 +276,9 @@ def _expected_version(
     if dataset_version is None and scoring_version is None:
         return None
     if dataset_version is None or scoring_version is None:
-        raise RuntimeError(f"{suite_name} snapshot lookup requires both dataset_version and scoring_version")
+        raise RuntimeError(
+            f"{suite_name} snapshot lookup requires both dataset_version and scoring_version"
+        )
     return dataset_version, scoring_version
 
 

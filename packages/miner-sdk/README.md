@@ -41,6 +41,7 @@ responsibility of the sandbox and execution lifecycle.
 Register entrypoints with `@entrypoint(...)`.
 
 Rules:
+
 - Must be `async def`
 - Must accept exactly one parameter
 - That parameter must be annotated as `harnyx_miner_sdk.query.Query`
@@ -81,9 +82,7 @@ or, when your answer needs receipt-backed support:
 ```json
 {
   "text": "Sandboxes isolate miner code so validators can run untrusted scripts safely [[1]].",
-  "citations": [
-    {"receipt_id": "receipt-123", "result_id": "result-abc"}
-  ]
+  "citations": [{ "receipt_id": "receipt-123", "result_id": "result-abc" }]
 }
 ```
 
@@ -97,8 +96,8 @@ For structured output, pass a self-contained JSON Schema Draft 2020-12 object in
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
-      "region": {"type": "string"},
-      "finding": {"type": "string"}
+      "region": { "type": "string" },
+      "finding": { "type": "string" }
     },
     "required": ["region", "finding"],
     "additionalProperties": false
@@ -110,10 +109,8 @@ Return the JSON value directly in `output`, not as encoded JSON inside `text`:
 
 ```json
 {
-  "output": {"region": "North", "finding": "Demand increased."},
-  "citations": [
-    {"receipt_id": "receipt-123", "result_id": "result-abc"}
-  ]
+  "output": { "region": "North", "finding": "Demand increased." },
+  "citations": [{ "receipt_id": "receipt-123", "result_id": "result-abc" }]
 }
 ```
 
@@ -132,6 +129,7 @@ value is limited to 80,000 characters each. Invalid structured output is
 rejected and never falls back to `Response.text`.
 
 Both `Query` and `Response` are strict Pydantic models:
+
 - extra fields are rejected
 - `Query.text` is required and empty/whitespace-only strings are rejected
 - `Response` requires exactly one non-null answer field for the query mode
@@ -218,18 +216,19 @@ Use the citation only when that result actually supports a material claim in you
 ## Tool helpers
 
 These helpers call validator-hosted tools when running inside the sandbox:
+
 - `search_web(query, provider="parallel" | "desearch" | "firecrawl" | "exa" | "tavily", timeout=..., provider_extra=..., **kwargs)`
 - `fetch_page(url, provider="parallel" | "desearch" | "firecrawl" | "exa" | "tavily", timeout=..., provider_extra=...)`
 
 `provider_extra` is strictly validated for the selected provider and operation. It exposes retrieval and extraction controls only; provider answers, deep research, autonomous reasoning, and generated-output controls are rejected.
 
-| Provider | `search_web.provider_extra` | `fetch_page.provider_extra` |
-|---|---|---|
-| `desearch` | `start` | `format`, `js`, `wait` |
-| `parallel` | `mode` (`turbo`, `basic`, or `advanced`), `max_chars_total`, `source_policy`, `fetch_policy`, `excerpt_settings`, `location` | `objective`, `max_chars_total`, `fetch_policy`, `excerpt_settings`, `full_content` |
-| `firecrawl` | `categories`, domain filters, `tbs`, `location`, `country`, invalid-URL and privacy controls | `formats` (`markdown` and/or `rawHtml`), main-content/tag/cache/wait/mobile/PDF/location/image/ad/proxy/cache-retention controls |
-| `exa` | `type` (`auto`, `instant`, or `fast`), category, domain/date/location/moderation filters | `text` (`true` or text options), `max_age_hours`, `livecrawl_timeout` |
-| `tavily` | `search_depth` (`basic`, `fast`, `advanced`, or `ultra-fast`), chunks, topic/time/date/domain/country/exact/safe controls | `query`, `chunks_per_source`, `extract_depth`, `format` |
+| Provider    | `search_web.provider_extra`                                                                                                  | `fetch_page.provider_extra`                                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `desearch`  | `start`                                                                                                                      | `format`, `js`, `wait`                                                                                                           |
+| `parallel`  | `mode` (`turbo`, `basic`, or `advanced`), `max_chars_total`, `source_policy`, `fetch_policy`, `excerpt_settings`, `location` | `objective`, `max_chars_total`, `fetch_policy`, `excerpt_settings`, `full_content`                                               |
+| `firecrawl` | `categories`, domain filters, `tbs`, `location`, `country`, invalid-URL and privacy controls                                 | `formats` (`markdown` and/or `rawHtml`), main-content/tag/cache/wait/mobile/PDF/location/image/ad/proxy/cache-retention controls |
+| `exa`       | `type` (`auto`, `instant`, or `fast`), category, domain/date/location/moderation filters                                     | `text` (`true` or text options), `max_age_hours`, `livecrawl_timeout`                                                            |
+| `tavily`    | `search_depth` (`basic`, `fast`, `advanced`, or `ultra-fast`), chunks, topic/time/date/domain/country/exact/safe controls    | `query`, `chunks_per_source`, `extract_depth`, `format`                                                                          |
 
 Common `search_queries`, `num`, and `timeout` remain top-level fields and are rejected if duplicated in `provider_extra`. Unknown fields and documented incompatible combinations fail before the tool proxy is called.
 
@@ -392,16 +391,16 @@ Do not put common behavior in `provider_extra`. For example, reasoning controls 
 
 `llm_chat` accepts a typed `thinking` option:
 
-| Provider | Model | `enabled=True` / `enabled=False` | `effort` | `budget` |
-|----------|-------|----------------------------------|----------|----------|
-| `openrouter` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"` | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens` |
-| `openrouter` | `deepseek/deepseek-v3.2`, `z-ai/glm-5`, `qwen/qwen3.6-27b`, `qwen/qwen3.8-27b`, `google/gemma-4-31b-it` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"` | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens` |
-| `openrouter` | `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-flash-0731`, `deepseek/deepseek-v4-pro`, `z-ai/glm-5.2`, `thinkingmachines/inkling`, `qwen/qwen3.5-397b-a17b`, `meta/muse-glimmer-30b` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"` | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens` |
-| `ai_gateway` | Allowed AI Gateway models except `google/gemma-4-31b-it` pinned to Cerebras | Supported via AI Gateway `reasoning.enabled` / `reasoning.effort="none"` | Supported via AI Gateway `reasoning.effort` | Supported via AI Gateway `reasoning.max_tokens` |
-| `ai_gateway` | `google/gemma-4-31b-it` pinned to Cerebras | Enable by supplying an explicit `effort`; disabling uses Gemma's disabled provider default | Supported via Cerebras `reasoningEffort` | Unsupported for this route; not serialized into a Cerebras provider option |
-| `chutes` | `deepseek-ai/DeepSeek-V3.2-TEE` | Supported via `chat_template_kwargs.thinking` | Unsupported for Chutes; not serialized | Unsupported for Chutes; not serialized |
-| `chutes` | `Qwen/Qwen3.6-27B-TEE`, `Qwen/Qwen3.8-27B-TEE`, `google/gemma-4-31B-turbo-TEE` | Supported via `chat_template_kwargs.enable_thinking` | Unsupported for Chutes; not serialized | Unsupported for Chutes; not serialized |
-| `chutes` | `moonshotai/Kimi-K2.6-TEE`, `zai-org/GLM-5.2-TEE`, `Qwen/Qwen3.5-397B-A17B-TEE` | No verified Chutes toggle; typed hints are not serialized and provider defaults apply | Unsupported for Chutes; not serialized | Unsupported for Chutes; not serialized |
+| Provider     | Model                                                                                                                                                                                      | `enabled=True` / `enabled=False`                                                           | `effort`                                    | `budget`                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------- |
+| `openrouter` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b`                                                                                                                                                | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens`                            |
+| `openrouter` | `deepseek/deepseek-v3.2`, `z-ai/glm-5`, `qwen/qwen3.6-27b`, `qwen/qwen3.8-27b`, `google/gemma-4-31b-it`                                                                                    | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens`                            |
+| `openrouter` | `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-flash-0731`, `deepseek/deepseek-v4-pro`, `z-ai/glm-5.2`, `thinkingmachines/inkling`, `qwen/qwen3.5-397b-a17b`, `meta/muse-glimmer-30b` | Supported via OpenRouter `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via OpenRouter `reasoning.effort` | Supported via OpenRouter `reasoning.max_tokens`                            |
+| `ai_gateway` | Allowed AI Gateway models except `google/gemma-4-31b-it` pinned to Cerebras                                                                                                                | Supported via AI Gateway `reasoning.enabled` / `reasoning.effort="none"`                   | Supported via AI Gateway `reasoning.effort` | Supported via AI Gateway `reasoning.max_tokens`                            |
+| `ai_gateway` | `google/gemma-4-31b-it` pinned to Cerebras                                                                                                                                                 | Enable by supplying an explicit `effort`; disabling uses Gemma's disabled provider default | Supported via Cerebras `reasoningEffort`    | Unsupported for this route; not serialized into a Cerebras provider option |
+| `chutes`     | `deepseek-ai/DeepSeek-V3.2-TEE`                                                                                                                                                            | Supported via `chat_template_kwargs.thinking`                                              | Unsupported for Chutes; not serialized      | Unsupported for Chutes; not serialized                                     |
+| `chutes`     | `Qwen/Qwen3.6-27B-TEE`, `Qwen/Qwen3.8-27B-TEE`, `google/gemma-4-31B-turbo-TEE`                                                                                                             | Supported via `chat_template_kwargs.enable_thinking`                                       | Unsupported for Chutes; not serialized      | Unsupported for Chutes; not serialized                                     |
+| `chutes`     | `moonshotai/Kimi-K2.6-TEE`, `zai-org/GLM-5.2-TEE`, `Qwen/Qwen3.5-397B-A17B-TEE`                                                                                                            | No verified Chutes toggle; typed hints are not serialized and provider defaults apply      | Unsupported for Chutes; not serialized      | Unsupported for Chutes; not serialized                                     |
 
 ```python
 await llm_chat(

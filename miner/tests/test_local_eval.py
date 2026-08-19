@@ -26,7 +26,12 @@ from harnyx_commons.domain.miner_task import (
     Response,
     ScoreBreakdown,
 )
-from harnyx_commons.domain.session import LlmUsageTotals, Session, SessionStatus, SessionUsage
+from harnyx_commons.domain.session import (
+    LlmUsageTotals,
+    Session,
+    SessionStatus,
+    SessionUsage,
+)
 from harnyx_commons.domain.tool_usage import (
     EmbeddingToolUsageSummary,
     LlmModelUsageCost,
@@ -199,7 +204,9 @@ def _submission(
                     total_score=score,
                     scoring_version="v1",
                 ),
-                total_tool_usage=_tool_usage(total_cost=total_cost, embedding_cost=embedding_cost),
+                total_tool_usage=_tool_usage(
+                    total_cost=total_cost, embedding_cost=embedding_cost
+                ),
                 elapsed_ms=125.0,
             ),
             completed_at=completed_at,
@@ -275,7 +282,9 @@ def _attempt_for_local_progress(
     )
 
 
-def _batch_detail(*, batch_id, champion_artifact_id, tasks: tuple[MinerTask, ...]) -> dict[str, object]:
+def _batch_detail(
+    *, batch_id, champion_artifact_id, tasks: tuple[MinerTask, ...]
+) -> dict[str, object]:
     return {
         "summary": {
             "batch_id": str(batch_id),
@@ -337,7 +346,9 @@ def _batch_detail(*, batch_id, champion_artifact_id, tasks: tuple[MinerTask, ...
     }
 
 
-def _recorded_rows(*, batch_id, champion_artifact_id, tasks: tuple[MinerTask, ...]) -> tuple[dict[str, object], ...]:
+def _recorded_rows(
+    *, batch_id, champion_artifact_id, tasks: tuple[MinerTask, ...]
+) -> tuple[dict[str, object], ...]:
     rows: list[dict[str, object]] = []
     for task in tasks:
         rows.append(
@@ -418,7 +429,9 @@ def _recorded_results_snapshot(
     )
 
 
-def _unavailable_recorded_results_snapshot(*, path: str) -> RecordedBatchResultsSnapshot:
+def _unavailable_recorded_results_snapshot(
+    *, path: str
+) -> RecordedBatchResultsSnapshot:
     return RecordedBatchResultsSnapshot(
         rows=None,
         error=RecordedResultsError.from_request_error(
@@ -432,7 +445,9 @@ def _unavailable_recorded_results_snapshot(*, path: str) -> RecordedBatchResults
     )
 
 
-def _request_error_recorded_results_snapshot(*, path: str) -> RecordedBatchResultsSnapshot:
+def _request_error_recorded_results_snapshot(
+    *, path: str
+) -> RecordedBatchResultsSnapshot:
     return RecordedBatchResultsSnapshot(
         rows=None,
         error=RecordedResultsError.from_request_error(
@@ -462,7 +477,9 @@ def _selected_batch_context(
 
 
 class _FakeMonitoringClient:
-    def __init__(self, *, batch_context: SelectedBatchContext, champion_script: dict[str, object]) -> None:
+    def __init__(
+        self, *, batch_context: SelectedBatchContext, champion_script: dict[str, object]
+    ) -> None:
         self.batch_context = batch_context
         self.champion_script = champion_script
         self.resolve_calls: list[tuple[object, object]] = []
@@ -524,7 +541,9 @@ class _FakeRuntime:
             )
         )
         self.calls: list[tuple[str, str]] = []
-        self._target_scores = target_scores or tuple(0.9 - (index * 0.2) for index in range(len(tasks)))
+        self._target_scores = target_scores or tuple(
+            0.9 - (index * 0.2) for index in range(len(tasks))
+        )
         self._champion_scores = champion_scores or tuple(0.6 for _ in tasks)
         self._batch_id = batch_id
         self._champion_artifact_id = champion_artifact_id
@@ -587,7 +606,9 @@ class _FakeRuntime:
                             ),
                             attempt_count=2 if prefix == "target" and index == 0 else 1,
                         )
-                        for index, (task, score) in enumerate(zip(tasks, scores, strict=True))
+                        for index, (task, score) in enumerate(
+                            zip(tasks, scores, strict=True)
+                        )
                     ),
                 )
             else:
@@ -638,7 +659,9 @@ def test_local_eval_runtime_create_binds_sandbox_publish_to_loopback(
 
     class _FakeRegistry(_FakeAsyncResource):
         def resolve(self, name: str) -> _FakeAsyncResource:
-            raise AssertionError(f"scoring provider should be routed, not eagerly resolved: {name}")
+            raise AssertionError(
+                f"scoring provider should be routed, not eagerly resolved: {name}"
+            )
 
     settings = SimpleNamespace(
         llm=SimpleNamespace(scoring_llm_provider="chutes"),
@@ -667,9 +690,9 @@ def test_local_eval_runtime_create_binds_sandbox_publish_to_loopback(
     monkeypatch.setattr(
         local_eval,
         "build_tool_invocation_clients",
-            lambda **_kwargs: SimpleNamespace(
-                search_client=_FakeAsyncResource(),
-                ai_search_client=_FakeAsyncResource(),
+        lambda **_kwargs: SimpleNamespace(
+            search_client=_FakeAsyncResource(),
+            ai_search_client=_FakeAsyncResource(),
             search_provider_registry=_FakeRegistry(),
             llm_provider_registry=_FakeRegistry(),
             tool_llm_provider=_FakeAsyncResource(),
@@ -687,7 +710,11 @@ def test_local_eval_runtime_create_binds_sandbox_publish_to_loopback(
         "_resolve_scoring_judge_route",
         resolve_scoring_judge_route,
     )
-    monkeypatch.setattr(local_eval, "_build_local_provider_tooling", lambda **_: (object(), _UnusedToolExecutor()))
+    monkeypatch.setattr(
+        local_eval,
+        "_build_local_provider_tooling",
+        lambda **_: (object(), _UnusedToolExecutor()),
+    )
     monkeypatch.setattr(
         local_eval,
         "_create_scoring_service",
@@ -765,7 +792,9 @@ async def test_local_runtime_closes_llm_provider_registry_not_routed_wrappers() 
     assert scoring_llm_provider.closed is False
 
 
-async def test_local_runtime_closes_llm_provider_registry_when_search_close_fails() -> None:
+async def test_local_runtime_closes_llm_provider_registry_when_search_close_fails() -> (
+    None
+):
     search_client = _FailingAsyncResource()
     search_provider_registry = _FakeAsyncResource()
     llm_provider_registry = _FakeAsyncResource()
@@ -813,7 +842,9 @@ class _FakeSandboxClient(SandboxClient):
         session_id: UUID,
     ) -> Mapping[str, JsonValue]:
         del payload, context, token, session_id
-        raise AssertionError(f"sandbox client invoke should not be reached in this unit test: entrypoint={entrypoint}")
+        raise AssertionError(
+            f"sandbox client invoke should not be reached in this unit test: entrypoint={entrypoint}"
+        )
 
     def close(self) -> None:
         return None
@@ -877,7 +908,12 @@ class _BlockingSandboxManager(_FakeSandboxManager):
 
 
 class _FakeToolHost:
-    def __init__(self, *, port: int = 39100, host_container_url: str = "http://host.docker.internal:39100") -> None:
+    def __init__(
+        self,
+        *,
+        port: int = 39100,
+        host_container_url: str = "http://host.docker.internal:39100",
+    ) -> None:
         self.port = port
         self.host_container_url = host_container_url
         self.close_calls = 0
@@ -1003,7 +1039,9 @@ def _minimal_local_eval_state(tmp_path: Path) -> SimpleNamespace:
         receipt_log=object(),
         session_manager=object(),
         evaluation_records=object(),
-        progress_tracker=local_eval.FileBackedRunProgress(storage_root=tmp_path / "run-progress"),
+        progress_tracker=local_eval.FileBackedRunProgress(
+            storage_root=tmp_path / "run-progress"
+        ),
         tool_concurrency_limiter=object(),
     )
 
@@ -1018,9 +1056,13 @@ def _assert_private_mode(path: Path, expected_mode: int) -> None:
     assert stat.S_IMODE(path.stat().st_mode) == expected_mode
 
 
-def test_local_progress_recorder_delegates_attempt_tracking_to_storage(tmp_path: Path) -> None:
+def test_local_progress_recorder_delegates_attempt_tracking_to_storage(
+    tmp_path: Path,
+) -> None:
     task = _task(uuid4(), "retry task")
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64
+    )
     batch = MinerTaskBatchSpec(
         batch_id=uuid4(),
         cutoff_at="2026-03-27T05:55:00Z",
@@ -1033,14 +1075,27 @@ def test_local_progress_recorder_delegates_attempt_tracking_to_storage(tmp_path:
 
     progress.register(batch)
 
-    assert progress.next_attempt_number(batch.batch_id, artifact.artifact_id, task.task_id) == 1
+    assert (
+        progress.next_attempt_number(batch.batch_id, artifact.artifact_id, task.task_id)
+        == 1
+    )
 
     attempt = _attempt_for_local_progress(batch)
     progress.record_terminated_attempt(attempt)
 
-    assert progress.next_attempt_number(batch.batch_id, artifact.artifact_id, task.task_id) == 2
-    assert storage.completed_run_page(batch.batch_id, after_sequence=0, limit=10)["items"] == (
-        {"sequence": 1, "kind": "terminated_attempt", "submission": None, "attempt": attempt},
+    assert (
+        progress.next_attempt_number(batch.batch_id, artifact.artifact_id, task.task_id)
+        == 2
+    )
+    assert storage.completed_run_page(batch.batch_id, after_sequence=0, limit=10)[
+        "items"
+    ] == (
+        {
+            "sequence": 1,
+            "kind": "terminated_attempt",
+            "submission": None,
+            "attempt": attempt,
+        },
     )
 
 
@@ -1068,8 +1123,12 @@ def test_local_eval_writes_default_reports_for_latest_completed_vs_champion(
         ),
         _task(uuid4(), "task two"),
     )
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1103,15 +1162,23 @@ def test_local_eval_writes_default_reports_for_latest_completed_vs_champion(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
 
@@ -1127,8 +1194,14 @@ def test_local_eval_writes_default_reports_for_latest_completed_vs_champion(
     assert report["batch_metadata"]["selection_source"] == "latest-completed"
     assert report["evaluation_config"]["artifact_task_parallelism"] == 20
     assert report["evaluation_config"]["artifact_evaluation_parallelism"] == 2
-    assert report["local_result_summary"]["local_champion_selection"]["selected_label"] == "target"
-    assert report["local_result_summary"]["head_to_head"]["winner_by_total_score"] == "target"
+    assert (
+        report["local_result_summary"]["local_champion_selection"]["selected_label"]
+        == "target"
+    )
+    assert (
+        report["local_result_summary"]["head_to_head"]["winner_by_total_score"]
+        == "target"
+    )
     assert len(report["local_result_summary"]["leaderboard"]) == 2
     assert len(report["tasks"]) == 2
     assert report["tasks"][0]["reference_answer"]["citations"] == [
@@ -1147,19 +1220,29 @@ def test_local_eval_writes_default_reports_for_latest_completed_vs_champion(
         "batch_id": str(batch_id),
         "artifact_id": str(champion_artifact_id),
     }
-    assert report["recorded_platform_context"]["results"][0]["payload_json"] == {"source": "platform"}
+    assert report["recorded_platform_context"]["results"][0]["payload_json"] == {
+        "source": "platform"
+    }
     assert runtime.closed is True
     assert monitoring.closed is True
     markdown = markdown_path.read_text(encoding="utf-8")
     assert "- Reference citations:" in markdown
-    assert "Reference source - https://example.com/reference - Reference support" in markdown
+    assert (
+        "Reference source - https://example.com/reference - Reference support"
+        in markdown
+    )
     assert "- Target citations:" in markdown
     assert "Target source 0 - https://example.com/target/0 - Target note 0" in markdown
     assert "- Opponent citations:" in markdown
-    assert "Champion source 0 - https://example.com/champion/0 - Champion note 0" in markdown
+    assert (
+        "Champion source 0 - https://example.com/champion/0 - Champion note 0"
+        in markdown
+    )
 
 
-def test_render_answer_markdown_uses_shared_models_and_ignores_empty_optional_citation_fields() -> None:
+def test_render_answer_markdown_uses_shared_models_and_ignores_empty_optional_citation_fields() -> (
+    None
+):
     lines = local_eval._render_answer_markdown(
         "Target",
         {
@@ -1232,7 +1315,9 @@ def test_invocation_only_runtime_factory_skips_default_scoring_provider(
         session_manager=object(),
         evaluation_records=object(),
         receipt_log=object(),
-        progress_tracker=local_eval.FileBackedRunProgress(storage_root=tmp_path / "run-progress"),
+        progress_tracker=local_eval.FileBackedRunProgress(
+            storage_root=tmp_path / "run-progress"
+        ),
     )
     scoring_service = cast(Any, object())
     scoring_config = EvaluationScoringConfig(
@@ -1262,12 +1347,17 @@ def test_invocation_only_runtime_factory_skips_default_scoring_provider(
             ),
         ),
     )
+
     def build_local_provider_tooling(**kwargs: Any) -> tuple[object, object]:
         captured_tooling_kwargs.append(kwargs)
         return object(), object()
 
-    monkeypatch.setattr(local_eval, "_build_local_provider_tooling", build_local_provider_tooling)
-    monkeypatch.setattr(local_eval, "create_sandbox_manager", lambda **_kwargs: object())
+    monkeypatch.setattr(
+        local_eval, "_build_local_provider_tooling", build_local_provider_tooling
+    )
+    monkeypatch.setattr(
+        local_eval, "create_sandbox_manager", lambda **_kwargs: object()
+    )
 
     runtime = local_eval.LocalEvaluationRuntime.create_invocation_only(
         scoring_service=scoring_service,
@@ -1280,13 +1370,27 @@ def test_invocation_only_runtime_factory_skips_default_scoring_provider(
     assert runtime.scoring_config is scoring_config
     assert runtime._scoring_llm_provider is None
     assert captured_tooling_kwargs
-    assert captured_tooling_kwargs[0]["web_search_provider_resolver"]("parallel", object()) is not None
-    assert captured_tooling_kwargs[0]["ai_search_provider_resolver"]("parallel", object()) is not None
-    assert captured_tooling_kwargs[0]["llm_provider_resolver"]("openrouter", object()) is not None
-    assert captured_tooling_kwargs[0]["llm_provider_resolver"]("ai_gateway", object()) is not None
+    assert (
+        captured_tooling_kwargs[0]["web_search_provider_resolver"]("parallel", object())
+        is not None
+    )
+    assert (
+        captured_tooling_kwargs[0]["ai_search_provider_resolver"]("parallel", object())
+        is not None
+    )
+    assert (
+        captured_tooling_kwargs[0]["llm_provider_resolver"]("openrouter", object())
+        is not None
+    )
+    assert (
+        captured_tooling_kwargs[0]["llm_provider_resolver"]("ai_gateway", object())
+        is not None
+    )
     assert captured_tooling_kwargs[0]["tool_embedding_provider"] is not None
     assert (
-        captured_tooling_kwargs[0]["embedding_provider_resolver"]("openrouter", object())
+        captured_tooling_kwargs[0]["embedding_provider_resolver"](
+            "openrouter", object()
+        )
         == "embedding-provider:openrouter"
     )
 
@@ -1298,8 +1402,12 @@ def test_local_eval_target_only_skips_champion_fetch_and_keeps_recorded_context(
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     tasks = (_task(uuid4(), "solo task"),)
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1327,15 +1435,23 @@ def test_local_eval_target_only_skips_champion_fetch_and_keeps_recorded_context(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path, answer="target only")
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(
         [
@@ -1408,15 +1524,23 @@ def test_local_eval_task_id_runs_only_the_selected_task_and_uses_a_task_specific
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(
         [
@@ -1433,14 +1557,22 @@ def test_local_eval_task_id_runs_only_the_selected_task_and_uses_a_task_specific
         ]
     )
 
-    report_path = tmp_path / f"local-eval-report-{batch_id}-{selected_task.task_id}-target-only.json"
-    markdown_path = tmp_path / f"local-eval-report-{batch_id}-{selected_task.task_id}-target-only.md"
+    report_path = (
+        tmp_path
+        / f"local-eval-report-{batch_id}-{selected_task.task_id}-target-only.json"
+    )
+    markdown_path = (
+        tmp_path
+        / f"local-eval-report-{batch_id}-{selected_task.task_id}-target-only.md"
+    )
     report = json.loads(report_path.read_text(encoding="utf-8"))
 
     assert monitoring.resolve_calls == [(batch_id, selected_task.task_id)]
     assert markdown_path.exists()
     assert not (tmp_path / f"local-eval-report-{batch_id}-target-only.json").exists()
-    assert report["evaluation_config"]["selected_task_ids"] == [str(selected_task.task_id)]
+    assert report["evaluation_config"]["selected_task_ids"] == [
+        str(selected_task.task_id)
+    ]
     assert [task["task_id"] for task in report["tasks"]] == [str(selected_task.task_id)]
     assert report["recorded_platform_context"]["results_scope"] == {
         "kind": "task",
@@ -1458,7 +1590,9 @@ def test_local_eval_target_only_continues_when_recorded_results_fetch_fails(
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     tasks = (_task(uuid4(), "solo task"),)
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1484,15 +1618,23 @@ def test_local_eval_target_only_continues_when_recorded_results_fetch_fails(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path, answer="target only")
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(
         [
@@ -1507,8 +1649,14 @@ def test_local_eval_target_only_continues_when_recorded_results_fetch_fails(
         ]
     )
 
-    report = json.loads((tmp_path / f"local-eval-report-{batch_id}-target-only.json").read_text(encoding="utf-8"))
-    markdown = (tmp_path / f"local-eval-report-{batch_id}-target-only.md").read_text(encoding="utf-8")
+    report = json.loads(
+        (tmp_path / f"local-eval-report-{batch_id}-target-only.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    markdown = (tmp_path / f"local-eval-report-{batch_id}-target-only.md").read_text(
+        encoding="utf-8"
+    )
     captured = capsys.readouterr()
 
     assert report["recorded_platform_context"]["results"] is None
@@ -1535,7 +1683,9 @@ def test_local_eval_vs_champion_continues_when_recorded_results_fetch_fails(
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     tasks = (_task(uuid4(), "solo task"),)
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1567,23 +1717,37 @@ def test_local_eval_vs_champion_continues_when_recorded_results_fetch_fails(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
 
-    report = json.loads((tmp_path / f"local-eval-report-{batch_id}-vs-champion.json").read_text(encoding="utf-8"))
+    report = json.loads(
+        (tmp_path / f"local-eval-report-{batch_id}-vs-champion.json").read_text(
+            encoding="utf-8"
+        )
+    )
 
     assert monitoring.script_calls == 1
     assert report["recorded_platform_context"]["results"] is None
-    assert report["recorded_platform_context"]["results_status"]["state"] == "unavailable"
+    assert (
+        report["recorded_platform_context"]["results_status"]["state"] == "unavailable"
+    )
     assert report["recorded_platform_context"]["results_scope"] is None
     assert report["tasks"][0]["recorded_platform_rows"] is None
     assert len(runtime.calls) == 2
@@ -1596,7 +1760,9 @@ def test_local_eval_target_only_continues_when_recorded_results_transport_fails(
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     tasks = (_task(uuid4(), "solo task"),)
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1622,15 +1788,23 @@ def test_local_eval_target_only_continues_when_recorded_results_transport_fails(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path, answer="target only")
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(
         [
@@ -1645,7 +1819,11 @@ def test_local_eval_target_only_continues_when_recorded_results_transport_fails(
         ]
     )
 
-    report = json.loads((tmp_path / f"local-eval-report-{batch_id}-target-only.json").read_text(encoding="utf-8"))
+    report = json.loads(
+        (tmp_path / f"local-eval-report-{batch_id}-target-only.json").read_text(
+            encoding="utf-8"
+        )
+    )
 
     assert report["recorded_platform_context"]["results"] is None
     assert report["recorded_platform_context"]["results_status"] == {
@@ -1671,8 +1849,12 @@ def test_local_eval_vs_champion_uses_platform_cascade_not_raw_total_only(
         _task(uuid4(), "task one"),
         _task(uuid4(), "task two"),
     )
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1708,22 +1890,40 @@ def test_local_eval_vs_champion_uses_platform_cascade_not_raw_total_only(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
 
-    report = json.loads((tmp_path / f"local-eval-report-{batch_id}-vs-champion.json").read_text(encoding="utf-8"))
+    report = json.loads(
+        (tmp_path / f"local-eval-report-{batch_id}-vs-champion.json").read_text(
+            encoding="utf-8"
+        )
+    )
 
-    assert report["local_result_summary"]["head_to_head"]["winner_by_total_score"] == "target"
-    assert report["local_result_summary"]["local_champion_selection"]["selected_label"] == "champion"
+    assert (
+        report["local_result_summary"]["head_to_head"]["winner_by_total_score"]
+        == "target"
+    )
+    assert (
+        report["local_result_summary"]["local_champion_selection"]["selected_label"]
+        == "champion"
+    )
 
 
 def test_local_eval_head_to_head_winner_uses_raw_totals_not_rounded_totals(
@@ -1736,8 +1936,12 @@ def test_local_eval_head_to_head_winner_uses_raw_totals_not_rounded_totals(
         _task(uuid4(), "task one"),
         _task(uuid4(), "task two"),
     )
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1773,19 +1977,31 @@ def test_local_eval_head_to_head_winner_uses_raw_totals_not_rounded_totals(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
 
-    report = json.loads((tmp_path / f"local-eval-report-{batch_id}-vs-champion.json").read_text(encoding="utf-8"))
+    report = json.loads(
+        (tmp_path / f"local-eval-report-{batch_id}-vs-champion.json").read_text(
+            encoding="utf-8"
+        )
+    )
     head_to_head = report["local_result_summary"]["head_to_head"]
 
     assert head_to_head["winner_by_total_score"] == "target"
@@ -1803,8 +2019,12 @@ def test_local_eval_runs_target_and_champion_concurrently(
         _task(uuid4(), "task one"),
         _task(uuid4(), "task two"),
     )
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -1839,15 +2059,23 @@ def test_local_eval_runs_target_and_champion_concurrently(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
 
@@ -1921,7 +2149,9 @@ async def test_local_runtime_executes_target_and_champion_via_sandbox_and_reuses
     monkeypatch.setattr(
         runpy,
         "run_path",
-        lambda *_args, **_kwargs: pytest.fail("local eval should not execute artifact code via host runpy"),
+        lambda *_args, **_kwargs: pytest.fail(
+            "local eval should not execute artifact code via host runpy"
+        ),
     )
 
     runtime = local_eval.LocalEvaluationRuntime(
@@ -2007,7 +2237,9 @@ async def test_local_eval_writes_failure_bundle_when_sandbox_start_fails(
 ) -> None:
     monkeypatch.setattr(local_eval, "_LOCAL_EVAL_FAILURE_ROOT", tmp_path)
     batch_id = uuid4()
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64
+    )
     original_error = RuntimeError("sandbox start exploded")
     progress = _CapturingProgress()
     sandbox_manager = _FailingSandboxManager(original_error)
@@ -2050,7 +2282,9 @@ async def test_local_eval_writes_failure_bundle_when_artifact_outcome_has_failur
 ) -> None:
     monkeypatch.setattr(local_eval, "_LOCAL_EVAL_FAILURE_ROOT", tmp_path)
     batch_id = uuid4()
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64
+    )
     failure = _artifact_failure(artifact)
     progress = _CapturingProgress()
     sandbox_manager = _FakeSandboxManager()
@@ -2098,11 +2332,15 @@ async def test_local_eval_failure_bundle_write_failure_preserves_original_error(
         raise OSError("disk full")
 
     monkeypatch.setattr(local_eval, "_write_local_failure_bundle", fail_bundle_write)
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64
+    )
     progress = _CapturingProgress()
     runtime = _local_runtime(
         runner=object(),
-        sandbox_manager=_FailingSandboxManager(RuntimeError("original sandbox failure")),
+        sandbox_manager=_FailingSandboxManager(
+            RuntimeError("original sandbox failure")
+        ),
         tool_host=_FakeToolHost(),
         progress=progress,
     )
@@ -2117,7 +2355,9 @@ async def test_local_eval_failure_bundle_write_failure_preserves_original_error(
         )
 
     failure_dir = tmp_path / runtime._run_id / f"target-{artifact.artifact_id.hex[:12]}"
-    assert progress.messages == [f"failure bundle write failed: path={failure_dir} error=disk full"]
+    assert progress.messages == [
+        f"failure bundle write failed: path={failure_dir} error=disk full"
+    ]
 
 
 async def test_local_eval_sandbox_startup_failure_is_not_recategorized(
@@ -2125,7 +2365,9 @@ async def test_local_eval_sandbox_startup_failure_is_not_recategorized(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(local_eval, "_LOCAL_EVAL_FAILURE_ROOT", tmp_path)
-    artifact = ScriptArtifactSpec(uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64)
+    artifact = ScriptArtifactSpec(
+        uid=3, artifact_id=uuid4(), content_hash="target-hash", size_bytes=64
+    )
     progress = _CapturingProgress()
     runtime = _local_runtime(
         runner=object(),
@@ -2157,8 +2399,12 @@ def test_local_eval_does_not_write_reports_when_champion_outcome_has_artifact_fa
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     tasks = (_task(uuid4(), "solo task"),)
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -2224,24 +2470,36 @@ def test_local_eval_does_not_write_reports_when_champion_outcome_has_artifact_fa
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     with pytest.raises(SystemExit, match="sandbox_invocation_failed"):
-        local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
+        local_eval.main(
+            ["--agent-path", str(agent_path), "--output-dir", str(tmp_path)]
+        )
 
     assert not (tmp_path / f"local-eval-report-{batch_id}-vs-champion.json").exists()
     assert not (tmp_path / f"local-eval-report-{batch_id}-vs-champion.md").exists()
 
 
-async def test_local_runtime_stops_started_sandbox_when_cancelled_during_startup() -> None:
+async def test_local_runtime_stops_started_sandbox_when_cancelled_during_startup() -> (
+    None
+):
     batch_id = uuid4()
     artifact = ScriptArtifactSpec(
         uid=3,
@@ -2318,8 +2576,12 @@ def test_local_eval_vs_champion_fails_before_runtime_when_champion_script_is_inv
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     tasks = (_task(uuid4(), "solo task"),)
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -2346,7 +2608,9 @@ def test_local_eval_vs_champion_fails_before_runtime_when_champion_script_is_inv
     )
     created = False
 
-    def _create_runtime(*, progress_reporter=None, run_progress_root=None) -> _FakeRuntime:
+    def _create_runtime(
+        *, progress_reporter=None, run_progress_root=None
+    ) -> _FakeRuntime:
         nonlocal created
         created = True
         runtime.progress_reporter = progress_reporter
@@ -2355,12 +2619,22 @@ def test_local_eval_vs_champion_fails_before_runtime_when_champion_script_is_inv
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
-    monkeypatch.setattr(local_eval.LocalEvaluationRuntime, "create", staticmethod(_create_runtime))
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
+    monkeypatch.setattr(
+        local_eval.LocalEvaluationRuntime, "create", staticmethod(_create_runtime)
+    )
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     with pytest.raises(SystemExit, match="missing content_b64"):
-        local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
+        local_eval.main(
+            ["--agent-path", str(agent_path), "--output-dir", str(tmp_path)]
+        )
 
     assert created is False
     assert monitoring.script_calls == 1
@@ -2375,8 +2649,12 @@ def test_local_eval_vs_champion_preflight_does_not_execute_fetched_champion_code
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     tasks = (_task(uuid4(), "solo task"),)
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -2393,7 +2671,9 @@ def test_local_eval_vs_champion_preflight_does_not_execute_fetched_champion_code
             "artifact_id": str(champion_artifact_id),
             "content_hash": "champion-hash",
             "size_bytes": 128,
-            "content_b64": base64.b64encode(b'raise RuntimeError("host execution must not happen")\n').decode("ascii"),
+            "content_b64": base64.b64encode(
+                b'raise RuntimeError("host execution must not happen")\n'
+            ).decode("ascii"),
         },
     )
     runtime = _FakeRuntime(
@@ -2404,19 +2684,29 @@ def test_local_eval_vs_champion_preflight_does_not_execute_fetched_champion_code
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
     monkeypatch.setattr(
         runpy,
         "run_path",
-        lambda *_args, **_kwargs: pytest.fail("champion preflight should not execute code on the host"),
+        lambda *_args, **_kwargs: pytest.fail(
+            "champion preflight should not execute code on the host"
+        ),
     )
 
     local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
@@ -2436,8 +2726,12 @@ def test_local_eval_logs_progress_to_stderr_and_keeps_stdout_json_clean(
         _task(uuid4(), "task one"),
         _task(uuid4(), "task two"),
     )
-    detail = _batch_detail(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
-    results = _recorded_rows(batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks)
+    detail = _batch_detail(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
+    results = _recorded_rows(
+        batch_id=batch_id, champion_artifact_id=champion_artifact_id, tasks=tasks
+    )
     monitoring = _FakeMonitoringClient(
         batch_context=_selected_batch_context(
             batch_id=batch_id,
@@ -2471,15 +2765,23 @@ def test_local_eval_logs_progress_to_stderr_and_keeps_stdout_json_clean(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
     monkeypatch.setattr(
         local_eval.LocalEvaluationRuntime,
         "create",
         staticmethod(
-            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(runtime, progress_reporter)
+            lambda *, progress_reporter=None, run_progress_root=None: _bind_progress(
+                runtime, progress_reporter
+            )
         ),
     )
-    monkeypatch.setattr(local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com")
+    monkeypatch.setattr(
+        local_eval, "platform_base_url_from_env", lambda: "https://platform.example.com"
+    )
 
     local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
 
@@ -2489,7 +2791,10 @@ def test_local_eval_logs_progress_to_stderr_and_keeps_stdout_json_clean(
     assert stdout_payload["batch_id"] == str(batch_id)
     assert stdout_payload["mode"] == "vs-champion"
     assert "[local-eval] resolving batch context" in captured.err
-    assert "[local-eval] running target and champion evaluations concurrently" in captured.err
+    assert (
+        "[local-eval] running target and champion evaluations concurrently"
+        in captured.err
+    )
     assert "[local-eval] target task 1/2 complete" in captured.err
     assert "[local-eval] finished champion evaluation" in captured.err
     assert "[local-eval] reports written:" in captured.err
@@ -2510,7 +2815,9 @@ def test_main_configures_cli_logging_before_run(
         calls.append("run")
         coroutine.close()
 
-    monkeypatch.setattr(local_eval, "_configure_cli_logging", lambda: calls.append("configured"))
+    monkeypatch.setattr(
+        local_eval, "_configure_cli_logging", lambda: calls.append("configured")
+    )
     monkeypatch.setattr(local_eval, "_amain", fake_amain)
     monkeypatch.setattr(local_eval.asyncio, "run", fake_run)
 
@@ -2519,7 +2826,9 @@ def test_main_configures_cli_logging_before_run(
     assert calls == ["configured", "run"]
 
 
-def test_configure_cli_logging_writes_to_stderr(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_configure_cli_logging_writes_to_stderr(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     root = logging.getLogger()
     tools_logger = logging.getLogger("harnyx_commons.tools")
     old_level = root.level
@@ -2558,7 +2867,9 @@ def test_main_reports_invalid_log_level_as_system_exit(
     monkeypatch.setenv("LOG_LEVEL", "NO_SUCH_LEVEL")
 
     with pytest.raises(SystemExit) as exc_info:
-        local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
+        local_eval.main(
+            ["--agent-path", str(agent_path), "--output-dir", str(tmp_path)]
+        )
 
     assert "Unknown level" in str(exc_info.value)
 
@@ -2578,7 +2889,9 @@ def test_local_eval_still_fails_before_runtime_when_batch_detail_fetch_fails(
     )
     created = False
 
-    def _create_runtime(*, progress_reporter=None, run_progress_root=None) -> _FakeRuntime:
+    def _create_runtime(
+        *, progress_reporter=None, run_progress_root=None
+    ) -> _FakeRuntime:
         nonlocal created
         del progress_reporter
         created = True
@@ -2587,11 +2900,29 @@ def test_local_eval_still_fails_before_runtime_when_batch_detail_fetch_fails(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
-    monkeypatch.setattr(local_eval.LocalEvaluationRuntime, "create", staticmethod(_create_runtime))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
+    monkeypatch.setattr(
+        local_eval.LocalEvaluationRuntime, "create", staticmethod(_create_runtime)
+    )
 
-    with pytest.raises(SystemExit, match=r"platform monitoring request failed \(503\): upstream connect error"):
-        local_eval.main(["--agent-path", str(agent_path), "--batch-id", str(batch_id), "--output-dir", str(tmp_path)])
+    with pytest.raises(
+        SystemExit,
+        match=r"platform monitoring request failed \(503\): upstream connect error",
+    ):
+        local_eval.main(
+            [
+                "--agent-path",
+                str(agent_path),
+                "--batch-id",
+                str(batch_id),
+                "--output-dir",
+                str(tmp_path),
+            ]
+        )
 
     assert created is False
     assert monitoring.closed is True
@@ -2611,7 +2942,9 @@ def test_local_eval_still_fails_before_runtime_when_latest_batch_lookup_fails(
     )
     created = False
 
-    def _create_runtime(*, progress_reporter=None, run_progress_root=None) -> _FakeRuntime:
+    def _create_runtime(
+        *, progress_reporter=None, run_progress_root=None
+    ) -> _FakeRuntime:
         nonlocal created
         del progress_reporter
         created = True
@@ -2620,11 +2953,22 @@ def test_local_eval_still_fails_before_runtime_when_latest_batch_lookup_fails(
     agent_path = tmp_path / "agent.py"
     _write_agent(agent_path)
 
-    monkeypatch.setattr(local_eval.PlatformMonitoringClient, "from_env", staticmethod(lambda: monitoring))
-    monkeypatch.setattr(local_eval.LocalEvaluationRuntime, "create", staticmethod(_create_runtime))
+    monkeypatch.setattr(
+        local_eval.PlatformMonitoringClient,
+        "from_env",
+        staticmethod(lambda: monitoring),
+    )
+    monkeypatch.setattr(
+        local_eval.LocalEvaluationRuntime, "create", staticmethod(_create_runtime)
+    )
 
-    with pytest.raises(SystemExit, match=r"platform monitoring request failed \(503\): upstream connect error"):
-        local_eval.main(["--agent-path", str(agent_path), "--output-dir", str(tmp_path)])
+    with pytest.raises(
+        SystemExit,
+        match=r"platform monitoring request failed \(503\): upstream connect error",
+    ):
+        local_eval.main(
+            ["--agent-path", str(agent_path), "--output-dir", str(tmp_path)]
+        )
 
     assert created is False
     assert monitoring.closed is True
@@ -2714,7 +3058,9 @@ def test_platform_monitoring_client_accepts_legacy_timestamp_only_cursor() -> No
             return httpx.Response(
                 200,
                 json={
-                    "batches": ({"batch_id": str(completed_batch_id), "status": "completed"},),
+                    "batches": (
+                        {"batch_id": str(completed_batch_id), "status": "completed"},
+                    ),
                     "next_before": None,
                 },
                 request=request,
@@ -2809,9 +3155,13 @@ def test_resolve_batch_context_records_results_failure_without_aborting() -> Non
                     request=request,
                 )
             if path == task_index_path:
-                return httpx.Response(200, json=[{"task_id": str(task_id)}], request=request)
+                return httpx.Response(
+                    200, json=[{"task_id": str(task_id)}], request=request
+                )
             if path == task_results_path:
-                return httpx.Response(503, text="upstream connect error", request=request)
+                return httpx.Response(
+                    503, text="upstream connect error", request=request
+                )
             pytest.fail(f"unexpected path: {path}")
 
         def close(self) -> None:
@@ -2835,7 +3185,9 @@ def test_resolve_batch_context_records_results_failure_without_aborting() -> Non
     ]
 
 
-def test_resolve_batch_context_records_results_transport_failure_without_aborting() -> None:
+def test_resolve_batch_context_records_results_transport_failure_without_aborting() -> (
+    None
+):
     batch_id = uuid4()
     champion_artifact_id = uuid4()
     task_index_path = _artifact_task_index_path(batch_id, champion_artifact_id)
@@ -2884,7 +3236,9 @@ def test_resolve_batch_context_records_results_transport_failure_without_abortin
     ]
 
 
-def test_resolve_batch_context_without_champion_marks_recorded_results_unavailable() -> None:
+def test_resolve_batch_context_without_champion_marks_recorded_results_unavailable() -> (
+    None
+):
     batch_id = uuid4()
 
     class _StubClient:
@@ -2939,7 +3293,9 @@ def test_resolve_batch_context_still_raises_when_latest_batch_lookup_fails() -> 
             self.calls.append((path, params))
             request = httpx.Request("GET", f"https://platform.example.com{path}")
             if path == "/v1/monitoring/miner-task-batches":
-                return httpx.Response(503, text="upstream connect error", request=request)
+                return httpx.Response(
+                    503, text="upstream connect error", request=request
+                )
             pytest.fail(f"unexpected path: {path}")
 
         def close(self) -> None:
@@ -2949,7 +3305,10 @@ def test_resolve_batch_context_still_raises_when_latest_batch_lookup_fails() -> 
     client._client.close()
     client._client = _StubClient()
 
-    with pytest.raises(PlatformMonitoringRequestError, match=r"platform monitoring request failed \(503\)"):
+    with pytest.raises(
+        PlatformMonitoringRequestError,
+        match=r"platform monitoring request failed \(503\)",
+    ):
         client.resolve_batch_context(None)
 
     assert client._client.calls == [
@@ -2968,7 +3327,9 @@ def test_resolve_batch_context_still_raises_when_batch_detail_request_fails() ->
             self.calls.append((path, params))
             request = httpx.Request("GET", f"https://platform.example.com{path}")
             if path == f"/v1/monitoring/miner-task-batches/{batch_id}":
-                return httpx.Response(503, text="upstream connect error", request=request)
+                return httpx.Response(
+                    503, text="upstream connect error", request=request
+                )
             pytest.fail(f"unexpected path: {path}")
 
         def close(self) -> None:
@@ -2978,7 +3339,10 @@ def test_resolve_batch_context_still_raises_when_batch_detail_request_fails() ->
     client._client.close()
     client._client = _StubClient()
 
-    with pytest.raises(PlatformMonitoringRequestError, match=r"platform monitoring request failed \(503\)"):
+    with pytest.raises(
+        PlatformMonitoringRequestError,
+        match=r"platform monitoring request failed \(503\)",
+    ):
         client.resolve_batch_context(batch_id)
 
     assert client._client.calls == [
@@ -3032,7 +3396,9 @@ def test_get_recorded_results_uses_task_index_and_detail_routes() -> None:
     client._client.close()
     client._client = _StubClient()
 
-    rows = client.get_recorded_results(batch_id=batch_id, artifact_id=champion_artifact_id)
+    rows = client.get_recorded_results(
+        batch_id=batch_id, artifact_id=champion_artifact_id
+    )
 
     assert rows == (task_a_row, task_b_row)
     assert client._client.calls == [
@@ -3047,7 +3413,9 @@ def test_resolve_batch_context_focused_fetch_uses_only_selected_task_results() -
     champion_artifact_id = uuid4()
     selected_task_id = uuid4()
     unrelated_task_id = uuid4()
-    selected_task_path = _task_results_path(batch_id, champion_artifact_id, selected_task_id)
+    selected_task_path = _task_results_path(
+        batch_id, champion_artifact_id, selected_task_id
+    )
     selected_row = {"task_id": str(selected_task_id), "score": 1.0}
 
     class _StubClient:
@@ -3075,7 +3443,9 @@ def test_resolve_batch_context_focused_fetch_uses_only_selected_task_results() -
                 )
             if path == selected_task_path:
                 return httpx.Response(200, json=[selected_row], request=request)
-            pytest.fail(f"focused recorded-result fetch requested unrelated path: {path}")
+            pytest.fail(
+                f"focused recorded-result fetch requested unrelated path: {path}"
+            )
 
         def close(self) -> None:
             return None

@@ -137,21 +137,31 @@ class BenchmarkCandidateGroup(BaseModel):
                     "does not match the stored source artifacts"
                 )
             if reference.hotkey == self.candidate.hotkey:
-                if reference.expected_pairwise is not None or reference.gold_explanation is not None:
+                if (
+                    reference.expected_pairwise is not None
+                    or reference.gold_explanation is not None
+                ):
                     raise ValueError(
                         f"{self.case_id}: same-hotkey decoys must not carry gold labels"
                     )
                 continue
-            if reference.expected_pairwise is None or reference.gold_explanation is None:
+            if (
+                reference.expected_pairwise is None
+                or reference.gold_explanation is None
+            ):
                 raise ValueError(
                     f"{self.case_id}: different-hotkey references require gold labels and explanations"
                 )
             eligible_gold.append(reference.expected_pairwise)
 
         if len(eligible_gold) < 2:
-            raise ValueError(f"{self.case_id}: at least two different-hotkey references are required")
+            raise ValueError(
+                f"{self.case_id}: at least two different-hotkey references are required"
+            )
         if aggregate_classification(eligible_gold) != self.expected_final:
-            raise ValueError(f"{self.case_id}: expected_final disagrees with pairwise gold labels")
+            raise ValueError(
+                f"{self.case_id}: expected_final disagrees with pairwise gold labels"
+            )
         return self
 
 
@@ -239,7 +249,9 @@ class InvocationRecordingProvider(LlmProviderPort):
 
     async def invoke(self, request: AbstractLlmRequest) -> LlmResponse:
         if self._active is None:
-            raise RuntimeError("provider call occurred outside a benchmark invocation scope")
+            raise RuntimeError(
+                "provider call occurred outside a benchmark invocation scope"
+            )
         if self._active.request is not None:
             raise RuntimeError("benchmark invocation made more than one provider call")
         self._active.request = request
@@ -269,7 +281,9 @@ def build_candidate_diff(
     return rendered or "(no textual diff)"
 
 
-def eligible_comparisons(group: BenchmarkCandidateGroup) -> tuple[BenchmarkReference, ...]:
+def eligible_comparisons(
+    group: BenchmarkCandidateGroup,
+) -> tuple[BenchmarkReference, ...]:
     comparisons = tuple(
         reference
         for reference in group.references
@@ -298,13 +312,17 @@ def aggregate_classification(labels: Sequence[PairwiseGold]) -> FinalGold:
 def load_cases(path: Path) -> tuple[BenchmarkCandidateGroup, ...]:
     groups: list[BenchmarkCandidateGroup] = []
     seen_case_ids: set[str] = set()
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         normalized = line.strip()
         if not normalized:
             continue
         group = BenchmarkCandidateGroup.model_validate_json(normalized)
         if group.case_id in seen_case_ids:
-            raise ValueError(f"duplicate benchmark case_id on line {line_number}: {group.case_id}")
+            raise ValueError(
+                f"duplicate benchmark case_id on line {line_number}: {group.case_id}"
+            )
         seen_case_ids.add(group.case_id)
         groups.append(group)
     validate_case_collection(groups)
@@ -317,34 +335,46 @@ def validate_case_collection(groups: Sequence[BenchmarkCandidateGroup]) -> None:
 
     final_counts = Counter(group.expected_final for group in groups)
     missing_final_support = {
-        label: 3 - final_counts[label] for label in FINAL_LABELS if final_counts[label] < 3
+        label: 3 - final_counts[label]
+        for label in FINAL_LABELS
+        if final_counts[label] < 3
     }
     if missing_final_support:
-        raise ValueError(f"benchmark final-class support is incomplete: {missing_final_support}")
+        raise ValueError(
+            f"benchmark final-class support is incomplete: {missing_final_support}"
+        )
 
     pairwise_counts: Counter[PairwiseGold] = Counter()
     same_hotkey_group_count = 0
     boundary_tags: set[str] = set()
     for group in groups:
         boundary_tags.update(group.boundary_tags)
-        if any(reference.hotkey == group.candidate.hotkey for reference in group.references):
+        if any(
+            reference.hotkey == group.candidate.hotkey for reference in group.references
+        ):
             same_hotkey_group_count += 1
         pairwise_counts.update(
             cast(PairwiseGold, reference.expected_pairwise)
             for reference in eligible_comparisons(group)
         )
     missing_pairwise_support = {
-        label: 4 - pairwise_counts[label] for label in PAIRWISE_LABELS if pairwise_counts[label] < 4
+        label: 4 - pairwise_counts[label]
+        for label in PAIRWISE_LABELS
+        if pairwise_counts[label] < 4
     }
     if missing_pairwise_support:
         raise ValueError(
             f"benchmark pairwise-class support is incomplete: {missing_pairwise_support}"
         )
     if same_hotkey_group_count < 4:
-        raise ValueError("benchmark dataset requires at least four same-hotkey decoy groups")
+        raise ValueError(
+            "benchmark dataset requires at least four same-hotkey decoy groups"
+        )
     missing_boundaries = sorted(_REQUIRED_BOUNDARY_TAGS - boundary_tags)
     if missing_boundaries:
-        raise ValueError(f"benchmark dataset is missing boundary coverage: {missing_boundaries}")
+        raise ValueError(
+            f"benchmark dataset is missing boundary coverage: {missing_boundaries}"
+        )
 
 
 def summarize_metrics(
@@ -357,7 +387,8 @@ def summarize_metrics(
         raise ValueError("expected and observed label counts differ")
     observed_columns = (*class_labels, "provider_failure")
     confusion = {
-        expected: {observed: 0 for observed in observed_columns} for expected in class_labels
+        expected: {observed: 0 for observed in observed_columns}
+        for expected in class_labels
     }
     for expected, observed in zip(expected_labels, observed_labels, strict=True):
         if expected not in confusion:
@@ -465,7 +496,9 @@ async def run_benchmark(
             else:
                 elapsed_ms = round((time.perf_counter() - call_started) * 1000, 2)
                 if invocation.request is None or invocation.returned_response is None:
-                    raise RuntimeError("similarity judge did not execute exactly one provider call")
+                    raise RuntimeError(
+                        "similarity judge did not execute exactly one provider call"
+                    )
                 observed = normalize_pairwise(result.classification)
                 pair_observed.append(observed)
                 group_labels.append(observed)
@@ -497,7 +530,8 @@ async def run_benchmark(
                 "expected_final": expected_final,
                 "observed_final": observed_final,
                 "eligible_reference_artifact_ids": [
-                    str(reference.artifact_id) for reference in eligible_comparisons(group)
+                    str(reference.artifact_id)
+                    for reference in eligible_comparisons(group)
                 ],
                 "error": "one or more eligible pairwise calls failed",
             }
@@ -508,7 +542,8 @@ async def run_benchmark(
                 "expected_final": expected_final,
                 "observed_final": observed_final,
                 "eligible_reference_artifact_ids": [
-                    str(reference.artifact_id) for reference in eligible_comparisons(group)
+                    str(reference.artifact_id)
+                    for reference in eligible_comparisons(group)
                 ],
                 "pairwise_observed": group_labels,
                 "error": None,
@@ -536,10 +571,12 @@ async def run_benchmark(
         observed_labels=final_observed,
         rank=_FINAL_RANK,
     )
-    pairwise_multi_step_underclassification_count = _multi_step_underclassification_count(
-        expected_labels=pair_expected,
-        observed_labels=pair_observed,
-        rank=_PAIRWISE_RANK,
+    pairwise_multi_step_underclassification_count = (
+        _multi_step_underclassification_count(
+            expected_labels=pair_expected,
+            observed_labels=pair_observed,
+            rank=_PAIRWISE_RANK,
+        )
     )
     final_multi_step_underclassification_count = _multi_step_underclassification_count(
         expected_labels=final_expected,
@@ -710,7 +747,9 @@ def _pair_base_row(
     }
 
 
-def _llm_request_payload(request: AbstractLlmRequest | None) -> dict[str, object] | None:
+def _llm_request_payload(
+    request: AbstractLlmRequest | None,
+) -> dict[str, object] | None:
     if request is None:
         return None
     return {
@@ -719,7 +758,9 @@ def _llm_request_payload(request: AbstractLlmRequest | None) -> dict[str, object
         "messages": _json_safe(request.messages),
         "output_mode": request.output_mode,
         "output_schema": (
-            request.output_schema.__name__ if request.output_schema is not None else None
+            request.output_schema.__name__
+            if request.output_schema is not None
+            else None
         ),
         "temperature": request.temperature,
         "max_output_tokens": request.max_output_tokens,

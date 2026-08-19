@@ -181,7 +181,9 @@ def test_validator_import_configures_sentry_before_tracing(monkeypatch) -> None:
         calls.append("build_runtime")
         return fake_runtime
 
-    def _fake_create_weight_worker(*, submission_service: object, status_provider: object) -> object:
+    def _fake_create_weight_worker(
+        *, submission_service: object, status_provider: object
+    ) -> object:
         assert submission_service is fake_runtime.weight_submission_service
         assert status_provider is fake_runtime.status_provider
         calls.append("weight_worker")
@@ -207,14 +209,20 @@ def test_validator_import_configures_sentry_before_tracing(monkeypatch) -> None:
     monkeypatch.setattr(logging_mod, "init_logging", _fake_init_logging)
     monkeypatch.setattr(logging_mod, "configure_logging", _fake_configure_logging)
     monkeypatch.setattr(bootstrap_mod, "build_runtime", _fake_build_runtime)
-    monkeypatch.setattr(weight_worker_mod, "create_weight_worker", _fake_create_weight_worker)
+    monkeypatch.setattr(
+        weight_worker_mod, "create_weight_worker", _fake_create_weight_worker
+    )
     monkeypatch.setattr(
         registration_worker_mod,
         "create_registration_refresh_worker",
         _fake_create_registration_refresh_worker,
     )
-    monkeypatch.setattr(routes_mod, "add_tool_routes", lambda app, dependency_provider: None)
-    monkeypatch.setattr(routes_mod, "add_control_routes", lambda app, control_deps_provider: None)
+    monkeypatch.setattr(
+        routes_mod, "add_tool_routes", lambda app, dependency_provider: None
+    )
+    monkeypatch.setattr(
+        routes_mod, "add_control_routes", lambda app, control_deps_provider: None
+    )
 
     module_name = "harnyx_validator.server"
     original_module = sys.modules.pop(module_name, None)
@@ -269,20 +277,28 @@ def _import_server_with_captured_weight_worker_kwargs(
         captured.append(kwargs)
         return fake_worker
 
-    monkeypatch.setattr(settings_mod.Settings, "load", classmethod(lambda cls: fake_settings))
+    monkeypatch.setattr(
+        settings_mod.Settings, "load", classmethod(lambda cls: fake_settings)
+    )
     monkeypatch.setattr(sentry_mod, "configure_sentry_from_env", lambda: None)
     monkeypatch.setattr(tracing_mod, "configure_tracing", lambda *, service_name: None)
     monkeypatch.setattr(logging_mod, "init_logging", lambda: None)
     monkeypatch.setattr(logging_mod, "configure_logging", lambda **kwargs: None)
     monkeypatch.setattr(bootstrap_mod, "build_runtime", lambda settings: fake_runtime)
-    monkeypatch.setattr(weight_worker_mod, "create_weight_worker", _fake_create_weight_worker)
+    monkeypatch.setattr(
+        weight_worker_mod, "create_weight_worker", _fake_create_weight_worker
+    )
     monkeypatch.setattr(
         registration_worker_mod,
         "create_registration_refresh_worker",
         lambda **kwargs: fake_worker,
     )
-    monkeypatch.setattr(routes_mod, "add_tool_routes", lambda app, dependency_provider: None)
-    monkeypatch.setattr(routes_mod, "add_control_routes", lambda app, control_deps_provider: None)
+    monkeypatch.setattr(
+        routes_mod, "add_tool_routes", lambda app, dependency_provider: None
+    )
+    monkeypatch.setattr(
+        routes_mod, "add_control_routes", lambda app, control_deps_provider: None
+    )
 
     module_name = "harnyx_validator.server"
     original_module = sys.modules.pop(module_name, None)
@@ -325,11 +341,15 @@ def test_validator_import_rejects_invalid_compose_smoke_weight_worker_interval(
     monkeypatch.setenv("VALIDATOR_COMPOSE_SMOKE", "1")
     monkeypatch.setenv("VALIDATOR_SMOKE_WEIGHT_WORKER_POLL_INTERVAL_SECONDS", "0")
 
-    with pytest.raises(RuntimeError, match="smoke weight-worker poll interval must be positive"):
+    with pytest.raises(
+        RuntimeError, match="smoke weight-worker poll interval must be positive"
+    ):
         _import_server_with_captured_weight_worker_kwargs(monkeypatch)
 
 
-def test_validator_logging_config_defaults_measurement_logger_to_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_logging_config_defaults_measurement_logger_to_warning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("VALIDATOR_MEASUREMENT_LOG_LEVEL", raising=False)
 
     config = logging_mod.build_log_config()
@@ -356,7 +376,9 @@ def test_validator_runtime_separates_startup_registration_from_refresh(
         registry_digest=None,
         local_image_id=None,
     )
-    platform_api = SimpleNamespace(validator_public_base_url="https://validator.invalid")
+    platform_api = SimpleNamespace(
+        validator_public_base_url="https://validator.invalid"
+    )
     fake_context = SimpleNamespace(
         settings=SimpleNamespace(platform_api=platform_api),
         platform_hotkey=object(),
@@ -384,7 +406,9 @@ def test_validator_runtime_separates_startup_registration_from_refresh(
             }
         )
 
-    monkeypatch.setattr(bootstrap_mod, "_register_with_platform", _fake_register_with_platform)
+    monkeypatch.setattr(
+        bootstrap_mod, "_register_with_platform", _fake_register_with_platform
+    )
 
     bootstrap_mod.RuntimeContext.register_with_platform(fake_context)  # type: ignore[arg-type]
     bootstrap_mod.RuntimeContext.refresh_platform_registration(fake_context)  # type: ignore[arg-type]
@@ -410,7 +434,9 @@ def test_validator_runtime_separates_startup_registration_from_refresh(
 
 
 def test_platform_work_worker_uses_task_capacity_and_artifact_cap() -> None:
-    scoring_services = {entry.model: object() for entry in bootstrap_mod._SCORING_SLOT_CONFIG.entries}
+    scoring_services = {
+        entry.model: object() for entry in bootstrap_mod._SCORING_SLOT_CONFIG.entries
+    }
     worker = bootstrap_mod._build_platform_work_worker(
         resolved=SimpleNamespace(),
         platform_client=object(),  # type: ignore[arg-type]
@@ -435,7 +461,10 @@ def test_platform_work_worker_uses_task_capacity_and_artifact_cap() -> None:
     assert worker._max_active_artifacts == 4
     assert worker._scoring_slot_config is bootstrap_mod._SCORING_SLOT_CONFIG
     assert worker._scoring_slot_config.total_slot_limit == 20
-    assert tuple(entry.slot_limit for entry in worker._scoring_slot_config.entries) == (10, 10)
+    assert tuple(entry.slot_limit for entry in worker._scoring_slot_config.entries) == (
+        10,
+        10,
+    )
     assert set(worker._score_execution_by_model) == set(scoring_services)
     assert worker._target_concurrency > worker._max_active_artifacts
 
@@ -457,7 +486,9 @@ async def test_platform_work_worker_scoreable_execution_keeps_scoring_errors_val
         observed["convert_scoring_error"] = convert_scoring_error
         return "result"
 
-    monkeypatch.setattr(bootstrap_mod, "score_platform_execution", _fake_score_platform_execution)
+    monkeypatch.setattr(
+        bootstrap_mod, "score_platform_execution", _fake_score_platform_execution
+    )
     scoring_service = object()
     scoring_services = {
         entry.model: scoring_service if index == 0 else object()
@@ -494,7 +525,9 @@ async def test_platform_work_worker_scoreable_execution_keeps_scoring_errors_val
 
 
 @pytest.mark.anyio
-async def test_lifespan_stops_auth_when_later_startup_step_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_lifespan_stops_auth_when_later_startup_step_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls: list[str] = []
     fake_settings = SimpleNamespace(
         observability=SimpleNamespace(
@@ -549,20 +582,30 @@ async def test_lifespan_stops_auth_when_later_startup_step_fails(monkeypatch: py
     async def _fake_close_runtime_resources(runtime: object) -> None:
         calls.append("close-runtime")
 
-    monkeypatch.setattr(settings_mod.Settings, "load", classmethod(lambda cls: fake_settings))
+    monkeypatch.setattr(
+        settings_mod.Settings, "load", classmethod(lambda cls: fake_settings)
+    )
     monkeypatch.setattr(bootstrap_mod, "build_runtime", lambda settings: fake_runtime)
     monkeypatch.setattr(
         weight_worker_mod,
         "create_weight_worker",
-        lambda **kwargs: SimpleNamespace(start=lambda: None, stop=lambda *args, **kwargs: None),
+        lambda **kwargs: SimpleNamespace(
+            start=lambda: None, stop=lambda *args, **kwargs: None
+        ),
     )
     monkeypatch.setattr(
         registration_worker_mod,
         "create_registration_refresh_worker",
-        lambda **kwargs: SimpleNamespace(start=lambda: None, stop=lambda *args, **kwargs: None),
+        lambda **kwargs: SimpleNamespace(
+            start=lambda: None, stop=lambda *args, **kwargs: None
+        ),
     )
-    monkeypatch.setattr(routes_mod, "add_tool_routes", lambda app, dependency_provider: None)
-    monkeypatch.setattr(routes_mod, "add_control_routes", lambda app, control_deps_provider: None)
+    monkeypatch.setattr(
+        routes_mod, "add_tool_routes", lambda app, dependency_provider: None
+    )
+    monkeypatch.setattr(
+        routes_mod, "add_control_routes", lambda app, control_deps_provider: None
+    )
 
     module_name = "harnyx_validator.server"
     original_module = sys.modules.pop(module_name, None)
@@ -573,12 +616,20 @@ async def test_lifespan_stops_auth_when_later_startup_step_fails(monkeypatch: py
         if original_module is not None:
             sys.modules[module_name] = original_module
 
-    monkeypatch.setattr(server, "_runtime", SimpleNamespace(inbound_auth_verifier=_FakeVerifier()))
+    monkeypatch.setattr(
+        server, "_runtime", SimpleNamespace(inbound_auth_verifier=_FakeVerifier())
+    )
     monkeypatch.setattr(server, "_weight_worker", _FakeWeightWorker())
-    monkeypatch.setattr(server, "_registration_refresh_worker", _FakeRegistrationRefreshWorker())
+    monkeypatch.setattr(
+        server, "_registration_refresh_worker", _FakeRegistrationRefreshWorker()
+    )
     monkeypatch.setattr(server, "_platform_work_worker", _FailingPlatformWorkWorker())
-    monkeypatch.setattr(server, "close_runtime_resources", _fake_close_runtime_resources)
-    monkeypatch.setattr(server, "shutdown_logging", lambda: calls.append("shutdown-logging"))
+    monkeypatch.setattr(
+        server, "close_runtime_resources", _fake_close_runtime_resources
+    )
+    monkeypatch.setattr(
+        server, "shutdown_logging", lambda: calls.append("shutdown-logging")
+    )
 
     with pytest.raises(RuntimeError, match="platform work startup failed"):
         async with server.lifespan(FastAPI()):
@@ -655,20 +706,30 @@ async def test_lifespan_closes_runtime_resources_when_auth_stop_raises(
     async def _fake_close_runtime_resources(runtime: object) -> None:
         calls.append("close-runtime")
 
-    monkeypatch.setattr(settings_mod.Settings, "load", classmethod(lambda cls: fake_settings))
+    monkeypatch.setattr(
+        settings_mod.Settings, "load", classmethod(lambda cls: fake_settings)
+    )
     monkeypatch.setattr(bootstrap_mod, "build_runtime", lambda settings: fake_runtime)
     monkeypatch.setattr(
         weight_worker_mod,
         "create_weight_worker",
-        lambda **kwargs: SimpleNamespace(start=lambda: None, stop=lambda *args, **kwargs: None),
+        lambda **kwargs: SimpleNamespace(
+            start=lambda: None, stop=lambda *args, **kwargs: None
+        ),
     )
     monkeypatch.setattr(
         registration_worker_mod,
         "create_registration_refresh_worker",
-        lambda **kwargs: SimpleNamespace(start=lambda: None, stop=lambda *args, **kwargs: None),
+        lambda **kwargs: SimpleNamespace(
+            start=lambda: None, stop=lambda *args, **kwargs: None
+        ),
     )
-    monkeypatch.setattr(routes_mod, "add_tool_routes", lambda app, dependency_provider: None)
-    monkeypatch.setattr(routes_mod, "add_control_routes", lambda app, control_deps_provider: None)
+    monkeypatch.setattr(
+        routes_mod, "add_tool_routes", lambda app, dependency_provider: None
+    )
+    monkeypatch.setattr(
+        routes_mod, "add_control_routes", lambda app, control_deps_provider: None
+    )
 
     module_name = "harnyx_validator.server"
     original_module = sys.modules.pop(module_name, None)
@@ -679,12 +740,20 @@ async def test_lifespan_closes_runtime_resources_when_auth_stop_raises(
         if original_module is not None:
             sys.modules[module_name] = original_module
 
-    monkeypatch.setattr(server, "_runtime", SimpleNamespace(inbound_auth_verifier=_FakeVerifier()))
+    monkeypatch.setattr(
+        server, "_runtime", SimpleNamespace(inbound_auth_verifier=_FakeVerifier())
+    )
     monkeypatch.setattr(server, "_weight_worker", _FakeWeightWorker())
-    monkeypatch.setattr(server, "_registration_refresh_worker", _FakeRegistrationRefreshWorker())
+    monkeypatch.setattr(
+        server, "_registration_refresh_worker", _FakeRegistrationRefreshWorker()
+    )
     monkeypatch.setattr(server, "_platform_work_worker", _FakePlatformWorkWorker())
-    monkeypatch.setattr(server, "close_runtime_resources", _fake_close_runtime_resources)
-    monkeypatch.setattr(server, "shutdown_logging", lambda: calls.append("shutdown-logging"))
+    monkeypatch.setattr(
+        server, "close_runtime_resources", _fake_close_runtime_resources
+    )
+    monkeypatch.setattr(
+        server, "shutdown_logging", lambda: calls.append("shutdown-logging")
+    )
 
     async with server.lifespan(FastAPI()):
         calls.append("yielded")

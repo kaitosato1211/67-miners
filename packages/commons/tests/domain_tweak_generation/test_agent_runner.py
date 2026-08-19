@@ -2,11 +2,20 @@ from contextlib import nullcontext
 from typing import Any, cast, get_args
 
 import pytest
-from claude_agent_sdk import CLIConnectionError, CLINotFoundError, ProcessError, ResultMessage
+from claude_agent_sdk import (
+    CLIConnectionError,
+    CLINotFoundError,
+    ProcessError,
+    ResultMessage,
+)
 from pydantic import BaseModel, Field
 
 from harnyx_commons.domain.session import LlmUsageTotals
-from harnyx_commons.domain.tool_usage import LlmModelUsageCost, LlmUsageSummary, ToolUsageSummary
+from harnyx_commons.domain.tool_usage import (
+    LlmModelUsageCost,
+    LlmUsageSummary,
+    ToolUsageSummary,
+)
 from harnyx_commons.domain_tweak_generation import (
     BatchTerminalGenerationError,
     CandidateStageError,
@@ -46,7 +55,9 @@ def _usage(*, cost: float, call_count: int = 1) -> ToolUsageSummary:
             completion_tokens=5,
             total_tokens=15,
             actual_cost=cost,
-            providers={"vertex": {MODEL: LlmModelUsageCost(usage=totals, actual_cost=cost)}},
+            providers={
+                "vertex": {MODEL: LlmModelUsageCost(usage=totals, actual_cost=cost)}
+            },
         ),
         actual_total_cost_usd=cost,
         actual_cost_by_provider={"vertex": cost},
@@ -97,11 +108,16 @@ async def test_web_search_results_are_registered_by_the_sdk_hook() -> None:
 
     assert responses == [tool_response]
     assert state.contract_error is None
-    assert captured["hookSpecificOutput"]["additionalContext"] == "source_candidate_id=SC1 title=Report"
+    assert (
+        captured["hookSpecificOutput"]["additionalContext"]
+        == "source_candidate_id=SC1 title=Report"
+    )
 
 
 @pytest.mark.anyio
-async def test_web_search_hook_records_registrar_failures_for_terminal_propagation() -> None:
+async def test_web_search_hook_records_registrar_failures_for_terminal_propagation() -> (
+    None
+):
     """Future failure: an SDK-swallowed hook exception must not let the model invent a candidate ID."""
 
     def registrar(_response: object) -> str:
@@ -144,7 +160,9 @@ def test_auth_and_model_access_results_stop_the_batch(status: int) -> None:
     )
 
     with pytest.raises(BatchTerminalGenerationError):
-        _raise_for_provider_result("question_generation", result, tool_usage=ToolUsageSummary.zero())
+        _raise_for_provider_result(
+            "question_generation", result, tool_usage=ToolUsageSummary.zero()
+        )
 
 
 def test_invalid_provider_request_stops_the_batch() -> None:
@@ -161,7 +179,9 @@ def test_invalid_provider_request_stops_the_batch() -> None:
     )
 
     with pytest.raises(BatchTerminalGenerationError):
-        _raise_for_provider_result("question_generation", result, tool_usage=ToolUsageSummary.zero())
+        _raise_for_provider_result(
+            "question_generation", result, tool_usage=ToolUsageSummary.zero()
+        )
 
 
 @pytest.mark.parametrize("status", [429, 500, 503])
@@ -178,8 +198,12 @@ def test_rate_limit_and_server_results_end_only_the_candidate(status: int) -> No
         api_error_status=status,
     )
 
-    with pytest.raises(CandidateStageError, match="temporary provider failure") as captured:
-        _raise_for_provider_result("question_generation", result, tool_usage=ToolUsageSummary.zero())
+    with pytest.raises(
+        CandidateStageError, match="temporary provider failure"
+    ) as captured:
+        _raise_for_provider_result(
+            "question_generation", result, tool_usage=ToolUsageSummary.zero()
+        )
 
     assert captured.value.failure_class == "transient_provider"
 
@@ -217,7 +241,9 @@ def test_structured_output_retry_exhaustion_is_a_candidate_contract_failure() ->
 def test_agent_sdk_startup_errors_stop_the_batch(error: Exception) -> None:
     """Future failure: a broken shared SDK runtime must not refill forever as if candidates were bad."""
     with pytest.raises(BatchTerminalGenerationError) as captured:
-        _raise_classified_exception("portfolio", error, client_initialized=False, elapsed_ms=12.0)
+        _raise_classified_exception(
+            "portfolio", error, client_initialized=False, elapsed_ms=12.0
+        )
 
     assert captured.value.failure_class == "sdk_or_provider_configuration"
     assert captured.value.stage == "portfolio"
@@ -239,11 +265,18 @@ def test_unknown_sdk_exception_stops_the_batch_instead_of_refilling() -> None:
 
 @pytest.mark.parametrize(
     "error",
-    [CLIConnectionError("stream disconnected"), ProcessError("CLI exited", exit_code=1)],
+    [
+        CLIConnectionError("stream disconnected"),
+        ProcessError("CLI exited", exit_code=1),
+    ],
 )
-def test_initialized_sdk_transport_failure_ends_only_the_candidate(error: Exception) -> None:
+def test_initialized_sdk_transport_failure_ends_only_the_candidate(
+    error: Exception,
+) -> None:
     """Future failure: one interrupted SDK process must refill its slot rather than abort every sibling."""
-    usage = ToolUsageSummary(actual_total_cost_usd=1.25, actual_cost_by_provider={"vertex": 1.25})
+    usage = ToolUsageSummary(
+        actual_total_cost_usd=1.25, actual_cost_by_provider={"vertex": 1.25}
+    )
 
     with pytest.raises(CandidateStageError) as captured:
         _raise_classified_exception(
@@ -315,7 +348,9 @@ def test_result_usage_accepts_additive_sdk_usage_fields() -> None:
     ],
     ids=("missing", "renamed", "string", "boolean", "negative", "partial"),
 )
-def test_success_result_usage_rejects_drifted_sdk_accounting(usage_payload: object) -> None:
+def test_success_result_usage_rejects_drifted_sdk_accounting(
+    usage_payload: object,
+) -> None:
     """Future failure: SDK accounting drift must not become a successful zero-usage stage."""
     result = ResultMessage(
         subtype="success",
@@ -327,7 +362,9 @@ def test_success_result_usage_rejects_drifted_sdk_accounting(usage_payload: obje
         usage=cast(Any, usage_payload),
     )
 
-    with pytest.raises(_AgentSDKResultContractError, match="accounting contract invalid"):
+    with pytest.raises(
+        _AgentSDKResultContractError, match="accounting contract invalid"
+    ):
         _usage_from_result(result, search_calls=0)
 
 
@@ -340,7 +377,13 @@ def test_success_result_usage_rejects_drifted_sdk_accounting(usage_payload: obje
         (1, cast(Any, "0.25")),
         (1, -0.25),
     ],
-    ids=("boolean-turns", "negative-turns", "boolean-cost", "string-cost", "negative-cost"),
+    ids=(
+        "boolean-turns",
+        "negative-turns",
+        "boolean-cost",
+        "string-cost",
+        "negative-cost",
+    ),
 )
 def test_result_usage_rejects_invalid_turn_and_cost_accounting(
     num_turns: int,
@@ -358,7 +401,9 @@ def test_result_usage_rejects_invalid_turn_and_cost_accounting(
         usage={"input_tokens": 10, "output_tokens": 5},
     )
 
-    with pytest.raises(_AgentSDKResultContractError, match="accounting contract invalid"):
+    with pytest.raises(
+        _AgentSDKResultContractError, match="accounting contract invalid"
+    ):
         _usage_from_result(result, search_calls=0)
 
 
@@ -384,7 +429,9 @@ def test_error_result_without_usage_preserves_provider_error_accounting() -> Non
     assert captured.value.failure_class == "provider_auth"
 
 
-def test_sdk_accounting_contract_error_is_batch_terminal_configuration_failure() -> None:
+def test_sdk_accounting_contract_error_is_batch_terminal_configuration_failure() -> (
+    None
+):
     """Future failure: shared SDK result drift must not be refilled as candidate-specific pressure."""
     error = _AgentSDKResultContractError("invalid accounting")
 
@@ -445,7 +492,9 @@ async def test_each_stage_records_one_named_generation_with_explicit_known_or_un
 
     def start(name: str, as_type: str, **kwargs: object) -> ObservationScope:
         observation = object()
-        starts.append({"name": name, "as_type": as_type, **kwargs, "observation": observation})
+        starts.append(
+            {"name": name, "as_type": as_type, **kwargs, "observation": observation}
+        )
         return ObservationScope(observation)
 
     def update(observation: object, **kwargs: object) -> None:
@@ -475,13 +524,19 @@ async def test_each_stage_records_one_named_generation_with_explicit_known_or_un
             timeout_seconds=30,
         )
 
-    assert [item["name"] for item in starts] == [f"miner_task_generation.{stage}" for stage in get_args(StageName)]
+    assert [item["name"] for item in starts] == [
+        f"miner_task_generation.{stage}" for stage in get_args(StageName)
+    ]
     assert all(item["as_type"] == "generation" for item in starts)
-    for stage, (observation, update_kwargs) in zip(get_args(StageName), updates, strict=True):
+    for stage, (observation, update_kwargs) in zip(
+        get_args(StageName), updates, strict=True
+    ):
         start_item = starts[get_args(StageName).index(stage)]
         assert observation is start_item["observation"]
         expected_cost = stage_costs[stage]
-        assert update_kwargs["cost_details"] == (None if expected_cost is None else {"total": expected_cost})
+        assert update_kwargs["cost_details"] == (
+            None if expected_cost is None else {"total": expected_cost}
+        )
         assert update_kwargs["usage_details"] == {"input": 10, "output": 5, "total": 15}
         assert cast(dict[str, object], update_kwargs["metadata"])["cost_status"] == (
             "unavailable" if expected_cost is None else "reported"
@@ -559,13 +614,17 @@ async def test_query_failure_before_any_result_marks_stage_cost_unavailable(
         async def __aenter__(self) -> object:
             return self
 
-        async def __aexit__(self, exc_type: object, exc: object, exc_tb: object) -> bool:
+        async def __aexit__(
+            self, exc_type: object, exc: object, exc_tb: object
+        ) -> bool:
             return False
 
         async def query(self, _prompt: str) -> None:
             raise TimeoutError("query failed before result")
 
-    monkeypatch.setattr(agent_runner_module, "ClaudeSDKClient", lambda **kwargs: QueryTimeoutClient())
+    monkeypatch.setattr(
+        agent_runner_module, "ClaudeSDKClient", lambda **kwargs: QueryTimeoutClient()
+    )
     monkeypatch.setattr(
         agent_runner_module,
         "start_metadata_only_observation",
@@ -596,7 +655,9 @@ async def test_receive_response_process_failure_ends_only_the_initialized_candid
         async def __aenter__(self) -> object:
             return self
 
-        async def __aexit__(self, exc_type: object, exc: object, exc_tb: object) -> bool:
+        async def __aexit__(
+            self, exc_type: object, exc: object, exc_tb: object
+        ) -> bool:
             return False
 
         async def query(self, _prompt: str) -> None:
@@ -606,7 +667,9 @@ async def test_receive_response_process_failure_ends_only_the_initialized_candid
             raise ProcessError("CLI stream interrupted", exit_code=1)
             yield  # pragma: no cover
 
-    monkeypatch.setattr(agent_runner_module, "ClaudeSDKClient", lambda **kwargs: InterruptedClient())
+    monkeypatch.setattr(
+        agent_runner_module, "ClaudeSDKClient", lambda **kwargs: InterruptedClient()
+    )
     monkeypatch.setattr(
         agent_runner_module,
         "start_metadata_only_observation",
@@ -635,7 +698,9 @@ async def test_receive_response_without_result_ends_only_the_initialized_candida
         async def __aenter__(self) -> object:
             return self
 
-        async def __aexit__(self, exc_type: object, exc: object, exc_tb: object) -> bool:
+        async def __aexit__(
+            self, exc_type: object, exc: object, exc_tb: object
+        ) -> bool:
             return False
 
         async def query(self, _prompt: str) -> None:
@@ -645,7 +710,9 @@ async def test_receive_response_without_result_ends_only_the_initialized_candida
             if False:
                 yield None
 
-    monkeypatch.setattr(agent_runner_module, "ClaudeSDKClient", lambda **kwargs: IncompleteClient())
+    monkeypatch.setattr(
+        agent_runner_module, "ClaudeSDKClient", lambda **kwargs: IncompleteClient()
+    )
     monkeypatch.setattr(
         agent_runner_module,
         "start_metadata_only_observation",
@@ -701,7 +768,9 @@ async def test_stage_contract_feedback_repairs_in_same_client_and_aggregates_usa
         async def __aenter__(self) -> object:
             return self
 
-        async def __aexit__(self, exc_type: object, exc: object, exc_tb: object) -> bool:
+        async def __aexit__(
+            self, exc_type: object, exc: object, exc_tb: object
+        ) -> bool:
             return False
 
         async def query(self, prompt: str) -> None:
@@ -729,7 +798,11 @@ async def test_stage_contract_feedback_repairs_in_same_client_and_aggregates_usa
         system_prompt="system",
         prompt="initial",
         output_model=_StageOutput,
-        output_validator=lambda output: ("value must be right",) if cast(_StageOutput, output).value != "right" else (),
+        output_validator=lambda output: (
+            ("value must be right",)
+            if cast(_StageOutput, output).value != "right"
+            else ()
+        ),
         timeout_seconds=30,
     )
 
@@ -770,7 +843,9 @@ async def test_persistent_packet_size_defect_uses_feedback_then_contract_invalid
         async def __aenter__(self) -> object:
             return self
 
-        async def __aexit__(self, exc_type: object, exc: object, exc_tb: object) -> bool:
+        async def __aexit__(
+            self, exc_type: object, exc: object, exc_tb: object
+        ) -> bool:
             return False
 
         async def query(self, prompt: str) -> None:
@@ -780,7 +855,9 @@ async def test_persistent_packet_size_defect_uses_feedback_then_contract_invalid
             yield results.pop(0)
 
     client = FeedbackClient()
-    monkeypatch.setattr(agent_runner_module, "ClaudeSDKClient", lambda **_kwargs: client)
+    monkeypatch.setattr(
+        agent_runner_module, "ClaudeSDKClient", lambda **_kwargs: client
+    )
     monkeypatch.setattr(
         agent_runner_module,
         "start_metadata_only_observation",
@@ -793,7 +870,9 @@ async def test_persistent_packet_size_defect_uses_feedback_then_contract_invalid
             system_prompt="system",
             prompt="initial",
             output_model=_StageOutput,
-            output_validator=lambda _output: ("required proof packet envelope exceeds 128000 characters",),
+            output_validator=lambda _output: (
+                "required proof packet envelope exceeds 128000 characters",
+            ),
             timeout_seconds=30,
         )
 
@@ -825,7 +904,9 @@ async def test_feedback_query_failure_keeps_known_prefix_usage_but_marks_total_c
         async def __aenter__(self) -> object:
             return self
 
-        async def __aexit__(self, exc_type: object, exc: object, exc_tb: object) -> bool:
+        async def __aexit__(
+            self, exc_type: object, exc: object, exc_tb: object
+        ) -> bool:
             return False
 
         async def query(self, _prompt: str) -> None:
@@ -836,7 +917,9 @@ async def test_feedback_query_failure_keeps_known_prefix_usage_but_marks_total_c
         async def receive_response(self):
             yield first_result
 
-    monkeypatch.setattr(agent_runner_module, "ClaudeSDKClient", lambda **kwargs: FeedbackTimeoutClient())
+    monkeypatch.setattr(
+        agent_runner_module, "ClaudeSDKClient", lambda **kwargs: FeedbackTimeoutClient()
+    )
     monkeypatch.setattr(
         agent_runner_module,
         "start_metadata_only_observation",

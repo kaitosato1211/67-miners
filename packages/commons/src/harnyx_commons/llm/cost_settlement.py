@@ -39,12 +39,16 @@ def with_settled_llm_cost(response: LlmResponse, cost: SettledLlmCost) -> LlmRes
 
 def settled_cost_from_metadata(metadata: Mapping[str, object]) -> SettledLlmCost | None:
     single_response_cost = (
-        normalized_provider_cost(metadata["actual_cost_usd"], field_name="actual_cost_usd")
+        normalized_provider_cost(
+            metadata["actual_cost_usd"], field_name="actual_cost_usd"
+        )
         if "actual_cost_usd" in metadata
         else None
     )
     total_cost = (
-        normalized_provider_cost(metadata["actual_cost_usd_total"], field_name="actual_cost_usd_total")
+        normalized_provider_cost(
+            metadata["actual_cost_usd_total"], field_name="actual_cost_usd_total"
+        )
         if "actual_cost_usd_total" in metadata
         else None
     )
@@ -90,7 +94,9 @@ def settled_response_cost(
     if normalized_provider == OPENROUTER_PROVIDER:
         return _settled_openrouter_response_cost(response=response, model=model)
     if normalized_provider == AI_GATEWAY_PROVIDER:
-        ai_gateway_cost = _ai_gateway_provider_returned_cost(response=response, model=model)
+        ai_gateway_cost = _ai_gateway_provider_returned_cost(
+            response=response, model=model
+        )
         if ai_gateway_cost is not None:
             return ai_gateway_cost
 
@@ -310,7 +316,9 @@ def _normalized_openrouter_upstream_inference_cost(
 
 def _openrouter_usage_evidence(billing: _OpenRouterUsageBilling) -> JsonObject:
     if billing.cost_usd is None:
-        raise ValueError("complete OpenRouter usage billing is required for provider-returned evidence")
+        raise ValueError(
+            "complete OpenRouter usage billing is required for provider-returned evidence"
+        )
     usage: JsonObject = {
         "cost": billing.cost_usd,
     }
@@ -380,7 +388,9 @@ def _ai_gateway_provider_returned_cost(
 def _has_miner_static_pricing(*, provider: str, model: str) -> bool:
     if provider not in MINER_TOOL_LLM_PRICING:
         return False
-    pricing_by_model = MINER_TOOL_LLM_PRICING[cast(MinerSelectedLlmProviderName, provider)]
+    pricing_by_model = MINER_TOOL_LLM_PRICING[
+        cast(MinerSelectedLlmProviderName, provider)
+    ]
     return model in pricing_by_model
 
 

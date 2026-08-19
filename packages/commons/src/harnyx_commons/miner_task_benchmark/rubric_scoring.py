@@ -166,7 +166,9 @@ def parse_weighted_rubric(answer_json: str) -> WeightedRubric:
     try:
         payload = _RubricPayload.model_validate(raw_payload)
     except ValidationError as exc:
-        raise ValueError("weighted rubric answer does not match the expected shape") from exc
+        raise ValueError(
+            "weighted rubric answer does not match the expected shape"
+        ) from exc
 
     criteria: list[WeightedRubricCriterion] = []
     seen_section_ids: set[str] = set()
@@ -180,9 +182,13 @@ def parse_weighted_rubric(answer_json: str) -> WeightedRubric:
 
         for criterion in section.criteria:
             if criterion.id in seen_criterion_ids:
-                raise ValueError(f"duplicate criterion id {criterion.id!r} in weighted rubric")
+                raise ValueError(
+                    f"duplicate criterion id {criterion.id!r} in weighted rubric"
+                )
             if criterion.weight == 0:
-                raise ValueError(f"zero weight criterion {criterion.id!r} in weighted rubric")
+                raise ValueError(
+                    f"zero weight criterion {criterion.id!r} in weighted rubric"
+                )
             seen_criterion_ids.add(criterion.id)
             if criterion.weight > 0:
                 positive_weight_total += criterion.weight
@@ -196,7 +202,9 @@ def parse_weighted_rubric(answer_json: str) -> WeightedRubric:
             )
 
     if positive_weight_total <= 0:
-        raise ValueError("weighted rubric must include at least one positive-weight criterion")
+        raise ValueError(
+            "weighted rubric must include at least one positive-weight criterion"
+        )
 
     return WeightedRubric(
         rubric_id=payload.id,
@@ -216,7 +224,9 @@ def score_weighted_rubric_decisions(
     missing = sorted(criterion_ids - decision_ids)
     unknown = sorted(decision_ids - criterion_ids)
     if missing:
-        raise ValueError(f"missing weighted rubric decisions for criterion ids: {missing!r}")
+        raise ValueError(
+            f"missing weighted rubric decisions for criterion ids: {missing!r}"
+        )
     if unknown:
         raise ValueError(f"unknown weighted rubric decision criterion ids: {unknown!r}")
 
@@ -288,7 +298,11 @@ class BenchmarkWeightedRubricScoringService:
             messages=(
                 LlmMessage(
                     role="system",
-                    content=(LlmMessageContentPart.input_text(_WEIGHTED_RUBRIC_SYSTEM_PROMPT),),
+                    content=(
+                        LlmMessageContentPart.input_text(
+                            _WEIGHTED_RUBRIC_SYSTEM_PROMPT
+                        ),
+                    ),
                 ),
                 LlmMessage(
                     role="user",
@@ -315,7 +329,9 @@ class BenchmarkWeightedRubricScoringService:
         response = await self._llm.invoke(request)
         if response.postprocessed is None:
             raise RuntimeError("weighted rubric judge did not return structured output")
-        return _WeightedRubricJudgeDecisionPayload.model_validate(response.postprocessed)
+        return _WeightedRubricJudgeDecisionPayload.model_validate(
+            response.postprocessed
+        )
 
 
 def _decisions_by_criterion_id(
@@ -327,7 +343,9 @@ def _decisions_by_criterion_id(
         if not criterion_id:
             raise ValueError("weighted rubric decision criterion_id must not be blank")
         if criterion_id in result:
-            raise ValueError(f"duplicate weighted rubric decision for criterion id {criterion_id!r}")
+            raise ValueError(
+                f"duplicate weighted rubric decision for criterion id {criterion_id!r}"
+            )
         result[criterion_id] = WeightedRubricCriterionDecision(
             criterion_id=criterion_id,
             met=decision.met,
@@ -372,7 +390,9 @@ def _render_criterion_judge_prompt(
             "requirement": criterion.requirement,
         },
     }
-    return "Evaluate this DRACO benchmark criterion.\n\nPayload:\n" + json.dumps(payload, sort_keys=True)
+    return "Evaluate this DRACO benchmark criterion.\n\nPayload:\n" + json.dumps(
+        payload, sort_keys=True
+    )
 
 
 def _render_score_detail(
@@ -392,7 +412,9 @@ def _render_score_detail(
                 {
                     "section_id": criterion_score.criterion.section_id,
                     "criterion_id": criterion_score.criterion.criterion_id,
-                    "criterion_type": _criterion_type_for_weight(criterion_score.criterion.weight).value,
+                    "criterion_type": _criterion_type_for_weight(
+                        criterion_score.criterion.weight
+                    ).value,
                     "requirement": criterion_score.criterion.requirement,
                     "weight": criterion_score.criterion.weight,
                     "verdict": "MET" if criterion_score.met else "UNMET",

@@ -8,7 +8,10 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from harnyx_commons.config.llm import LlmSettings, parse_openai_compatible_endpoints_json
+from harnyx_commons.config.llm import (
+    LlmSettings,
+    parse_openai_compatible_endpoints_json,
+)
 from harnyx_commons.llm.adapter import LlmProviderAdapter
 from harnyx_commons.llm.providers import openai_compatible
 from harnyx_commons.llm.providers.openai_compatible import OpenAiCompatibleLlmProvider
@@ -29,8 +32,16 @@ pytestmark = pytest.mark.anyio("asyncio")
 def test_endpoint_config_rejects_duplicate_ids() -> None:
     raw = json.dumps(
         [
-            {"id": "duplicate", "base_url": "https://example.com/v1", "auth": {"type": "none"}},
-            {"id": "duplicate", "base_url": "https://example.org/v1", "auth": {"type": "none"}},
+            {
+                "id": "duplicate",
+                "base_url": "https://example.com/v1",
+                "auth": {"type": "none"},
+            },
+            {
+                "id": "duplicate",
+                "base_url": "https://example.org/v1",
+                "auth": {"type": "none"},
+            },
         ]
     )
 
@@ -44,7 +55,11 @@ def test_endpoint_config_rejects_raw_bearer_token_field() -> None:
             {
                 "id": "local",
                 "base_url": "https://example.com/v1",
-                "auth": {"type": "bearer_token_env", "token_env": "LOCAL_TOKEN", "token": "secret"},
+                "auth": {
+                    "type": "bearer_token_env",
+                    "token_env": "LOCAL_TOKEN",
+                    "token": "secret",
+                },
             }
         ]
     )
@@ -53,7 +68,9 @@ def test_endpoint_config_rejects_raw_bearer_token_field() -> None:
         parse_openai_compatible_endpoints_json(raw)
 
 
-def test_openai_compatible_provider_defaults_client_timeout_to_300(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_openai_compatible_provider_defaults_client_timeout_to_300(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured: dict[str, object] = {}
 
     class _FakeAsyncClient:
@@ -70,7 +87,9 @@ def test_openai_compatible_provider_defaults_client_timeout_to_300(monkeypatch: 
     assert captured["timeout"] == pytest.approx(300.0)
 
 
-async def test_bearer_token_env_auth_adds_authorization_header(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_bearer_token_env_auth_adds_authorization_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("LOCAL_OPENAI_COMPATIBLE_TOKEN", "test-token")
     endpoint = _endpoint(
         auth={"type": "bearer_token_env", "token_env": "LOCAL_OPENAI_COMPATIBLE_TOKEN"},
@@ -105,7 +124,9 @@ async def test_google_id_token_service_account_b64_auth_refreshes_per_request(
         "client_email": "test@example.iam.gserviceaccount.com",
         "private_key": "unused",
     }
-    encoded = base64.b64encode(json.dumps(service_account_info).encode("utf-8")).decode("ascii")
+    encoded = base64.b64encode(json.dumps(service_account_info).encode("utf-8")).decode(
+        "ascii"
+    )
     monkeypatch.setenv("GCP_SERVICE_ACCOUNT_CREDENTIAL_BASE64", encoded)
     captured: dict[str, object] = {"credential_count": 0, "refresh_count": 0}
 
@@ -117,7 +138,9 @@ async def test_google_id_token_service_account_b64_auth_refreshes_per_request(
             captured["refresh_count"] = int(captured["refresh_count"]) + 1
             self.token = f"google-id-token-{captured['refresh_count']}"
 
-    def fake_from_service_account_info(info: dict[str, object], *, target_audience: str) -> _FakeCredentials:
+    def fake_from_service_account_info(
+        info: dict[str, object], *, target_audience: str
+    ) -> _FakeCredentials:
         captured["credential_count"] = int(captured["credential_count"]) + 1
         captured["info"] = info
         captured["target_audience"] = target_audience
@@ -165,7 +188,9 @@ async def test_google_id_token_service_account_b64_auth_refreshes_per_request(
 async def test_openai_compatible_provider_normalizes_streamed_chat_response() -> None:
     provider = OpenAiCompatibleLlmProvider(
         endpoint=_endpoint(auth={"type": "none"}),
-        client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: _streaming_response())),
+        client=httpx.AsyncClient(
+            transport=httpx.MockTransport(lambda _: _streaming_response())
+        ),
     )
 
     try:
@@ -183,7 +208,10 @@ async def test_openai_compatible_provider_normalizes_streamed_chat_response() ->
     assert response.metadata["raw_response"]["usage"]["cost"] == pytest.approx(0.00123)
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.00000115)
     assert response.metadata["actual_cost_provider"] == "custom-openai-compatible:local"
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "static_pricing"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "static_pricing"
+    )
     assert isinstance(response.metadata["ttft_ms"], float)
     assert response.metadata["ttft_ms"] >= 0.0
 
@@ -199,17 +227,24 @@ async def test_openai_compatible_provider_attaches_openrouter_usage_cost() -> No
     )
 
     try:
-        response = await provider.invoke(_request(provider="openrouter", model="deepseek/deepseek-v3.2"))
+        response = await provider.invoke(
+            _request(provider="openrouter", model="deepseek/deepseek-v3.2")
+        )
     finally:
         await provider.aclose()
 
     assert response.metadata is not None
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.00123)
     assert response.metadata["actual_cost_provider"] == "openrouter"
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "provider_returned"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "provider_returned"
+    )
 
 
-async def test_openai_compatible_provider_retains_and_settles_openrouter_byok_usage() -> None:
+async def test_openai_compatible_provider_retains_and_settles_openrouter_byok_usage() -> (
+    None
+):
     provider = OpenAiCompatibleLlmProvider(
         endpoint=_endpoint(endpoint_id="openrouter", auth={"type": "none"}),
         client=httpx.AsyncClient(
@@ -224,7 +259,9 @@ async def test_openai_compatible_provider_retains_and_settles_openrouter_byok_us
     )
 
     try:
-        response = await provider.invoke(_request(provider="openrouter", model="deepseek/deepseek-v3.2"))
+        response = await provider.invoke(
+            _request(provider="openrouter", model="deepseek/deepseek-v3.2")
+        )
     finally:
         await provider.aclose()
 
@@ -245,21 +282,32 @@ async def test_openai_compatible_provider_retains_and_settles_openrouter_byok_us
     }
 
 
-async def test_openai_compatible_provider_attaches_openrouter_static_cost_when_usage_cost_missing() -> None:
+async def test_openai_compatible_provider_attaches_openrouter_static_cost_when_usage_cost_missing() -> (
+    None
+):
     provider = OpenAiCompatibleLlmProvider(
         endpoint=_endpoint(endpoint_id="openrouter", auth={"type": "none"}),
-        client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: _streaming_response_without_usage_cost())),
+        client=httpx.AsyncClient(
+            transport=httpx.MockTransport(
+                lambda _: _streaming_response_without_usage_cost()
+            )
+        ),
     )
 
     try:
-        response = await provider.invoke(_request(provider="openrouter", model="deepseek/deepseek-v3.2"))
+        response = await provider.invoke(
+            _request(provider="openrouter", model="deepseek/deepseek-v3.2")
+        )
     finally:
         await provider.aclose()
 
     assert response.metadata is not None
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.000001607)
     assert response.metadata["actual_cost_provider"] == "openrouter"
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "static_pricing"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "static_pricing"
+    )
 
 
 async def test_openai_compatible_thinking_omitted_is_noop() -> None:
@@ -283,7 +331,9 @@ async def test_openai_compatible_thinking_omitted_is_noop() -> None:
 
 
 @pytest.mark.parametrize("enabled", (True, False))
-async def test_openai_compatible_gemma_thinking_uses_enable_thinking_template_kwarg(enabled: bool) -> None:
+async def test_openai_compatible_gemma_thinking_uses_enable_thinking_template_kwarg(
+    enabled: bool,
+) -> None:
     seen_payload: dict[str, object] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -296,7 +346,9 @@ async def test_openai_compatible_gemma_thinking_uses_enable_thinking_template_kw
     )
 
     try:
-        await provider.invoke(_request(thinking=LlmThinkingConfig(enabled=enabled, effort="high")))
+        await provider.invoke(
+            _request(thinking=LlmThinkingConfig(enabled=enabled, effort="high"))
+        )
     finally:
         await provider.aclose()
 
@@ -338,7 +390,9 @@ async def test_openai_compatible_explicit_thinking_overrides_reasoning_effort() 
     )
 
     try:
-        await provider.invoke(_request(thinking=LlmThinkingConfig(enabled=False), reasoning_effort="high"))
+        await provider.invoke(
+            _request(thinking=LlmThinkingConfig(enabled=False), reasoning_effort="high")
+        )
     finally:
         await provider.aclose()
 
@@ -347,7 +401,9 @@ async def test_openai_compatible_explicit_thinking_overrides_reasoning_effort() 
 
 
 @pytest.mark.parametrize("enabled", (True, False))
-async def test_openai_compatible_gemma_thinking_survives_custom_route_model_alias(enabled: bool) -> None:
+async def test_openai_compatible_gemma_thinking_survives_custom_route_model_alias(
+    enabled: bool,
+) -> None:
     route_target = "custom-openai-compatible:gemma4-cloud-run-turbo"
     seen_payload: dict[str, object] = {}
 
@@ -358,7 +414,9 @@ async def test_openai_compatible_gemma_thinking_survives_custom_route_model_alia
     provider = LlmProviderAdapter(
         provider_name=route_target,
         delegate=OpenAiCompatibleLlmProvider(
-            endpoint=_endpoint(endpoint_id="gemma4-cloud-run-turbo", auth={"type": "none"}),
+            endpoint=_endpoint(
+                endpoint_id="gemma4-cloud-run-turbo", auth={"type": "none"}
+            ),
             client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
         ),
     )
@@ -378,7 +436,9 @@ async def test_openai_compatible_gemma_thinking_survives_custom_route_model_alia
 
 
 @pytest.mark.parametrize("enabled", (True, False))
-async def test_openai_compatible_qwen36_thinking_survives_custom_route_model_alias(enabled: bool) -> None:
+async def test_openai_compatible_qwen36_thinking_survives_custom_route_model_alias(
+    enabled: bool,
+) -> None:
     route_target = "custom-openai-compatible:qwen36-cloud-run"
     seen_payload: dict[str, object] = {}
 
@@ -409,7 +469,9 @@ async def test_openai_compatible_qwen36_thinking_survives_custom_route_model_ali
     assert seen_payload["chat_template_kwargs"] == {"enable_thinking": enabled}
 
 
-async def test_openai_compatible_qwen36_reasoning_effort_survives_custom_route_model_alias() -> None:
+async def test_openai_compatible_qwen36_reasoning_effort_survives_custom_route_model_alias() -> (
+    None
+):
     route_target = "custom-openai-compatible:qwen36-cloud-run"
     seen_payload: dict[str, object] = {}
 
@@ -441,7 +503,9 @@ async def test_openai_compatible_qwen36_reasoning_effort_survives_custom_route_m
     assert "reasoning_effort" not in seen_payload
 
 
-async def test_openai_compatible_unsupported_thinking_capability_serializes_nothing() -> None:
+async def test_openai_compatible_unsupported_thinking_capability_serializes_nothing() -> (
+    None
+):
     seen_payload: dict[str, object] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -467,10 +531,14 @@ async def test_openai_compatible_unsupported_thinking_capability_serializes_noth
     assert "reasoning_effort" not in seen_payload
 
 
-async def test_openai_compatible_provider_preserves_streamed_reasoning_and_usage() -> None:
+async def test_openai_compatible_provider_preserves_streamed_reasoning_and_usage() -> (
+    None
+):
     provider = OpenAiCompatibleLlmProvider(
         endpoint=_endpoint(auth={"type": "none"}),
-        client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: _streaming_reasoning_response())),
+        client=httpx.AsyncClient(
+            transport=httpx.MockTransport(lambda _: _streaming_reasoning_response())
+        ),
     )
 
     try:
@@ -487,11 +555,15 @@ async def test_openai_compatible_provider_preserves_streamed_reasoning_and_usage
     assert response.metadata["raw_response"]["usage"]["completion_tokens"] == 6
 
 
-async def test_openai_compatible_provider_keeps_reasoning_tokens_unavailable_when_usage_omits_them() -> None:
+async def test_openai_compatible_provider_keeps_reasoning_tokens_unavailable_when_usage_omits_them() -> (
+    None
+):
     provider = OpenAiCompatibleLlmProvider(
         endpoint=_endpoint(auth={"type": "none"}),
         client=httpx.AsyncClient(
-            transport=httpx.MockTransport(lambda _: _streaming_reasoning_without_usage_response())
+            transport=httpx.MockTransport(
+                lambda _: _streaming_reasoning_without_usage_response()
+            )
         ),
     )
 
@@ -509,7 +581,11 @@ async def test_openai_compatible_provider_keeps_reasoning_tokens_unavailable_whe
 async def test_openai_compatible_provider_normalizes_nested_reasoning_usage() -> None:
     provider = OpenAiCompatibleLlmProvider(
         endpoint=_endpoint(auth={"type": "none"}),
-        client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: _streaming_reasoning_details_response())),
+        client=httpx.AsyncClient(
+            transport=httpx.MockTransport(
+                lambda _: _streaming_reasoning_details_response()
+            )
+        ),
     )
 
     try:
@@ -523,10 +599,16 @@ async def test_openai_compatible_provider_normalizes_nested_reasoning_usage() ->
     assert response.usage.total_tokens == 9
 
 
-async def test_openai_compatible_provider_translates_streamed_reasoning_details() -> None:
+async def test_openai_compatible_provider_translates_streamed_reasoning_details() -> (
+    None
+):
     provider = OpenAiCompatibleLlmProvider(
         endpoint=_endpoint(auth={"type": "none"}),
-        client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: _streaming_reasoning_details_text_response())),
+        client=httpx.AsyncClient(
+            transport=httpx.MockTransport(
+                lambda _: _streaming_reasoning_details_text_response()
+            )
+        ),
     )
 
     try:
@@ -537,10 +619,15 @@ async def test_openai_compatible_provider_translates_streamed_reasoning_details(
     assert response.raw_text == "ok"
     assert response.choices[0].message.reasoning == "first thoughtsummary thought"
     assert response.metadata is not None
-    assert response.metadata["raw_response"]["choices"][0]["reasoning"] == "first thoughtsummary thought"
+    assert (
+        response.metadata["raw_response"]["choices"][0]["reasoning"]
+        == "first thoughtsummary thought"
+    )
 
 
-async def test_openai_compatible_provider_uses_request_retry_policy_over_default() -> None:
+async def test_openai_compatible_provider_uses_request_retry_policy_over_default() -> (
+    None
+):
     calls = 0
 
     def handler(_: httpx.Request) -> httpx.Response:
@@ -555,7 +642,10 @@ async def test_openai_compatible_provider_uses_request_retry_policy_over_default
         client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )
     provider._retry_policy = RetryPolicy(attempts=1, initial_ms=0, max_ms=0, jitter=0.0)
-    request = replace(_request(), retry_policy=RetryPolicy(attempts=2, initial_ms=0, max_ms=0, jitter=0.0))
+    request = replace(
+        _request(),
+        retry_policy=RetryPolicy(attempts=2, initial_ms=0, max_ms=0, jitter=0.0),
+    )
 
     try:
         response = await provider.invoke(request)
@@ -566,7 +656,9 @@ async def test_openai_compatible_provider_uses_request_retry_policy_over_default
     assert response.raw_text == "ok"
 
 
-async def test_openai_compatible_provider_retries_malformed_tool_call_response() -> None:
+async def test_openai_compatible_provider_retries_malformed_tool_call_response() -> (
+    None
+):
     calls = 0
 
     def handler(_: httpx.Request) -> httpx.Response:
@@ -580,7 +672,10 @@ async def test_openai_compatible_provider_retries_malformed_tool_call_response()
         endpoint=_endpoint(auth={"type": "none"}),
         client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )
-    request = replace(_request(), retry_policy=RetryPolicy(attempts=2, initial_ms=0, max_ms=0, jitter=0.0))
+    request = replace(
+        _request(),
+        retry_policy=RetryPolicy(attempts=2, initial_ms=0, max_ms=0, jitter=0.0),
+    )
 
     try:
         response = await provider.invoke(request)
@@ -653,7 +748,10 @@ def _streaming_response_with_malformed_tool_call() -> httpx.Response:
                             "index": 0,
                             "id": "call-1",
                             "type": "function",
-                            "function": {"name": "lookup_weather", "arguments": '{"city":'},
+                            "function": {
+                                "name": "lookup_weather",
+                                "arguments": '{"city":',
+                            },
                         }
                     ]
                 },
@@ -768,7 +866,10 @@ def test_openai_compatible_request_serializes_complete_tool_loop() -> None:
                 {
                     "id": "call-1",
                     "type": "function",
-                    "function": {"name": "lookup_weather", "arguments": '{"city":"Paris"}'},
+                    "function": {
+                        "name": "lookup_weather",
+                        "arguments": '{"city":"Paris"}',
+                    },
                 }
             ],
             "reasoning_details": [{"type": "reasoning.encrypted", "data": "opaque"}],
@@ -778,11 +879,16 @@ def test_openai_compatible_request_serializes_complete_tool_loop() -> None:
     assert payload["tools"] == [
         {"type": "function", "function": {"name": "lookup_weather", "strict": True}}
     ]
-    assert payload["tool_choice"] == {"type": "function", "function": {"name": "lookup_weather"}}
+    assert payload["tool_choice"] == {
+        "type": "function",
+        "function": {"name": "lookup_weather"},
+    }
     assert payload["parallel_tool_calls"] is True
 
 
-def test_openai_compatible_request_preserves_assistant_reasoning_without_tool_calls() -> None:
+def test_openai_compatible_request_preserves_assistant_reasoning_without_tool_calls() -> (
+    None
+):
     request = LlmRequest(
         provider="openrouter",
         model="openai/gpt-oss-20b",
@@ -812,7 +918,10 @@ def test_openai_compatible_request_preserves_assistant_reasoning_without_tool_ca
 
 
 def test_openai_stream_preserves_opaque_reasoning_details_in_order() -> None:
-    from harnyx_commons.llm.providers.openai_stream import OpenAiStreamState, _OpenAiStreamEvent
+    from harnyx_commons.llm.providers.openai_stream import (
+        OpenAiStreamState,
+        _OpenAiStreamEvent,
+    )
 
     details = [
         {"type": "reasoning.encrypted", "data": "opaque", "index": 0},
@@ -838,11 +947,23 @@ def test_openai_stream_preserves_opaque_reasoning_details_in_order() -> None:
         {"id": " ", "type": "function", "name": "lookup", "arguments": "{}"},
         {"id": "call-1", "type": "function", "name": " ", "arguments": "{}"},
         {"id": "call-1", "type": "function", "name": "lookup", "arguments": "[]"},
-        {"id": "call-1", "type": "function", "name": "lookup", "arguments": '{"x":NaN}'},
-        {"id": "call-1", "type": "function", "name": "lookup", "arguments": '{"x":Infinity}'},
+        {
+            "id": "call-1",
+            "type": "function",
+            "name": "lookup",
+            "arguments": '{"x":NaN}',
+        },
+        {
+            "id": "call-1",
+            "type": "function",
+            "name": "lookup",
+            "arguments": '{"x":Infinity}',
+        },
     ),
 )
-def test_openai_stream_rejects_malformed_completed_tool_calls(tool_call: dict[str, object]) -> None:
+def test_openai_stream_rejects_malformed_completed_tool_calls(
+    tool_call: dict[str, object],
+) -> None:
     from harnyx_commons.llm.providers.openai_stream import OpenAiToolCallState
 
     state = OpenAiToolCallState(
@@ -857,7 +978,10 @@ def test_openai_stream_rejects_malformed_completed_tool_calls(tool_call: dict[st
 
 
 def test_openai_stream_rejects_tool_call_delta_without_index() -> None:
-    from harnyx_commons.llm.providers.openai_stream import OpenAiStreamState, _OpenAiStreamEvent
+    from harnyx_commons.llm.providers.openai_stream import (
+        OpenAiStreamState,
+        _OpenAiStreamEvent,
+    )
 
     state = OpenAiStreamState()
     event = _OpenAiStreamEvent.model_validate(
@@ -884,7 +1008,10 @@ def test_openai_stream_rejects_tool_call_delta_without_index() -> None:
 
 
 def test_openai_stream_accumulates_fragmented_tool_call_identity() -> None:
-    from harnyx_commons.llm.providers.openai_stream import OpenAiStreamState, _OpenAiStreamEvent
+    from harnyx_commons.llm.providers.openai_stream import (
+        OpenAiStreamState,
+        _OpenAiStreamEvent,
+    )
 
     state = OpenAiStreamState()
     for payload in (
@@ -932,7 +1059,10 @@ def test_openai_stream_accumulates_fragmented_tool_call_identity() -> None:
 
 
 def test_openai_stream_accepts_complete_message_tool_calls_without_indices() -> None:
-    from harnyx_commons.llm.providers.openai_stream import OpenAiStreamState, _OpenAiStreamEvent
+    from harnyx_commons.llm.providers.openai_stream import (
+        OpenAiStreamState,
+        _OpenAiStreamEvent,
+    )
 
     state = OpenAiStreamState()
     state.merge_event(
@@ -1003,7 +1133,10 @@ def test_openai_stream_rejects_duplicate_tool_call_ids_within_one_block() -> Non
 def test_openai_stream_rejects_tool_call_identity_changes(
     changed_delta: dict[str, object],
 ) -> None:
-    from harnyx_commons.llm.providers.openai_stream import OpenAiToolCallState, _OpenAiToolCallDelta
+    from harnyx_commons.llm.providers.openai_stream import (
+        OpenAiToolCallState,
+        _OpenAiToolCallDelta,
+    )
 
     state = OpenAiToolCallState(id="call-1", type="function", name="lookup")
 

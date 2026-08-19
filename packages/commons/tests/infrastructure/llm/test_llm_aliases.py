@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from harnyx_commons.llm.adapter import LlmProviderAdapter, canonical_model_for_provider_model
+from harnyx_commons.llm.adapter import (
+    LlmProviderAdapter,
+    canonical_model_for_provider_model,
+)
 from harnyx_commons.llm.schema import (
     LlmChoice,
     LlmChoiceMessage,
@@ -34,7 +37,9 @@ class StubProvider:
     def __init__(self) -> None:
         self.requests: list[LlmRequest] = []
 
-    async def invoke(self, request: LlmRequest) -> LlmResponse:  # pragma: no cover - simple stub
+    async def invoke(
+        self, request: LlmRequest
+    ) -> LlmResponse:  # pragma: no cover - simple stub
         self.requests.append(request)
         return LlmResponse(
             id="stub",
@@ -58,7 +63,9 @@ async def test_adapter_prefers_provider_specific_entry() -> None:
         "openai/gpt-oss-20b": "publishers/openai/models/gpt-oss-20b-maas-global",
     }
     delegate = StubProvider()
-    provider = LlmProviderAdapter(provider_name="vertex", delegate=delegate, model_aliases=aliases)
+    provider = LlmProviderAdapter(
+        provider_name="vertex", delegate=delegate, model_aliases=aliases
+    )
 
     request = LlmRequest(
         provider="vertex",
@@ -77,7 +84,9 @@ async def test_adapter_prefers_provider_specific_entry() -> None:
 async def test_adapter_falls_back_to_global_entry() -> None:
     aliases = {"openai/gpt-oss-20b": "publishers/openai/models/gpt-oss-20b-maas"}
     delegate = StubProvider()
-    provider = LlmProviderAdapter(provider_name="vertex", delegate=delegate, model_aliases=aliases)
+    provider = LlmProviderAdapter(
+        provider_name="vertex", delegate=delegate, model_aliases=aliases
+    )
 
     request = LlmRequest(
         provider="vertex",
@@ -114,7 +123,9 @@ async def test_bedrock_adapter_uses_provider_specific_tee_alias() -> None:
 async def test_bedrock_adapter_does_not_fall_back_to_global_alias() -> None:
     aliases = {"openai/gpt-oss-20b-TEE": "wrong-global-alias"}
     delegate = StubProvider()
-    provider = LlmProviderAdapter(provider_name="bedrock", delegate=delegate, model_aliases=aliases)
+    provider = LlmProviderAdapter(
+        provider_name="bedrock", delegate=delegate, model_aliases=aliases
+    )
 
     request = LlmRequest(
         provider="bedrock",
@@ -223,7 +234,9 @@ async def test_vertex_adapter_uses_provider_specific_qwen3_235b_alias() -> None:
 async def test_bedrock_adapter_does_not_fall_back_to_global_kimi_alias() -> None:
     aliases = {"moonshotai/Kimi-K2.5-TEE": "wrong-global-alias"}
     delegate = StubProvider()
-    provider = LlmProviderAdapter(provider_name="bedrock", delegate=delegate, model_aliases=aliases)
+    provider = LlmProviderAdapter(
+        provider_name="bedrock", delegate=delegate, model_aliases=aliases
+    )
 
     request = LlmRequest(
         provider="bedrock",
@@ -240,7 +253,9 @@ async def test_bedrock_adapter_does_not_fall_back_to_global_kimi_alias() -> None
 
 
 @pytest.mark.parametrize(("model", "expected"), VERTEX_ALIASED_TOOL_MODELS.items())
-async def test_adapter_applies_default_vertex_aliases(model: str, expected: str) -> None:
+async def test_adapter_applies_default_vertex_aliases(
+    model: str, expected: str
+) -> None:
     delegate = StubProvider()
     provider = LlmProviderAdapter(provider_name="vertex", delegate=delegate)
 
@@ -268,7 +283,9 @@ def test_canonical_model_for_provider_model_reverses_vertex_tool_alias() -> None
     )
 
 
-def test_canonical_model_for_provider_model_reverses_custom_openai_compatible_tool_alias() -> None:
+def test_canonical_model_for_provider_model_reverses_custom_openai_compatible_tool_alias() -> (
+    None
+):
     assert (
         canonical_model_for_provider_model(
             provider_name=GEMMA_CLOUD_RUN_ROUTE_TARGET,
@@ -278,7 +295,9 @@ def test_canonical_model_for_provider_model_reverses_custom_openai_compatible_to
     )
 
 
-def test_canonical_model_for_provider_model_reverses_qwen36_custom_openai_compatible_tool_alias() -> None:
+def test_canonical_model_for_provider_model_reverses_qwen36_custom_openai_compatible_tool_alias() -> (
+    None
+):
     assert (
         canonical_model_for_provider_model(
             provider_name=QWEN36_CLOUD_RUN_ROUTE_TARGET,
@@ -319,7 +338,9 @@ async def test_adapter_leaves_open_model_ids_unchanged_for_chutes(model: str) ->
 
 async def test_adapter_maps_gemma_chutes_id_to_turbo_cloud_run_native_model() -> None:
     delegate = StubProvider()
-    provider = LlmProviderAdapter(provider_name=GEMMA_CLOUD_RUN_ROUTE_TARGET, delegate=delegate)
+    provider = LlmProviderAdapter(
+        provider_name=GEMMA_CLOUD_RUN_ROUTE_TARGET, delegate=delegate
+    )
 
     request = LlmRequest(
         provider=GEMMA_CLOUD_RUN_ROUTE_TARGET,
@@ -337,7 +358,9 @@ async def test_adapter_maps_gemma_chutes_id_to_turbo_cloud_run_native_model() ->
 
 async def test_adapter_maps_qwen36_chutes_id_to_cloud_run_native_model() -> None:
     delegate = StubProvider()
-    provider = LlmProviderAdapter(provider_name=QWEN36_CLOUD_RUN_ROUTE_TARGET, delegate=delegate)
+    provider = LlmProviderAdapter(
+        provider_name=QWEN36_CLOUD_RUN_ROUTE_TARGET, delegate=delegate
+    )
 
     request = LlmRequest(
         provider=QWEN36_CLOUD_RUN_ROUTE_TARGET,

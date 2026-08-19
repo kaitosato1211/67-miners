@@ -36,7 +36,9 @@ _ACTIVE_LANGFUSE_TRACE_NAME: ContextVar[str | None] = ContextVar(
     "harnyx_langfuse_trace_name",
     default=None,
 )
-_ACTIVE_METADATA_ONLY_GENERATION_TRACKER: ContextVar[MetadataOnlyGenerationTracker | None]
+_ACTIVE_METADATA_ONLY_GENERATION_TRACKER: ContextVar[
+    MetadataOnlyGenerationTracker | None
+]
 _LangfuseModelParameter = str | None | int | list[str]
 
 
@@ -69,7 +71,9 @@ _ACTIVE_METADATA_ONLY_GENERATION_TRACKER = ContextVar(
 )
 
 
-class _MetadataOnlyGenerationTrackerScope(AbstractContextManager[MetadataOnlyGenerationTracker]):
+class _MetadataOnlyGenerationTrackerScope(
+    AbstractContextManager[MetadataOnlyGenerationTracker]
+):
     def __init__(self) -> None:
         self._tracker = MetadataOnlyGenerationTracker()
         self._token: Token[MetadataOnlyGenerationTracker | None] | None = None
@@ -124,7 +128,9 @@ class _MetadataOnlyObservationScope(AbstractContextManager[LangfuseGeneration | 
         try:
             if self._force_root:
                 self._ambient_context_token = attach(Context())
-            model_parameters = None if self._model_parameters is None else dict(self._model_parameters)
+            model_parameters = (
+                None if self._model_parameters is None else dict(self._model_parameters)
+            )
             if self._as_type == "generation":
                 observation_cm = self._client.start_as_current_observation(
                     name=self._name,
@@ -331,7 +337,12 @@ class _LangfuseTraceAttributesScope(AbstractContextManager[None]):
         if self._tags is not None:
             tags_payload = [str(tag) for tag in self._tags]
 
-        if self._trace_name is None and self._session_id is None and metadata_payload is None and tags_payload is None:
+        if (
+            self._trace_name is None
+            and self._session_id is None
+            and metadata_payload is None
+            and tags_payload is None
+        ):
             return None
 
         try:
@@ -346,7 +357,9 @@ class _LangfuseTraceAttributesScope(AbstractContextManager[None]):
             )
             self._propagate_cm.__enter__()
             if self._trace_name is not None:
-                self._trace_name_token = _ACTIVE_LANGFUSE_TRACE_NAME.set(self._trace_name)
+                self._trace_name_token = _ACTIVE_LANGFUSE_TRACE_NAME.set(
+                    self._trace_name
+                )
         except Exception:
             self._propagate_cm = None
             self._trace_name_token = None
@@ -477,7 +490,9 @@ def start_root_metadata_only_observation(
     )
 
 
-def track_metadata_only_generations() -> AbstractContextManager[MetadataOnlyGenerationTracker]:
+def track_metadata_only_generations() -> (
+    AbstractContextManager[MetadataOnlyGenerationTracker]
+):
     """Track whether every expected metadata-only generation started locally."""
 
     return _MetadataOnlyGenerationTrackerScope()
@@ -546,8 +561,16 @@ def build_generation_input_payload(request: AbstractLlmRequest) -> dict[str, obj
             "reasoning_effort": request.reasoning_effort,
         },
         "tools": _redact_tool_auth_secrets(tools_payload),
-        "include": [str(item) for item in request.include] if request.include is not None else None,
-        "extra": _sanitize_for_json(dict(request.extra)) if request.extra is not None else None,
+        "include": (
+            [str(item) for item in request.include]
+            if request.include is not None
+            else None
+        ),
+        "extra": (
+            _sanitize_for_json(dict(request.extra))
+            if request.extra is not None
+            else None
+        ),
     }
 
 
@@ -699,8 +722,14 @@ def build_generation_metadata(
     request: AbstractLlmRequest,
     metadata: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
-    internal_metadata = (request.internal_metadata or {}) if request.include_payloads_in_observability else {}
-    merged: dict[str, object] = {str(key): value for key, value in internal_metadata.items()}
+    internal_metadata = (
+        (request.internal_metadata or {})
+        if request.include_payloads_in_observability
+        else {}
+    )
+    merged: dict[str, object] = {
+        str(key): value for key, value in internal_metadata.items()
+    }
     merged["provider"] = provider_label
     merged["server"] = _resolve_server_label()
     if request.use_case is not None:
@@ -727,20 +756,28 @@ def _read_config() -> dict[str, str] | None:
     return values
 
 
-def _model_parameters(request: AbstractLlmRequest) -> dict[str, str | None | int | list[str]]:
+def _model_parameters(
+    request: AbstractLlmRequest,
+) -> dict[str, str | None | int | list[str]]:
     tool_choice = request.tool_choice
     serialized_tool_choice = (
-        json.dumps(dict(tool_choice), separators=(",", ":")) if isinstance(tool_choice, Mapping) else tool_choice
+        json.dumps(dict(tool_choice), separators=(",", ":"))
+        if isinstance(tool_choice, Mapping)
+        else tool_choice
     )
     params: dict[str, str | int | list[str] | None] = {
-        "temperature": None if request.temperature is None else str(request.temperature),
+        "temperature": (
+            None if request.temperature is None else str(request.temperature)
+        ),
         "max_output_tokens": request.max_output_tokens,
         "tool_choice": serialized_tool_choice,
         "parallel_tool_calls": request.parallel_tool_calls,
         "grounded": request.grounded,
         "output_mode": request.output_mode,
         "reasoning_effort": request.reasoning_effort,
-        "timeout_seconds": None if request.timeout_seconds is None else str(request.timeout_seconds),
+        "timeout_seconds": (
+            None if request.timeout_seconds is None else str(request.timeout_seconds)
+        ),
     }
     if request.include is not None:
         params["include"] = [str(item) for item in request.include]
@@ -769,7 +806,9 @@ def _request_content_part_payload(part: object) -> dict[str, object]:
                 "url": image_data.url,
                 "mime_type": image_data.mime_type,
             }
-        case LlmInputToolResultPart(tool_call_id=tool_call_id, name=name, output_json=output_json):
+        case LlmInputToolResultPart(
+            tool_call_id=tool_call_id, name=name, output_json=output_json
+        ):
             return {
                 "type": "input_tool_result",
                 "tool_call_id": tool_call_id,
@@ -804,10 +843,14 @@ def _derive_tags(metadata: Mapping[str, object]) -> list[str]:
     return tags
 
 
-def _normalize_trace_metadata(metadata: Mapping[str, object] | None) -> dict[str, str] | None:
+def _normalize_trace_metadata(
+    metadata: Mapping[str, object] | None,
+) -> dict[str, str] | None:
     if metadata is None:
         return None
-    normalized = {str(key): str(value) for key, value in metadata.items() if value is not None}
+    normalized = {
+        str(key): str(value) for key, value in metadata.items() if value is not None
+    }
     return normalized or None
 
 

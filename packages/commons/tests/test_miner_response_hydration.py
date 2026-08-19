@@ -14,7 +14,12 @@ from harnyx_commons.application.miner_response_hydration import (
 from harnyx_commons.application.miner_response_hydration import (
     hydrate_miner_response_payload as _hydrate_miner_response_payload,
 )
-from harnyx_commons.domain.miner_task import AnswerCitation, Query, ReferenceAnswer, Response
+from harnyx_commons.domain.miner_task import (
+    AnswerCitation,
+    Query,
+    ReferenceAnswer,
+    Response,
+)
 from harnyx_commons.domain.tool_call import (
     SearchToolResult,
     ToolCall,
@@ -29,7 +34,9 @@ from harnyx_commons.tools.types import ToolName
 _LEGACY_QUERY = Query(text="question")
 
 
-def test_reference_answer_loads_legacy_persisted_citation_count_above_judge_cap() -> None:
+def test_reference_answer_loads_legacy_persisted_citation_count_above_judge_cap() -> (
+    None
+):
     """Future failure: nullable slots must not tighten persisted ReferenceAnswer cardinality."""
     citation = {"url": "https://example.com/source", "note": "evidence"}
 
@@ -121,7 +128,9 @@ def _record_receipt(
     )
 
 
-def test_hydrate_miner_response_payload_materializes_full_result_when_slices_are_omitted() -> None:
+def test_hydrate_miner_response_payload_materializes_full_result_when_slices_are_omitted() -> (
+    None
+):
     session_id = uuid4()
     source_text = "Primary source"
 
@@ -203,10 +212,14 @@ def test_hydrate_miner_response_payload_materializes_multiple_slices() -> None:
     )
 
 
-def test_public_slice_materializer_matches_official_hydration_for_raw_unicode_crlf_slices() -> None:
+def test_public_slice_materializer_matches_official_hydration_for_raw_unicode_crlf_slices() -> (
+    None
+):
     """Future failure: reference authoring and miner hydration must share one raw projection rule."""
     session_id = uuid4()
-    source_text = ("prefix\r\nCafé 雪 " + _source_text(130) + "\r\nsuffix " + _source_text(130))
+    source_text = (
+        "prefix\r\nCafé 雪 " + _source_text(130) + "\r\nsuffix " + _source_text(130)
+    )
     slices = (CitationSlice(0, 120), CitationSlice(140, 260))
 
     materialized = materialize_citation_slices(source_text, slices)
@@ -217,7 +230,9 @@ def test_public_slice_materializer_matches_official_hydration_for_raw_unicode_cr
                 {
                     "receipt_id": "receipt-1",
                     "result_id": "result-1",
-                    "slices": [{"start": item.start, "end": item.end} for item in slices],
+                    "slices": [
+                        {"start": item.start, "end": item.end} for item in slices
+                    ],
                 }
             ],
         },
@@ -292,7 +307,9 @@ def test_hydrate_miner_response_payload_rejects_short_slice_from_long_source() -
                 ],
             },
             session_id=session_id,
-            receipt_log=_receipt_log_with_result(session_id=session_id, note=_source_text()),
+            receipt_log=_receipt_log_with_result(
+                session_id=session_id, note=_source_text()
+            ),
         )
 
 
@@ -312,11 +329,15 @@ def test_hydrate_miner_response_payload_rejects_out_of_bounds_slice() -> None:
                 ],
             },
             session_id=session_id,
-            receipt_log=_receipt_log_with_result(session_id=session_id, note=_source_text()),
+            receipt_log=_receipt_log_with_result(
+                session_id=session_id, note=_source_text()
+            ),
         )
 
 
-def test_hydrate_miner_response_payload_rejects_citation_when_source_text_is_absent() -> None:
+def test_hydrate_miner_response_payload_rejects_citation_when_source_text_is_absent() -> (
+    None
+):
     session_id = uuid4()
 
     with pytest.raises(MinerResponsePayloadError):
@@ -330,7 +351,9 @@ def test_hydrate_miner_response_payload_rejects_citation_when_source_text_is_abs
         )
 
 
-def test_hydrate_miner_response_payload_rejects_total_materialized_evidence_over_budget() -> None:
+def test_hydrate_miner_response_payload_rejects_total_materialized_evidence_over_budget() -> (
+    None
+):
     session_id = uuid4()
 
     with pytest.raises(MinerResponsePayloadError):
@@ -340,11 +363,15 @@ def test_hydrate_miner_response_payload_rejects_total_materialized_evidence_over
                 "citations": [{"receipt_id": "receipt-1", "result_id": "result-1"}],
             },
             session_id=session_id,
-            receipt_log=_receipt_log_with_result(session_id=session_id, note=_source_text(120_001)),
+            receipt_log=_receipt_log_with_result(
+                session_id=session_id, note=_source_text(120_001)
+            ),
         )
 
 
-def test_hydrate_miner_response_payload_preserves_duplicate_and_unresolved_positions() -> None:
+def test_hydrate_miner_response_payload_preserves_duplicate_and_unresolved_positions() -> (
+    None
+):
     """Future failure: hydration must not renumber positional citation pointers."""
     session_id = uuid4()
     source_text = _source_text()
@@ -371,7 +398,9 @@ def test_hydrate_miner_response_payload_preserves_duplicate_and_unresolved_posit
     assert response == Response(text="Answer", citations=(resolved, None, resolved))
 
 
-def test_hydrate_miner_response_payload_preserves_every_soft_unresolved_class_as_null() -> None:
+def test_hydrate_miner_response_payload_preserves_every_soft_unresolved_class_as_null() -> (
+    None
+):
     """Future failure: soft unresolved refs must not disappear or weaken later citations."""
     session_id = uuid4()
     source_text = _source_text()
@@ -477,7 +506,9 @@ def test_hydrate_miner_response_payload_rejects_whitespace_only_text() -> None:
         )
 
 
-def test_hydrate_miner_response_payload_rejects_more_than_two_hundred_citations() -> None:
+def test_hydrate_miner_response_payload_rejects_more_than_two_hundred_citations() -> (
+    None
+):
     with pytest.raises(ValidationError):
         hydrate_miner_response_payload(
             {
@@ -492,7 +523,9 @@ def test_hydrate_miner_response_payload_rejects_more_than_two_hundred_citations(
         )
 
 
-def test_hydrate_miner_response_payload_rejects_more_than_four_hundred_segments() -> None:
+def test_hydrate_miner_response_payload_rejects_more_than_four_hundred_segments() -> (
+    None
+):
     with pytest.raises(ValidationError):
         hydrate_miner_response_payload(
             {
@@ -501,7 +534,10 @@ def test_hydrate_miner_response_payload_rejects_more_than_four_hundred_segments(
                     {
                         "receipt_id": "receipt-1",
                         "result_id": "result-1",
-                        "slices": [{"start": index * 100, "end": (index + 1) * 100} for index in range(401)],
+                        "slices": [
+                            {"start": index * 100, "end": (index + 1) * 100}
+                            for index in range(401)
+                        ],
                     }
                 ],
             },
@@ -510,7 +546,9 @@ def test_hydrate_miner_response_payload_rejects_more_than_four_hundred_segments(
         )
 
 
-def test_hydrate_miner_response_payload_rejects_text_over_eighty_thousand_chars() -> None:
+def test_hydrate_miner_response_payload_rejects_text_over_eighty_thousand_chars() -> (
+    None
+):
     with pytest.raises(ValidationError):
         hydrate_miner_response_payload(
             {"text": "x" * 80_001},
@@ -555,10 +593,15 @@ def test_hydrate_structured_output_and_citations() -> None:
     [
         (Query(text="question"), {"output": {"answer": 1}}),
         (Query(text="question", output_schema={}), {"text": "answer"}),
-        (Query(text="question", output_schema={"type": "array"}), {"output": {"answer": 1}}),
+        (
+            Query(text="question", output_schema={"type": "array"}),
+            {"output": {"answer": 1}},
+        ),
     ],
 )
-def test_hydration_rejects_wrong_mode_and_schema_mismatch(query: Query, payload: object) -> None:
+def test_hydration_rejects_wrong_mode_and_schema_mismatch(
+    query: Query, payload: object
+) -> None:
     with pytest.raises(MinerResponsePayloadError):
         hydrate_miner_response_payload(
             payload,

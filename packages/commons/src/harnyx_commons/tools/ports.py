@@ -7,7 +7,10 @@ from typing import Protocol
 
 from harnyx_commons.json_types import JsonObject
 from harnyx_commons.tools.embedding_models import EmbedTextRequest, EmbedTextResponse
-from harnyx_commons.tools.extraction_models import ExtractPagesRequest, ExtractPagesResponse
+from harnyx_commons.tools.extraction_models import (
+    ExtractPagesRequest,
+    ExtractPagesResponse,
+)
 from harnyx_commons.tools.provider_billing import SearchProviderResult
 from harnyx_commons.tools.search_models import (
     FetchPageRequest,
@@ -88,6 +91,7 @@ class DeSearchPort(Protocol):
     ) -> SearchXSearchResponse: ...
 
     async def fetch_twitter_post(self, *, post_id: str) -> SearchXResult | None: ...
+
 
 __all__ = [
     "AiSearchProviderPort",

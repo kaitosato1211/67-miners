@@ -198,7 +198,9 @@ def test_score_weighted_rubric_decisions_clamps_negative_raw_score_to_zero() -> 
     assert score.normalized_score == 0.0
 
 
-def test_score_weighted_rubric_decisions_caps_score_at_one_and_ignores_unmet_negative() -> None:
+def test_score_weighted_rubric_decisions_caps_score_at_one_and_ignores_unmet_negative() -> (
+    None
+):
     rubric = _weighted_rubric_with_positive_and_negative_criteria()
 
     score = score_weighted_rubric_decisions(
@@ -239,7 +241,9 @@ def test_score_weighted_rubric_decisions_rejects_missing_decision() -> None:
 
 
 @pytest.mark.anyio("asyncio")
-async def test_weighted_rubric_judge_calls_one_ungrounded_structured_request_per_criterion() -> None:
+async def test_weighted_rubric_judge_calls_one_ungrounded_structured_request_per_criterion() -> (
+    None
+):
     provider = _RecordingRubricJudgeProvider(
         verdicts=[
             {"verdict": "MET", "justification": "Positive requirement is satisfied."},
@@ -248,7 +252,9 @@ async def test_weighted_rubric_judge_calls_one_ungrounded_structured_request_per
     )
     service = BenchmarkWeightedRubricScoringService(
         llm_provider=provider,
-        config=BenchmarkWeightedRubricScoringConfig(provider="vertex", model="rubric-model"),
+        config=BenchmarkWeightedRubricScoringConfig(
+            provider="vertex", model="rubric-model"
+        ),
     )
 
     score = await service.score(
@@ -261,13 +267,18 @@ async def test_weighted_rubric_judge_calls_one_ungrounded_structured_request_per
     assert all(request.grounded is False for request in provider.requests)
     assert all(not request.tools for request in provider.requests)
     assert all(request.output_mode == "structured" for request in provider.requests)
-    assert all(request.use_case == "benchmark_weighted_rubric_criterion_judge" for request in provider.requests)
+    assert all(
+        request.use_case == "benchmark_weighted_rubric_criterion_judge"
+        for request in provider.requests
+    )
     assert all(request.max_output_tokens is None for request in provider.requests)
     assert score.normalized_score == pytest.approx(1.0)
 
 
 @pytest.mark.anyio("asyncio")
-async def test_weighted_rubric_judge_prompt_payload_uses_criterion_type_not_weight() -> None:
+async def test_weighted_rubric_judge_prompt_payload_uses_criterion_type_not_weight() -> (
+    None
+):
     provider = _RecordingRubricJudgeProvider(
         verdicts=[
             {"verdict": "MET", "justification": "Positive requirement is satisfied."},
@@ -276,7 +287,9 @@ async def test_weighted_rubric_judge_prompt_payload_uses_criterion_type_not_weig
     )
     service = BenchmarkWeightedRubricScoringService(
         llm_provider=provider,
-        config=BenchmarkWeightedRubricScoringConfig(provider="vertex", model="rubric-model"),
+        config=BenchmarkWeightedRubricScoringConfig(
+            provider="vertex", model="rubric-model"
+        ),
     )
 
     await service.score(
@@ -315,7 +328,9 @@ async def test_weighted_rubric_judge_returns_score_detail_json_object() -> None:
     )
     service = BenchmarkWeightedRubricScoringService(
         llm_provider=provider,
-        config=BenchmarkWeightedRubricScoringConfig(provider="vertex", model="rubric-model"),
+        config=BenchmarkWeightedRubricScoringConfig(
+            provider="vertex", model="rubric-model"
+        ),
     )
 
     score = await service.score(
@@ -326,7 +341,10 @@ async def test_weighted_rubric_judge_returns_score_detail_json_object() -> None:
 
     assert score.raw_score == pytest.approx(5.0)
     assert score.normalized_score == pytest.approx(0.5)
-    assert score.score_detail["scoring_version"] == BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    assert (
+        score.score_detail["scoring_version"]
+        == BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    )
     assert score.score_detail["rubric_id"] == "signed-weight-example"
     assert score.score_detail["raw_score"] == pytest.approx(5.0)
     assert score.score_detail["normalized_score"] == pytest.approx(0.5)
@@ -342,10 +360,14 @@ async def test_weighted_rubric_judge_fails_when_structured_output_is_missing() -
     provider = _RecordingRubricJudgeProvider(verdicts=[None])
     service = BenchmarkWeightedRubricScoringService(
         llm_provider=provider,
-        config=BenchmarkWeightedRubricScoringConfig(provider="vertex", model="rubric-model"),
+        config=BenchmarkWeightedRubricScoringConfig(
+            provider="vertex", model="rubric-model"
+        ),
     )
 
-    with pytest.raises(RuntimeError, match="weighted rubric judge did not return structured output"):
+    with pytest.raises(
+        RuntimeError, match="weighted rubric judge did not return structured output"
+    ):
         await service.score(
             question="Which answer should be blue?",
             rubric_answer=_rubric_answer_json(),

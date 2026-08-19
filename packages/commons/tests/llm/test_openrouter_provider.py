@@ -53,7 +53,9 @@ class _FakeOpenAiProvider:
     ) -> None:
         self.requests: list[LlmRequest] = []
         self.closed = False
-        self.raw_response = raw_response if raw_response is not None else {"id": "resp-1"}
+        self.raw_response = (
+            raw_response if raw_response is not None else {"id": "resp-1"}
+        )
         self.actual_cost_evidence = actual_cost_evidence
 
     async def invoke(self, request: LlmRequest) -> LlmResponse:
@@ -88,9 +90,16 @@ class _FakeClient:
         self.closed = True
 
 
-def test_openrouter_supported_models_come_from_miner_selected_provider_contract() -> None:
-    assert OPENROUTER_NATIVE_SUPPORTED_MODELS == MINER_SELECTED_LLM_PROVIDER_MODELS[OPENROUTER_PROVIDER]
-    assert set(OPENROUTER_INTERNAL_SUPPORTED_MODELS) == set(OPENROUTER_INTERNAL_TO_NATIVE_MODEL)
+def test_openrouter_supported_models_come_from_miner_selected_provider_contract() -> (
+    None
+):
+    assert (
+        OPENROUTER_NATIVE_SUPPORTED_MODELS
+        == MINER_SELECTED_LLM_PROVIDER_MODELS[OPENROUTER_PROVIDER]
+    )
+    assert set(OPENROUTER_INTERNAL_SUPPORTED_MODELS) == set(
+        OPENROUTER_INTERNAL_TO_NATIVE_MODEL
+    )
     assert set(OPENROUTER_NATIVE_SUPPORTED_MODELS) <= set(OPENROUTER_SUPPORTED_MODELS)
     assert set(OPENROUTER_INTERNAL_SUPPORTED_MODELS) <= set(OPENROUTER_SUPPORTED_MODELS)
 
@@ -106,24 +115,34 @@ def test_openrouter_internal_routes_rewrite_only_internal_canonical_models() -> 
 
 
 @pytest.mark.parametrize("model", OPENROUTER_TEST_MODELS)
-async def test_openrouter_provider_requires_key_only_when_openrouter_model_is_invoked(model: str) -> None:
+async def test_openrouter_provider_requires_key_only_when_openrouter_model_is_invoked(
+    model: str,
+) -> None:
     factory_calls: list[str] = []
     provider = OpenRouterLlmProvider(
         openrouter_api_key=SecretStr(""),
-        openrouter_chat_provider_factory=lambda api_key: _fake_factory(api_key, factory_calls),
+        openrouter_chat_provider_factory=lambda api_key: _fake_factory(
+            api_key, factory_calls
+        ),
     )
 
-    with pytest.raises(LlmProviderConfigurationError, match="OPENROUTER_API_KEY must be configured"):
+    with pytest.raises(
+        LlmProviderConfigurationError, match="OPENROUTER_API_KEY must be configured"
+    ):
         await provider.invoke(_request(model=model))
 
     assert factory_calls == []
 
 
-async def test_openrouter_provider_rejects_unsupported_model_before_key_lookup() -> None:
+async def test_openrouter_provider_rejects_unsupported_model_before_key_lookup() -> (
+    None
+):
     factory_calls: list[str] = []
     provider = OpenRouterLlmProvider(
         openrouter_api_key=SecretStr(""),
-        openrouter_chat_provider_factory=lambda api_key: _fake_factory(api_key, factory_calls),
+        openrouter_chat_provider_factory=lambda api_key: _fake_factory(
+            api_key, factory_calls
+        ),
     )
 
     with pytest.raises(ValueError, match="does not support model"):
@@ -133,7 +152,9 @@ async def test_openrouter_provider_rejects_unsupported_model_before_key_lookup()
 
 
 @pytest.mark.parametrize("model", OPENROUTER_TEST_MODELS)
-async def test_openrouter_provider_omits_extra_when_request_has_no_extra(model: str) -> None:
+async def test_openrouter_provider_omits_extra_when_request_has_no_extra(
+    model: str,
+) -> None:
     fake_provider = _FakeOpenAiProvider()
     fake_client = _FakeClient()
     provider = OpenRouterLlmProvider(
@@ -151,7 +172,9 @@ async def test_openrouter_provider_omits_extra_when_request_has_no_extra(model: 
     assert fake_provider.requests[0].extra is None
 
 
-async def test_openrouter_provider_preserves_request_retry_policy_for_delegate() -> None:
+async def test_openrouter_provider_preserves_request_retry_policy_for_delegate() -> (
+    None
+):
     fake_provider = _FakeOpenAiProvider()
     fake_client = _FakeClient()
     retry_policy = RetryPolicy(attempts=2, initial_ms=0, max_ms=0, jitter=0.0)
@@ -165,13 +188,17 @@ async def test_openrouter_provider_preserves_request_retry_policy_for_delegate()
         ),
     )
 
-    await provider.invoke(_request(model=OPENROUTER_NATIVE_SUPPORTED_MODELS[0], retry_policy=retry_policy))
+    await provider.invoke(
+        _request(model=OPENROUTER_NATIVE_SUPPORTED_MODELS[0], retry_policy=retry_policy)
+    )
 
     assert fake_provider.requests[0].retry_policy == retry_policy
 
 
 def test_build_openrouter_chat_provider_rejects_blank_key() -> None:
-    with pytest.raises(LlmProviderConfigurationError, match="OPENROUTER_API_KEY must be configured"):
+    with pytest.raises(
+        LlmProviderConfigurationError, match="OPENROUTER_API_KEY must be configured"
+    ):
         build_openrouter_chat_provider(" ")
 
 
@@ -184,7 +211,9 @@ async def test_build_openrouter_chat_provider_enables_router_metadata() -> None:
     await client.aclose()
 
 
-def test_openrouter_routing_evidence_requires_selected_endpoint_for_upstream_attribution() -> None:
+def test_openrouter_routing_evidence_requires_selected_endpoint_for_upstream_attribution() -> (
+    None
+):
     evidence = _openrouter_routing_evidence(
         {
             "id": "resp-cached",
@@ -229,7 +258,9 @@ async def test_openrouter_provider_keeps_success_when_router_metadata_is_malform
     )
 
     with caplog.at_level("WARNING", logger="harnyx_commons.llm.providers.openrouter"):
-        response = await provider.invoke(_request(model=OPENROUTER_NATIVE_SUPPORTED_MODELS[0]))
+        response = await provider.invoke(
+            _request(model=OPENROUTER_NATIVE_SUPPORTED_MODELS[0])
+        )
 
     assert response.raw_text == "ok"
     assert response.metadata is not None
@@ -241,7 +272,9 @@ async def test_openrouter_provider_keeps_success_when_router_metadata_is_malform
 
 
 @pytest.mark.parametrize("model", OPENROUTER_TEST_MODELS)
-async def test_openrouter_provider_serializes_openrouter_request_contract(model: str) -> None:
+async def test_openrouter_provider_serializes_openrouter_request_contract(
+    model: str,
+) -> None:
     captured: dict[str, Any] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -263,7 +296,12 @@ async def test_openrouter_provider_serializes_openrouter_request_contract(model:
                 "",
             )
         )
-        return httpx.Response(200, text=body, request=request, headers={"content-type": "text/event-stream"})
+        return httpx.Response(
+            200,
+            text=body,
+            request=request,
+            headers={"content-type": "text/event-stream"},
+        )
 
     client = httpx.AsyncClient(
         base_url=OPENROUTER_BASE_URL,
@@ -290,7 +328,9 @@ async def test_openrouter_provider_serializes_openrouter_request_contract(model:
         openrouter_chat_provider_factory=lambda _: (openai_provider, client),
     )
 
-    response = await provider.invoke(_request(model=model, extra={"provider": {"only": ["cerebras"]}}))
+    response = await provider.invoke(
+        _request(model=model, extra={"provider": {"only": ["cerebras"]}})
+    )
     await provider.aclose()
 
     expected_payload_model = OPENROUTER_INTERNAL_TO_NATIVE_MODEL.get(model, model)
@@ -307,9 +347,15 @@ async def test_openrouter_provider_serializes_openrouter_request_contract(model:
     assert response.metadata["raw_response"]["usage"]["cost"] == pytest.approx(0.0042)
     assert response.metadata["actual_cost_provider"] == "openrouter"
     assert response.metadata["actual_cost_usd"] == pytest.approx(0.0042)
-    assert response.metadata["actual_cost_evidence"]["settlement_source"] == "provider_returned"
+    assert (
+        response.metadata["actual_cost_evidence"]["settlement_source"]
+        == "provider_returned"
+    )
     assert response.metadata["actual_cost_evidence"]["upstream_provider"] == "Cerebras"
-    assert response.metadata["actual_cost_evidence"]["upstream_model"] == "openai/gpt-oss-20b"
+    assert (
+        response.metadata["actual_cost_evidence"]["upstream_model"]
+        == "openai/gpt-oss-20b"
+    )
     assert response.metadata["actual_cost_evidence"]["provider_request_id"] == "resp-1"
 
 
@@ -329,7 +375,12 @@ async def test_openrouter_provider_preserves_nested_reasoning_usage(model: str) 
                 "",
             )
         )
-        return httpx.Response(200, text=body, request=request, headers={"content-type": "text/event-stream"})
+        return httpx.Response(
+            200,
+            text=body,
+            request=request,
+            headers={"content-type": "text/event-stream"},
+        )
 
     client = httpx.AsyncClient(
         base_url=OPENROUTER_BASE_URL,
@@ -358,7 +409,9 @@ async def test_openrouter_provider_preserves_nested_reasoning_usage(model: str) 
 
 
 @pytest.mark.parametrize("model", OPENROUTER_TEST_MODELS)
-async def test_openrouter_provider_serializes_request_provider_only_extra(model: str) -> None:
+async def test_openrouter_provider_serializes_request_provider_only_extra(
+    model: str,
+) -> None:
     captured: dict[str, Any] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -375,7 +428,12 @@ async def test_openrouter_provider_serializes_request_provider_only_extra(model:
                 "",
             )
         )
-        return httpx.Response(200, text=body, request=request, headers={"content-type": "text/event-stream"})
+        return httpx.Response(
+            200,
+            text=body,
+            request=request,
+            headers={"content-type": "text/event-stream"},
+        )
 
     client = httpx.AsyncClient(
         base_url=OPENROUTER_BASE_URL,
@@ -395,7 +453,9 @@ async def test_openrouter_provider_serializes_request_provider_only_extra(model:
         openrouter_chat_provider_factory=lambda _: (openai_provider, client),
     )
 
-    await provider.invoke(_request(model=model, extra={"provider": {"only": ["cerebras"]}}))
+    await provider.invoke(
+        _request(model=model, extra={"provider": {"only": ["cerebras"]}})
+    )
     await provider.aclose()
 
     assert captured["json"]["provider"] == {"only": ["cerebras"]}
@@ -406,8 +466,16 @@ async def test_openrouter_provider_serializes_request_provider_only_extra(model:
     ("thinking", "reasoning_effort", "expected_reasoning"),
     (
         (LlmThinkingConfig(enabled=True), None, {"enabled": True}),
-        (LlmThinkingConfig(enabled=True, effort="high"), None, {"enabled": True, "effort": "high"}),
-        (LlmThinkingConfig(enabled=True, budget=2048), None, {"enabled": True, "max_tokens": 2048}),
+        (
+            LlmThinkingConfig(enabled=True, effort="high"),
+            None,
+            {"enabled": True, "effort": "high"},
+        ),
+        (
+            LlmThinkingConfig(enabled=True, budget=2048),
+            None,
+            {"enabled": True, "max_tokens": 2048},
+        ),
         (LlmThinkingConfig(enabled=False), None, {"effort": "none"}),
         (None, "high", {"enabled": True, "effort": "high"}),
         (LlmThinkingConfig(enabled=False), "high", {"effort": "none"}),
@@ -432,7 +500,12 @@ async def test_openrouter_provider_serializes_resolved_thinking_as_reasoning(
                 "",
             )
         )
-        return httpx.Response(200, text=body, request=request, headers={"content-type": "text/event-stream"})
+        return httpx.Response(
+            200,
+            text=body,
+            request=request,
+            headers={"content-type": "text/event-stream"},
+        )
 
     client = httpx.AsyncClient(
         base_url=OPENROUTER_BASE_URL,
@@ -476,7 +549,9 @@ async def test_openrouter_provider_rejects_non_object_request_reasoning_extra(
         openrouter_chat_provider_factory=lambda api_key: _fake_factory(api_key, []),
     )
 
-    with pytest.raises(ValueError, match="OpenRouter request extra.reasoning must be an object"):
+    with pytest.raises(
+        ValueError, match="OpenRouter request extra.reasoning must be an object"
+    ):
         await provider.invoke(
             _request(
                 model=model,
@@ -551,7 +626,9 @@ async def test_openrouter_embedding_client_posts_embeddings_request() -> None:
     client = OpenRouterEmbeddingClient(
         model="qwen/qwen3-embedding-8b",
         api_key=SecretStr("test-key"),
-        client=httpx.AsyncClient(base_url=OPENROUTER_BASE_URL, transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url=OPENROUTER_BASE_URL, transport=httpx.MockTransport(handler)
+        ),
         dimensions=3,
     )
     assert "test-key" not in repr(client)
@@ -595,7 +672,9 @@ def _fake_factory(
     factory_calls: list[str],
 ) -> tuple[OpenAiCompatibleLlmProvider, httpx.AsyncClient]:
     factory_calls.append(api_key)
-    return cast(OpenAiCompatibleLlmProvider, _FakeOpenAiProvider()), cast(httpx.AsyncClient, _FakeClient())
+    return cast(OpenAiCompatibleLlmProvider, _FakeOpenAiProvider()), cast(
+        httpx.AsyncClient, _FakeClient()
+    )
 
 
 def _fake_provider_factory(

@@ -29,14 +29,21 @@ from harnyx_commons.infrastructure.state.token_registry import InMemoryTokenRegi
 from harnyx_commons.llm.provider import LlmRetryExhaustedError
 from harnyx_commons.miner_task_scoring import EvaluationScoringResult
 from harnyx_commons.tools.dto import ToolInvocationRequest
-from harnyx_commons.tools.executor import ToolExecutor, ToolInvocationContext, ToolInvocationOutput
+from harnyx_commons.tools.executor import (
+    ToolExecutor,
+    ToolInvocationContext,
+    ToolInvocationOutput,
+)
 from harnyx_commons.tools.usage_tracker import UsageTracker
 from harnyx_validator.application.dto.evaluation import (
     MinerTaskRunRequest,
     PlatformOwnedTaskExecution,
     TokenUsageSummary,
 )
-from harnyx_validator.application.evaluate_task_run import TaskRunOrchestrator, score_platform_execution
+from harnyx_validator.application.evaluate_task_run import (
+    TaskRunOrchestrator,
+    score_platform_execution,
+)
 from harnyx_validator.application.invoke_entrypoint import EntrypointInvoker
 from validator.tests.fixtures.fakes import FakeReceiptLog, FakeSessionRegistry
 
@@ -47,7 +54,9 @@ TEST_SESSION_TOKEN = uuid4().hex
 
 class StubSandboxClient:
     def __init__(self) -> None:
-        self.requests: list[tuple[str, dict[str, object], dict[str, object], str, UUID]] = []
+        self.requests: list[
+            tuple[str, dict[str, object], dict[str, object], str, UUID]
+        ] = []
         self.response: dict[str, object] | None = None
         self.on_invoke: Callable[[UUID], None] | None = None
 
@@ -311,7 +320,9 @@ async def test_score_platform_execution_raises_scoring_failure_by_default() -> N
         )
 
 
-async def test_score_platform_execution_explicit_failed_result_is_response_free() -> None:
+async def test_score_platform_execution_explicit_failed_result_is_response_free() -> (
+    None
+):
     task = MinerTask(
         task_id=uuid4(),
         query=Query(text="Harnyx Subnet demo"),
@@ -333,7 +344,9 @@ async def test_score_platform_execution_explicit_failed_result_is_response_free(
     assert result.result.run.details.scoring_judge_usage == _judge_usage()
 
 
-async def test_score_platform_execution_does_not_convert_unexpected_scoring_failure() -> None:
+async def test_score_platform_execution_does_not_convert_unexpected_scoring_failure() -> (
+    None
+):
     task = MinerTask(
         task_id=uuid4(),
         query=Query(text="Harnyx Subnet demo"),
@@ -473,7 +486,9 @@ async def test_task_orchestration_success_persists_consolidated_evaluation_trace
         24.0,  # scoring starts
         27.0,  # scoring completes
     )
-    monkeypatch.setattr(evaluate_task_run_module, "time", SimpleNamespace(monotonic=monotonic.monotonic))
+    monkeypatch.setattr(
+        evaluate_task_run_module, "time", SimpleNamespace(monotonic=monotonic.monotonic)
+    )
     session_registry = FakeSessionRegistry()
     receipt_log = FakeReceiptLog()
     token_registry = InMemoryTokenRegistry()
@@ -549,7 +564,9 @@ async def test_task_orchestration_logs_scoring_summary(
     def capture_info(message: str, *args, **kwargs) -> None:
         captured_logs.append((message, dict(kwargs["extra"]["data"])))
 
-    monkeypatch.setattr(evaluate_task_run_module.measurement_logger, "info", capture_info)
+    monkeypatch.setattr(
+        evaluate_task_run_module.measurement_logger, "info", capture_info
+    )
 
     task = MinerTask(
         task_id=uuid4(),
@@ -600,7 +617,11 @@ async def test_task_orchestration_logs_scoring_summary(
         ),
     )
 
-    scoring_logs = [extra for message, extra in captured_logs if message == "miner-task scoring finished"]
+    scoring_logs = [
+        extra
+        for message, extra in captured_logs
+        if message == "miner-task scoring finished"
+    ]
     assert len(scoring_logs) == 1
     payload = scoring_logs[0]
     assert payload["batch_id"] == str(batch_id)
@@ -629,7 +650,9 @@ async def test_task_orchestration_logs_scoring_summary_on_scoring_error(
     def capture_info(message: str, *args, **kwargs) -> None:
         captured_logs.append((message, dict(kwargs["extra"]["data"])))
 
-    monkeypatch.setattr(evaluate_task_run_module.measurement_logger, "info", capture_info)
+    monkeypatch.setattr(
+        evaluate_task_run_module.measurement_logger, "info", capture_info
+    )
 
     task = MinerTask(
         task_id=uuid4(),
@@ -677,7 +700,11 @@ async def test_task_orchestration_logs_scoring_summary_on_scoring_error(
             ),
         )
 
-    scoring_logs = [extra for message, extra in captured_logs if message == "miner-task scoring finished"]
+    scoring_logs = [
+        extra
+        for message, extra in captured_logs
+        if message == "miner-task scoring finished"
+    ]
     assert len(scoring_logs) == 1
     payload = scoring_logs[0]
     assert payload["batch_id"] == str(batch_id)
@@ -706,7 +733,9 @@ async def test_task_orchestration_logs_retry_exhausted_scoring_error_code(
     def capture_info(message: str, *args, **kwargs) -> None:
         captured_logs.append((message, dict(kwargs["extra"]["data"])))
 
-    monkeypatch.setattr(evaluate_task_run_module.measurement_logger, "info", capture_info)
+    monkeypatch.setattr(
+        evaluate_task_run_module.measurement_logger, "info", capture_info
+    )
 
     task = MinerTask(
         task_id=uuid4(),
@@ -754,7 +783,11 @@ async def test_task_orchestration_logs_retry_exhausted_scoring_error_code(
             ),
         )
 
-    scoring_logs = [extra for message, extra in captured_logs if message == "miner-task scoring finished"]
+    scoring_logs = [
+        extra
+        for message, extra in captured_logs
+        if message == "miner-task scoring finished"
+    ]
     assert len(scoring_logs) == 1
     payload = scoring_logs[0]
     assert payload["batch_id"] == str(batch_id)

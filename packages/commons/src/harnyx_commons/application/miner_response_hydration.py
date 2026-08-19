@@ -15,7 +15,10 @@ from harnyx_commons.domain.shared_config import COMMONS_STRICT_CONFIG
 from harnyx_commons.domain.tool_call import SearchToolResult, ToolCall, ToolResultPolicy
 from harnyx_commons.tools.types import is_citation_source
 from harnyx_miner_sdk.json_types import JsonValue
-from harnyx_miner_sdk.structured_output import validate_output_against_schema, validate_output_size
+from harnyx_miner_sdk.structured_output import (
+    validate_output_against_schema,
+    validate_output_size,
+)
 
 _MAX_RESPONSE_CHARS = 80_000
 _MAX_CITATION_REFS = 200
@@ -37,7 +40,9 @@ class CitationSlice:
         if self.start < 0:
             raise MinerResponsePayloadError("citation slice start must be non-negative")
         if self.end <= self.start:
-            raise MinerResponsePayloadError("citation slice end must be greater than start")
+            raise MinerResponsePayloadError(
+                "citation slice end must be greater than start"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,7 +94,9 @@ class _RawMinerResponsePayload(BaseModel):
 
     text: str | None = Field(default=None, max_length=_MAX_RESPONSE_CHARS)
     output: JsonValue | None = None
-    citations: list[_CitationRefPayload] | None = Field(default=None, max_length=_MAX_CITATION_REFS)
+    citations: list[_CitationRefPayload] | None = Field(
+        default=None, max_length=_MAX_CITATION_REFS
+    )
 
     @model_validator(mode="after")
     def validate_total_evidence_segments(self) -> Self:
@@ -97,9 +104,14 @@ class _RawMinerResponsePayload(BaseModel):
             raise ValueError("response must include exactly one non-null answer field")
         if self.output is not None:
             validate_output_size(self.output)
-        total_segments = sum(len(citation.slices) if citation.slices else 1 for citation in self.citations or ())
+        total_segments = sum(
+            len(citation.slices) if citation.slices else 1
+            for citation in self.citations or ()
+        )
         if total_segments > _MAX_EVIDENCE_SEGMENTS_PER_RESPONSE:
-            raise ValueError("response citations exceed 400 materialized evidence segments")
+            raise ValueError(
+                "response citations exceed 400 materialized evidence segments"
+            )
         return self
 
 
@@ -121,7 +133,9 @@ def hydrate_miner_response_payload(
         receipt_log=receipt_log,
     )
     if hydrated_citations.source_text_chars > MAX_TOTAL_CITATION_EVIDENCE_CHARS:
-        raise MinerResponsePayloadError("response citations exceed 120000 materialized source-text characters")
+        raise MinerResponsePayloadError(
+            "response citations exceed 120000 materialized source-text characters"
+        )
     return Response(
         text=raw_response.text,
         output=raw_response.output,
@@ -129,7 +143,9 @@ def hydrate_miner_response_payload(
     )
 
 
-def _validate_answer_for_query(response: _RawMinerResponsePayload, query: Query) -> None:
+def _validate_answer_for_query(
+    response: _RawMinerResponsePayload, query: Query
+) -> None:
     if query.output_schema is None:
         if response.text is None:
             raise ValueError("legacy query response must use text")
@@ -160,7 +176,9 @@ def _hydrate_citations(
             continue
         hydrated.append(hydrated_citation.answer_citation)
         source_text_chars += hydrated_citation.source_text_chars
-    return _HydratedCitations(citations=tuple(hydrated), source_text_chars=source_text_chars)
+    return _HydratedCitations(
+        citations=tuple(hydrated), source_text_chars=source_text_chars
+    )
 
 
 def _hydrate_citation(
@@ -178,7 +196,10 @@ def _hydrate_citation(
     source_text = _require_source_text(result.note)
     materialized = materialize_citation_slices(
         source_text,
-        tuple(CitationSlice(start=item.start, end=item.end) for item in citation_ref.slices),
+        tuple(
+            CitationSlice(start=item.start, end=item.end)
+            for item in citation_ref.slices
+        ),
     )
     return _HydratedCitation(
         answer_citation=AnswerCitation(
@@ -227,10 +248,14 @@ def materialize_citation_slices(
         excerpt = source_text[selected_slice.start : selected_slice.end]
         parts.append(f"[slice {selected_slice.start}:{selected_slice.end}]\n{excerpt}")
         source_text_chars += len(excerpt)
-    return MaterializedCitationSelection(text="\n\n".join(parts), char_count=source_text_chars)
+    return MaterializedCitationSelection(
+        text="\n\n".join(parts), char_count=source_text_chars
+    )
 
 
-def _validate_slice_against_source(source_text: str, selected_slice: CitationSlice) -> None:
+def _validate_slice_against_source(
+    source_text: str, selected_slice: CitationSlice
+) -> None:
     if selected_slice.end > len(source_text):
         raise MinerResponsePayloadError("citation slice exceeds source text length")
     slice_length = selected_slice.end - selected_slice.start
@@ -242,7 +267,9 @@ def _validate_slice_against_source(source_text: str, selected_slice: CitationSli
         and selected_slice.end == len(source_text)
     ):
         return
-    raise MinerResponsePayloadError("citation slice must contain at least 100 characters")
+    raise MinerResponsePayloadError(
+        "citation slice must contain at least 100 characters"
+    )
 
 
 __all__ = [

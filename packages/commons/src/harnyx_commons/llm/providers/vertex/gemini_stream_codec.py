@@ -35,7 +35,9 @@ class _AccumulatedChoice(BaseModel):
             if part.text:
                 self.content_text_parts.append(part.text)
                 saw_output = True
-        final_reasoning = reasoning_text if reasoning_text is not None else choice.message.reasoning
+        final_reasoning = (
+            reasoning_text if reasoning_text is not None else choice.message.reasoning
+        )
         if final_reasoning:
             self.reasoning_parts.append(final_reasoning)
             saw_output = True
@@ -57,7 +59,10 @@ class _AccumulatedChoice(BaseModel):
             message=LlmChoiceMessage(
                 role="assistant",
                 content=content,
-                tool_calls=tuple(self.tool_calls[index] for index in sorted(self.tool_calls)) or None,
+                tool_calls=tuple(
+                    self.tool_calls[index] for index in sorted(self.tool_calls)
+                )
+                or None,
                 reasoning="".join(self.reasoning_parts) or None,
             ),
             finish_reason=self.finish_reason or "stop",
@@ -115,10 +120,13 @@ class _GeminiRawCandidate(BaseModel):
         self._merge_payload_fields(merged_payload)
         content_payload = candidate_payload.content
         if content_payload is not None:
-            self.payload["content"] = content_payload.model_dump(mode="python", exclude_none=True)
+            self.payload["content"] = content_payload.model_dump(
+                mode="python", exclude_none=True
+            )
             if content_payload.parts:
                 self.content_parts.extend(
-                    part.model_dump(mode="python", exclude_none=True) for part in content_payload.parts
+                    part.model_dump(mode="python", exclude_none=True)
+                    for part in content_payload.parts
                 )
             if self.content_parts:
                 content = dict(self.payload["content"])
@@ -126,7 +134,9 @@ class _GeminiRawCandidate(BaseModel):
                 self.payload["content"] = content
         if candidate_payload.grounding_metadata is not None:
             self.grounding_metadata = dict(candidate_payload.grounding_metadata)
-            self.payload["grounding_metadata"] = dict(candidate_payload.grounding_metadata)
+            self.payload["grounding_metadata"] = dict(
+                candidate_payload.grounding_metadata
+            )
 
     def to_payload(self) -> dict[str, Any]:
         return dict(self.payload)
@@ -162,16 +172,21 @@ class GeminiAccumulatedResponse(BaseModel):
         return saw_output
 
     def to_choices(self) -> tuple[LlmChoice, ...]:
-        return tuple(self.choices[index].to_choice(index) for index in sorted(self.choices))
+        return tuple(
+            self.choices[index].to_choice(index) for index in sorted(self.choices)
+        )
 
     def metadata(self, usage: LlmUsage) -> tuple[dict[str, Any] | None, LlmUsage]:
         return attach_search_metadata(self.web_search_queries, usage)
 
     def raw_response_payload(self, latest_response: Any) -> dict[str, Any]:
-        payload = _vertex_response_payload(latest_response).model_dump(mode="python", exclude_none=True)
+        payload = _vertex_response_payload(latest_response).model_dump(
+            mode="python", exclude_none=True
+        )
         if self.raw_candidates:
             payload["candidates"] = [
-                self.raw_candidates[index].to_payload() for index in sorted(self.raw_candidates)
+                self.raw_candidates[index].to_payload()
+                for index in sorted(self.raw_candidates)
             ]
         if self.choices and 0 in self.choices and self.choices[0].content_text_parts:
             payload["text"] = "".join(self.choices[0].content_text_parts)
@@ -194,5 +209,6 @@ class GeminiAccumulatedResponse(BaseModel):
 
 def _vertex_response_payload(response: Any) -> _GeminiRawResponsePayload:
     return _GeminiRawResponsePayload.model_validate(response.model_dump(mode="json"))
+
 
 __all__ = ["GeminiAccumulatedResponse"]

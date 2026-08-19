@@ -30,7 +30,9 @@ def test_runtime_subtensor_client_uses_factory() -> None:
 
 def test_runtime_subtensor_client_delegates_calls() -> None:
     fake = FakeSubtensorClient()
-    snapshot = fake.metagraph = fake.metagraph.__class__(uids=(1, 2), hotkeys=("a", "b"))
+    snapshot = fake.metagraph = fake.metagraph.__class__(
+        uids=(1, 2), hotkeys=("a", "b")
+    )
     client = RuntimeSubtensorClient(make_settings(), client_factory=lambda cfg: fake)
 
     assert client.fetch_metagraph() == snapshot

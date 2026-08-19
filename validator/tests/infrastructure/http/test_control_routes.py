@@ -66,11 +66,15 @@ class DemoControlDependencyProvider:
         is_openrouter_configured: bool = False,
     ) -> None:
         self._deps = ValidatorControlDeps(
-            status_provider=StubStatusProvider() if status_provider is None else status_provider,
+            status_provider=(
+                StubStatusProvider() if status_provider is None else status_provider
+            ),
             auth=_allow_all_auth if auth is None else auth,
             validator_hotkey=validator_hotkey or _StubHotkey(),
             resource_usage_provider=(
-                StubResourceUsageProvider() if resource_usage_provider is None else resource_usage_provider
+                StubResourceUsageProvider()
+                if resource_usage_provider is None
+                else resource_usage_provider
             ),
             batch_activity=object(),
             is_chutes_configured=is_chutes_configured,
@@ -157,7 +161,9 @@ def test_status_endpoint_reports_api_key_configuration_from_control_deps() -> No
     assert response.json()["is_openrouter_configured"] is True
 
 
-def test_status_endpoint_returns_signed_ownership_proof_when_timestamp_header_is_present() -> None:
+def test_status_endpoint_returns_signed_ownership_proof_when_timestamp_header_is_present() -> (
+    None
+):
     provider = DemoControlDependencyProvider(validator_hotkey=_StubHotkey("5proof"))
     app = _create_test_app(provider)
     client = TestClient(app)

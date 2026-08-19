@@ -18,7 +18,13 @@ def _validator_extra_loggers() -> dict[str, dict[str, str]]:
         },
     }
 
-__all__ = ["build_log_config", "configure_logging", "init_logging", "enable_cloud_logging"]
+
+__all__ = [
+    "build_log_config",
+    "configure_logging",
+    "init_logging",
+    "enable_cloud_logging",
+]
 
 
 def init_logging() -> None:

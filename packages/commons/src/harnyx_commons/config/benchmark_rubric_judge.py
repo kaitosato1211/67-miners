@@ -22,11 +22,19 @@ class BenchmarkRubricJudgeLlmSettings(BaseSettings):
         populate_by_name=True,
     )
 
-    provider: LlmProviderName | None = Field(default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER")
+    provider: LlmProviderName | None = Field(
+        default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER"
+    )
     model: str = Field(default="", alias="BENCHMARK_RUBRIC_JUDGE_LLM_MODEL")
-    reasoning_effort: str | None = Field(default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_REASONING_EFFORT")
-    temperature: float | None = Field(default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_TEMPERATURE")
-    timeout_seconds: float | None = Field(default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_TIMEOUT_SECONDS")
+    reasoning_effort: str | None = Field(
+        default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_REASONING_EFFORT"
+    )
+    temperature: float | None = Field(
+        default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_TEMPERATURE"
+    )
+    timeout_seconds: float | None = Field(
+        default=None, alias="BENCHMARK_RUBRIC_JUDGE_LLM_TIMEOUT_SECONDS"
+    )
 
     @field_validator("model")
     @classmethod
@@ -34,7 +42,9 @@ class BenchmarkRubricJudgeLlmSettings(BaseSettings):
         return value.strip()
 
     @model_validator(mode="after")
-    def _provider_and_model_are_configured_together(self) -> BenchmarkRubricJudgeLlmSettings:
+    def _provider_and_model_are_configured_together(
+        self,
+    ) -> BenchmarkRubricJudgeLlmSettings:
         has_provider = self.provider is not None
         has_model = bool(self.model)
         if has_provider != has_model:

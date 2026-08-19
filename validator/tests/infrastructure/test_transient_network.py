@@ -6,7 +6,9 @@ import socket
 import httpx
 import pytest
 
-from harnyx_validator.infrastructure.transient_network import classify_transient_network_failure
+from harnyx_validator.infrastructure.transient_network import (
+    classify_transient_network_failure,
+)
 
 
 def _wrap_with_cause(cause: BaseException) -> RuntimeError:
@@ -44,7 +46,9 @@ def test_classifies_top_level_connection_error_with_eai_again() -> None:
 
 
 def test_classifies_httpx_connect_timeout() -> None:
-    cause = classify_transient_network_failure(httpx.ConnectTimeout("connect timed out"))
+    cause = classify_transient_network_failure(
+        httpx.ConnectTimeout("connect timed out")
+    )
 
     assert cause is not None
     assert cause.kind == "connect_timeout"
@@ -109,7 +113,9 @@ def test_classifies_nested_cause_or_context() -> None:
         TimeoutError("_ssl.c:line: The handshake operation timed out"),
         TimeoutError("prefix _ssl.c:999: The handshake operation timed out"),
         socket.gaierror(socket.EAI_NONAME, "name does not resolve"),
-        httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed"),
+        httpx.ConnectError(
+            "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed"
+        ),
     ],
 )
 def test_does_not_classify_non_transient_shapes(exc: BaseException) -> None:

@@ -108,7 +108,9 @@ class ChutesLlmProvider(BaseLlmProvider):
                 body, ttft_ms = await self._stream_chat_completions(**request_kwargs)
         llm_response = body.to_llm_response()
         metadata = dict(llm_response.metadata or {})
-        metadata.setdefault("raw_response", body.model_dump(mode="python", exclude_none=True))
+        metadata.setdefault(
+            "raw_response", body.model_dump(mode="python", exclude_none=True)
+        )
         if ttft_ms is not None:
             metadata.setdefault("ttft_ms", ttft_ms)
         self._log_stream_ttft(
@@ -130,11 +132,15 @@ class ChutesLlmProvider(BaseLlmProvider):
         response: LlmResponse,
     ) -> LlmResponse:
         try:
-            actual_cost = await self._pricing_cache.price(model=request.model, usage=response.usage)
+            actual_cost = await self._pricing_cache.price(
+                model=request.model, usage=response.usage
+            )
         except KeyError:
             logger.warning(
                 "chutes.cost_settlement.unavailable",
-                extra={"data": {"provider": self._provider_label, "model": request.model}},
+                extra={
+                    "data": {"provider": self._provider_label, "model": request.model}
+                },
             )
             return response
         return with_settled_llm_cost(
@@ -146,12 +152,16 @@ class ChutesLlmProvider(BaseLlmProvider):
             ),
         )
 
-    async def _stream_chat_completions(self, **request_kwargs: Any) -> tuple[_ChutesChatResponse, float | None]:
+    async def _stream_chat_completions(
+        self, **request_kwargs: Any
+    ) -> tuple[_ChutesChatResponse, float | None]:
         started_at = time.perf_counter()
         state = OpenAiStreamState()
         reasoning_state = _ChutesReasoningStreamState()
         ttft_ms: float | None = None
-        async with self._client.stream("POST", "v1/chat/completions", **request_kwargs) as response:
+        async with self._client.stream(
+            "POST", "v1/chat/completions", **request_kwargs
+        ) as response:
             if response.is_error:
                 await response.aread()
             response.raise_for_status()
@@ -164,9 +174,16 @@ class ChutesLlmProvider(BaseLlmProvider):
                     ttft_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 reasoning_state.merge_event(event)
                 state.merge_event(event, reasoning_keys=())
-        return _ChutesChatResponse.from_stream_state(state, reasoning_state=reasoning_state), ttft_ms
+        return (
+            _ChutesChatResponse.from_stream_state(
+                state, reasoning_state=reasoning_state
+            ),
+            ttft_ms,
+        )
 
-    def _log_stream_ttft(self, *, model: str, response_id: str, ttft_ms: float | None) -> None:
+    def _log_stream_ttft(
+        self, *, model: str, response_id: str, ttft_ms: float | None
+    ) -> None:
         if ttft_ms is None:
             return
         logger.debug(
@@ -203,7 +220,11 @@ class ChutesLlmProvider(BaseLlmProvider):
             case httpx.HTTPStatusError():
                 status = exc.response.status_code if exc.response else None
                 retryable = status is not None and (status == 429 or status >= 500)
-                detail = _summarize_response(exc.response) if exc.response is not None else ""
+                detail = (
+                    _summarize_response(exc.response)
+                    if exc.response is not None
+                    else ""
+                )
                 if detail:
                     return retryable, f"http_{status}: {detail}"
                 return retryable, f"http_{status}"
@@ -270,7 +291,9 @@ class ChutesTextEmbeddingClient:
             raise ValueError("chutes embedding model must be configured")
         if not self.api_key:
             raise ValueError("Chutes API key must be provided for embeddings")
-        resolved_base_url = _normalize_embedding_base_url(self.base_url, normalized_model)
+        resolved_base_url = _normalize_embedding_base_url(
+            self.base_url, normalized_model
+        )
         self.model = normalized_model
         self.base_url = resolved_base_url
         if self.client is None:
@@ -308,17 +331,25 @@ class ChutesTextEmbeddingClient:
                 "v1/embeddings",
                 json=self._request_body(text),
                 headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=self.timeout_seconds if timeout_seconds is None else timeout_seconds,
+                timeout=(
+                    self.timeout_seconds if timeout_seconds is None else timeout_seconds
+                ),
             )
             response.raise_for_status()
             payload = _EmbeddingResponse.model_validate(response.json())
             ordered = sorted(
                 enumerate(payload.data),
-                key=lambda item: item[1].index if item[1].index is not None else item[0],
+                key=lambda item: (
+                    item[1].index if item[1].index is not None else item[0]
+                ),
             )
-            response_vectors = tuple(tuple(float(value) for value in item.embedding) for _, item in ordered)
+            response_vectors = tuple(
+                tuple(float(value) for value in item.embedding) for _, item in ordered
+            )
             if len(response_vectors) != 1:
-                raise RuntimeError("chutes embedding response count does not match single-text request")
+                raise RuntimeError(
+                    "chutes embedding response count does not match single-text request"
+                )
             vector = response_vectors[0]
             if self.dimensions is not None and len(vector) != self.dimensions:
                 raise RuntimeError(
@@ -327,8 +358,12 @@ class ChutesTextEmbeddingClient:
             vectors.append(vector)
             if payload.usage is not None:
                 saw_usage = True
-                prompt_tokens = _add_optional_int(prompt_tokens, payload.usage.prompt_tokens)
-                total_tokens = _add_optional_int(total_tokens, payload.usage.total_tokens)
+                prompt_tokens = _add_optional_int(
+                    prompt_tokens, payload.usage.prompt_tokens
+                )
+                total_tokens = _add_optional_int(
+                    total_tokens, payload.usage.total_tokens
+                )
         usage = None
         if saw_usage:
             usage = ChutesEmbeddingUsage(
@@ -363,7 +398,9 @@ def resolve_chutes_embedding_base_url(model: str) -> str:
     try:
         return _CHUTES_EMBEDDING_BASE_URL_BY_MODEL[normalized_model]
     except KeyError as exc:
-        raise RuntimeError(f"no chutes embedding base_url configured for model: {normalized_model}") from exc
+        raise RuntimeError(
+            f"no chutes embedding base_url configured for model: {normalized_model}"
+        ) from exc
 
 
 def _add_optional_int(left: int | None, right: int | None) -> int | None:
@@ -390,7 +427,11 @@ def _summarize_response(response: httpx.Response) -> str:
         except RuntimeError:
             data = ""
     summary_payload = _parse_response_summary_payload(data)
-    summary_value = summary_payload.detail if summary_payload.detail is not None else summary_payload.raw
+    summary_value = (
+        summary_payload.detail
+        if summary_payload.detail is not None
+        else summary_payload.raw
+    )
     text = str(summary_value)
     return text if len(text) <= 500 else text[:500] + "…"
 

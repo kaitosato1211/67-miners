@@ -89,7 +89,9 @@ def test_stage_agent_source_allows_concurrent_first_write_for_same_artifact(
     assert not list(artifacts[0].host_path.parent.glob("*.tmp"))
 
 
-def test_stage_agent_source_rejects_empty_source_as_script_validation(tmp_path: Path) -> None:
+def test_stage_agent_source_rejects_empty_source_as_script_validation(
+    tmp_path: Path,
+) -> None:
     with pytest.raises(AgentSourceValidationError, match="agent source is empty"):
         stage_agent_source(
             state_dir=tmp_path,
@@ -100,7 +102,9 @@ def test_stage_agent_source_rejects_empty_source_as_script_validation(tmp_path: 
         )
 
 
-def test_stage_agent_source_rejects_oversized_source_as_script_validation(tmp_path: Path) -> None:
+def test_stage_agent_source_rejects_oversized_source_as_script_validation(
+    tmp_path: Path,
+) -> None:
     with pytest.raises(AgentSourceValidationError, match="agent exceeds size limit"):
         stage_agent_source(
             state_dir=tmp_path,
@@ -144,7 +148,9 @@ def test_stage_agent_source_rejects_default_max_size_plus_one(tmp_path: Path) ->
         )
 
 
-def test_stage_agent_source_rejects_non_utf8_source_as_script_validation(tmp_path: Path) -> None:
+def test_stage_agent_source_rejects_non_utf8_source_as_script_validation(
+    tmp_path: Path,
+) -> None:
     with pytest.raises(AgentSourceValidationError, match="agent must be UTF-8 encoded"):
         stage_agent_source(
             state_dir=tmp_path,
@@ -155,8 +161,12 @@ def test_stage_agent_source_rejects_non_utf8_source_as_script_validation(tmp_pat
         )
 
 
-def test_stage_agent_source_rejects_syntax_error_as_script_validation(tmp_path: Path) -> None:
-    with pytest.raises(AgentSourceValidationError, match="agent failed bytecode compilation"):
+def test_stage_agent_source_rejects_syntax_error_as_script_validation(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(
+        AgentSourceValidationError, match="agent failed bytecode compilation"
+    ):
         stage_agent_source(
             state_dir=tmp_path,
             container_root="/workspace/.harnyx_state",

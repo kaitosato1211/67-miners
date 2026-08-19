@@ -12,7 +12,9 @@ from harnyx_commons.domain.miner_task import MinerTask
 from harnyx_commons.domain.shared_config import COMMONS_STRICT_CONFIG
 from harnyx_commons.domain.tool_usage import ToolUsageSummary
 
-StageName = Literal["portfolio", "question_generation", "reference", "reference_repair", "audit"]
+StageName = Literal[
+    "portfolio", "question_generation", "reference", "reference_repair", "audit"
+]
 CapabilityPreference = Literal[
     "general_deep_research",
     "false_premise_correction",
@@ -50,7 +52,9 @@ AttemptOutcome = Literal[
     "proof_invalid",
     "audit_rejected",
 ]
-PortfolioOutcome = Literal["succeeded", "batch_terminal", "transient_provider", "contract_invalid"]
+PortfolioOutcome = Literal[
+    "succeeded", "batch_terminal", "transient_provider", "contract_invalid"
+]
 _SOURCE_FAILURE_CLASSES = frozenset(
     {
         "source_fetch_rejected",
@@ -132,13 +136,18 @@ class GroundedQuestionDossier(BaseModel):
     output_schema_json: str | None = Field(default=None, min_length=1)
     structured_answer_json: str | None = Field(default=None, min_length=1)
     failure_reason: str | None = None
-    failure_class: Literal[
-        "reasoning_no_generate",
-        "source_fetch_rejected",
-        "source_extraction_limit",
-        "source_unavailable",
-    ] | None = None
-    source_failure_id: str | None = Field(default=None, pattern=r"^source_failure:[1-9][0-9]*$")
+    failure_class: (
+        Literal[
+            "reasoning_no_generate",
+            "source_fetch_rejected",
+            "source_extraction_limit",
+            "source_unavailable",
+        ]
+        | None
+    ) = None
+    source_failure_id: str | None = Field(
+        default=None, pattern=r"^source_failure:[1-9][0-9]*$"
+    )
 
     @field_validator(
         "answers",
@@ -157,10 +166,20 @@ class GroundedQuestionDossier(BaseModel):
                 raise ValueError("no_generate dossier requires failure_reason")
             if self.failure_class is None:
                 raise ValueError("no_generate dossier requires failure_class")
-            if self.failure_class in _SOURCE_FAILURE_CLASSES and self.source_failure_id is None:
-                raise ValueError("source-related no_generate dossier requires source_failure_id")
-            if self.failure_class == "reasoning_no_generate" and self.source_failure_id is not None:
-                raise ValueError("reasoning_no_generate cannot contain source_failure_id")
+            if (
+                self.failure_class in _SOURCE_FAILURE_CLASSES
+                and self.source_failure_id is None
+            ):
+                raise ValueError(
+                    "source-related no_generate dossier requires source_failure_id"
+                )
+            if (
+                self.failure_class == "reasoning_no_generate"
+                and self.source_failure_id is not None
+            ):
+                raise ValueError(
+                    "reasoning_no_generate cannot contain source_failure_id"
+                )
             semantic_values = (
                 self.subject,
                 self.route_summary,
@@ -178,7 +197,9 @@ class GroundedQuestionDossier(BaseModel):
                 or self.requirements
                 or self.source_facts
             ):
-                raise ValueError("no_generate dossier cannot contain question semantics")
+                raise ValueError(
+                    "no_generate dossier cannot contain question semantics"
+                )
             return self
         if self.failure_reason is not None:
             raise ValueError("ready dossier cannot contain failure_reason")
@@ -202,15 +223,22 @@ class GroundedQuestionDossier(BaseModel):
         if self.response_mode is None:
             raise ValueError("ready dossier requires response_mode")
         if self.response_mode == "plain_text" and (
-            self.output_schema_json is not None or self.structured_answer_json is not None
+            self.output_schema_json is not None
+            or self.structured_answer_json is not None
         ):
-            raise ValueError("plain_text dossier cannot contain structured schema or answer")
+            raise ValueError(
+                "plain_text dossier cannot contain structured schema or answer"
+            )
         if self.response_mode == "structured" and (
             self.output_schema_json is None or self.structured_answer_json is None
         ):
-            raise ValueError("structured dossier requires output schema and answer hypothesis")
+            raise ValueError(
+                "structured dossier requires output schema and answer hypothesis"
+            )
         if not self.requirements or not self.source_facts:
-            raise ValueError("ready dossier requires load-bearing requirements and source facts")
+            raise ValueError(
+                "ready dossier requires load-bearing requirements and source facts"
+            )
         answer_ids = tuple(item.answer_id for item in self.answers)
         if not answer_ids or len(answer_ids) != len(set(answer_ids)):
             raise ValueError("ready dossier requires unique answer IDs")
@@ -227,7 +255,9 @@ class ProofStep(BaseModel):
     depends_on_step_ids: tuple[str, ...] = ()
     scan_certificate_ids: tuple[str, ...] = ()
 
-    @field_validator("evidence_ids", "depends_on_step_ids", "scan_certificate_ids", mode="before")
+    @field_validator(
+        "evidence_ids", "depends_on_step_ids", "scan_certificate_ids", mode="before"
+    )
     @classmethod
     def _tuple_from_list(cls, value: object) -> object:
         return tuple(value) if isinstance(value, list) else value
@@ -260,16 +290,24 @@ class ReferenceProof(BaseModel):
     def _status_contract(self) -> ReferenceProof:
         if self.status == "finalized" and (not self.answers or not self.proof_steps):
             raise ValueError("finalized proof requires answers and proof steps")
-        if self.status == "finalized" and ((self.answer_text is None) == (self.structured_answer_json is None)):
-            raise ValueError("finalized proof requires exactly one public answer representation")
+        if self.status == "finalized" and (
+            (self.answer_text is None) == (self.structured_answer_json is None)
+        ):
+            raise ValueError(
+                "finalized proof requires exactly one public answer representation"
+            )
         if self.status == "finalized" and self.giveup_reason is not None:
             raise ValueError("finalized proof cannot contain giveup_reason")
         if self.status == "giveup" and not self.giveup_reason:
             raise ValueError("giveup proof requires giveup_reason")
         if self.status == "giveup" and (
-            self.answer_text is not None or self.structured_answer_json is not None or self.citation_evidence_ids
+            self.answer_text is not None
+            or self.structured_answer_json is not None
+            or self.citation_evidence_ids
         ):
-            raise ValueError("giveup proof cannot contain a public answer or citation positions")
+            raise ValueError(
+                "giveup proof cannot contain a public answer or citation positions"
+            )
         return self
 
 
@@ -463,7 +501,9 @@ class CandidateFailure:
 
 
 CandidateOutcome = DomainTweakFinalizedTask | CandidateFailure
-DomainTweakFinalizedTaskCallback = Callable[[int, DomainTweakFinalizedTask], Awaitable[None]]
+DomainTweakFinalizedTaskCallback = Callable[
+    [int, DomainTweakFinalizedTask], Awaitable[None]
+]
 PortfolioCallCallback = Callable[[PortfolioCallEvent], Awaitable[None]]
 SlotAttemptCallback = Callable[[SlotAttemptEvent], Awaitable[None]]
 

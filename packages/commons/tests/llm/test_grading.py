@@ -27,7 +27,9 @@ class RecordingProvider:
             choices=(
                 LlmChoice(
                     index=0,
-                    message=LlmChoiceMessage(role="assistant", content=(), reasoning=None),
+                    message=LlmChoiceMessage(
+                        role="assistant", content=(), reasoning=None
+                    ),
                 ),
             ),
             usage=LlmUsage(),
@@ -38,7 +40,9 @@ class RecordingProvider:
         return None
 
 
-async def test_justification_grader_forwards_reasoning_effort_without_typed_thinking() -> None:
+async def test_justification_grader_forwards_reasoning_effort_without_typed_thinking() -> (
+    None
+):
     provider = RecordingProvider()
     grader = JustificationGrader(
         provider,

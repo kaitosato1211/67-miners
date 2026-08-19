@@ -40,7 +40,9 @@ from harnyx_validator.application.dto.evaluation import (
     ScriptArtifactSpec,
     TokenUsageSummary,
 )
-from harnyx_validator.application.services.evaluation_runner import ArtifactEvaluationOutcome
+from harnyx_validator.application.services.evaluation_runner import (
+    ArtifactEvaluationOutcome,
+)
 from harnyx_validator.domain.evaluation import MinerTaskRun
 
 
@@ -194,9 +196,13 @@ def _tool_usage_with_embedding() -> ToolUsageSummary:
             reference_cost=0.011,
         ),
         llm_cost=0.011,
-        search_tool=SearchToolUsageSummary(call_count=2, cost=0.004, reference_cost=0.004),
+        search_tool=SearchToolUsageSummary(
+            call_count=2, cost=0.004, reference_cost=0.004
+        ),
         search_tool_cost=0.004,
-        embedding=EmbeddingToolUsageSummary(call_count=3, cost=0.006, reference_cost=0.006),
+        embedding=EmbeddingToolUsageSummary(
+            call_count=3, cost=0.006, reference_cost=0.006
+        ),
         embedding_cost=0.006,
         reference_total_cost_usd=0.021,
     )
@@ -212,7 +218,9 @@ def test_local_benchmark_builds_platform_compatible_tasks() -> None:
         scoring_version=snapshot.manifest.scoring_version,
     )
 
-    tasks = local_benchmark._build_tasks(run_id=run_id, snapshot=snapshot, items=snapshot.items)
+    tasks = local_benchmark._build_tasks(
+        run_id=run_id, snapshot=snapshot, items=snapshot.items
+    )
 
     assert [task.query.text for task in tasks] == [
         "Who wrote the benchmark?",
@@ -226,17 +234,30 @@ def test_local_benchmark_builds_platform_compatible_tasks() -> None:
 
 
 def test_local_benchmark_uses_existing_commons_benchmark_boundaries() -> None:
-    assert local_benchmark._DEFAULT_SAMPLE_SIZE == miner_task_benchmark.BENCHMARK_SAMPLE_SIZE
-    assert local_benchmark.aggregate_benchmark_metrics is miner_task_benchmark.aggregate_benchmark_metrics
-    assert local_benchmark.sample_benchmark_items is miner_task_benchmark.sample_benchmark_items
+    assert (
+        local_benchmark._DEFAULT_SAMPLE_SIZE
+        == miner_task_benchmark.BENCHMARK_SAMPLE_SIZE
+    )
+    assert (
+        local_benchmark.aggregate_benchmark_metrics
+        is miner_task_benchmark.aggregate_benchmark_metrics
+    )
+    assert (
+        local_benchmark.sample_benchmark_items
+        is miner_task_benchmark.sample_benchmark_items
+    )
     assert (
         local_benchmark.is_supported_benchmark_scoring_version
         is miner_task_benchmark.is_supported_benchmark_scoring_version
     )
-    assert local_benchmark.is_supported_benchmark_scoring_version(BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION)
+    assert local_benchmark.is_supported_benchmark_scoring_version(
+        BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    )
 
 
-def test_local_benchmark_help_uses_benchmark_parser(capsys: pytest.CaptureFixture[str]) -> None:
+def test_local_benchmark_help_uses_benchmark_parser(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     with pytest.raises(SystemExit) as exc_info:
         local_benchmark._parse_args(("--help",))
 
@@ -313,7 +334,9 @@ def test_local_benchmark_uses_invocation_only_runtime(
         ):
             del artifact_label, agent_source
             assert scoring_service is captured["invocation_scoring"]
-            assert isinstance(scoring_service, local_benchmark._InvocationOnlyScoringService)
+            assert isinstance(
+                scoring_service, local_benchmark._InvocationOnlyScoringService
+            )
             return ArtifactEvaluationOutcome(
                 submissions=tuple(
                     _submission(
@@ -362,7 +385,9 @@ def test_local_benchmark_uses_invocation_only_runtime(
         assert scoring_version == BENCHMARK_CORRECTNESS_SCORING_VERSION
         return _FakeScoringBundle()
 
-    def _create_invocation_only_runtime(*, scoring_service, scoring_config, run_progress_root):
+    def _create_invocation_only_runtime(
+        *, scoring_service, scoring_config, run_progress_root
+    ):
         events.append("create_invocation_only")
         assert events == ["load_public_env", "create_invocation_only"]
         captured["invocation_scoring"] = scoring_service
@@ -370,14 +395,28 @@ def test_local_benchmark_uses_invocation_only_runtime(
         captured["run_progress_root"] = run_progress_root
         return _FakeRuntime()
 
-    monkeypatch.setattr(local_benchmark, "load_public_env", lambda: events.append("load_public_env"))
-    monkeypatch.setattr(local_benchmark, "_create_invocation_only_runtime", _create_invocation_only_runtime)
-    monkeypatch.setattr(local_benchmark, "_build_benchmark_scoring_bundle", _build_benchmark_scoring_bundle)
-    monkeypatch.setattr(local_benchmark, "load_benchmark_snapshot", lambda *_args, **_kwargs: snapshot)
+    monkeypatch.setattr(
+        local_benchmark, "load_public_env", lambda: events.append("load_public_env")
+    )
+    monkeypatch.setattr(
+        local_benchmark,
+        "_create_invocation_only_runtime",
+        _create_invocation_only_runtime,
+    )
+    monkeypatch.setattr(
+        local_benchmark,
+        "_build_benchmark_scoring_bundle",
+        _build_benchmark_scoring_bundle,
+    )
+    monkeypatch.setattr(
+        local_benchmark, "load_benchmark_snapshot", lambda *_args, **_kwargs: snapshot
+    )
     monkeypatch.setattr(
         local_benchmark,
         "sample_benchmark_items",
-        lambda *, items, run_id, dataset_version, scoring_version, sample_size: tuple(items)[:sample_size],
+        lambda *, items, run_id, dataset_version, scoring_version, sample_size: tuple(
+            items
+        )[:sample_size],
     )
 
     asyncio.run(
@@ -401,8 +440,13 @@ def test_local_benchmark_uses_invocation_only_runtime(
 
     assert payload["mean_total_score"] == 1.0
     assert payload["item_count"] == 1
-    assert captured["invocation_config"] is local_benchmark._INVOCATION_ONLY_SCORING_CONFIG
-    assert captured["run_progress_root"] == tmp_path / ".harnyx-local-benchmark-progress" / payload["run_id"]
+    assert (
+        captured["invocation_config"] is local_benchmark._INVOCATION_ONLY_SCORING_CONFIG
+    )
+    assert (
+        captured["run_progress_root"]
+        == tmp_path / ".harnyx-local-benchmark-progress" / payload["run_id"]
+    )
     assert captured["runtime_closed"] is True
     assert captured["scoring_closed"] is True
 
@@ -418,15 +462,19 @@ def test_miner_local_benchmark_ids_match_current_platform_values() -> None:
     )
 
     assert str(run_id) == "d40019ec-5d16-5ba1-b30d-545c8c5d252d"
-    assert str(benchmark_backing_batch_id_for_run(suite_slug="deepsearchqa", run_id=run_id)) == (
-        "d4ca3d15-ca41-5af1-a692-1f150d0a8463"
-    )
-    assert str(benchmark_task_id_for_item(suite_slug="deepsearchqa", run_id=run_id, item_index=0)) == (
-        "b46064ba-ed49-5552-a61a-8c9dbc7913e6"
-    )
-    assert str(benchmark_task_id_for_item(suite_slug="deepsearchqa", run_id=run_id, item_index=17)) == (
-        "8b511d85-6c81-58c4-a101-7feef9999c73"
-    )
+    assert str(
+        benchmark_backing_batch_id_for_run(suite_slug="deepsearchqa", run_id=run_id)
+    ) == ("d4ca3d15-ca41-5af1-a692-1f150d0a8463")
+    assert str(
+        benchmark_task_id_for_item(
+            suite_slug="deepsearchqa", run_id=run_id, item_index=0
+        )
+    ) == ("b46064ba-ed49-5552-a61a-8c9dbc7913e6")
+    assert str(
+        benchmark_task_id_for_item(
+            suite_slug="deepsearchqa", run_id=run_id, item_index=17
+        )
+    ) == ("8b511d85-6c81-58c4-a101-7feef9999c73")
 
 
 def test_miner_local_deepsearchqa_loader_loads_packaged_snapshot() -> None:
@@ -451,7 +499,9 @@ def test_miner_local_draco_loader_loads_current_weighted_rubric_snapshot() -> No
 
     assert snapshot.manifest.suite_slug == "draco"
     assert snapshot.manifest.dataset_version == "2026-06-16-hf-ce076749"
-    assert snapshot.manifest.scoring_version == BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    assert (
+        snapshot.manifest.scoring_version == BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    )
     assert snapshot.manifest.row_count == 100
     assert len(snapshot.items) == 100
     assert snapshot.items[0].answer
@@ -577,7 +627,9 @@ def test_local_benchmark_report_includes_answers_and_summary(tmp_path: Path) -> 
         run_id=run_id,
         target_bytes=target_bytes,
     )
-    tasks = local_benchmark._build_tasks(run_id=run_id, snapshot=snapshot, items=snapshot.items)
+    tasks = local_benchmark._build_tasks(
+        run_id=run_id, snapshot=snapshot, items=snapshot.items
+    )
     first_submission = _submission(
         batch_id=backing_batch_id,
         artifact=target_artifact,
@@ -639,7 +691,9 @@ def test_local_benchmark_report_includes_answers_and_summary(tmp_path: Path) -> 
     assert report["items"][1]["score"] == 0.0
 
 
-def test_local_benchmark_cost_totals_preserve_embedding_breakdown(tmp_path: Path) -> None:
+def test_local_benchmark_cost_totals_preserve_embedding_breakdown(
+    tmp_path: Path,
+) -> None:
     snapshot = _snapshot()
     source_batch_id = UUID("00000000-0000-4000-8000-00000000b501")
     run_id = benchmark_run_id_for_source_batch(
@@ -654,7 +708,9 @@ def test_local_benchmark_cost_totals_preserve_embedding_breakdown(tmp_path: Path
         run_id=run_id,
         target_bytes=target_bytes,
     )
-    tasks = local_benchmark._build_tasks(run_id=run_id, snapshot=snapshot, items=snapshot.items)
+    tasks = local_benchmark._build_tasks(
+        run_id=run_id, snapshot=snapshot, items=snapshot.items
+    )
     submission = _submission(
         batch_id=backing_batch_id,
         artifact=target_artifact,
@@ -702,7 +758,9 @@ def test_local_benchmark_cost_totals_preserve_embedding_breakdown(tmp_path: Path
     assert item_totals == summary_totals
 
 
-def test_weighted_rubric_local_benchmark_report_uses_numeric_score_detail(tmp_path: Path) -> None:
+def test_weighted_rubric_local_benchmark_report_uses_numeric_score_detail(
+    tmp_path: Path,
+) -> None:
     snapshot = _weighted_rubric_snapshot()
     source_batch_id = UUID("00000000-0000-4000-8000-00000000b501")
     run_id = benchmark_run_id_for_source_batch(
@@ -717,7 +775,9 @@ def test_weighted_rubric_local_benchmark_report_uses_numeric_score_detail(tmp_pa
         run_id=run_id,
         target_bytes=target_bytes,
     )
-    tasks = local_benchmark._build_tasks(run_id=run_id, snapshot=snapshot, items=snapshot.items)
+    tasks = local_benchmark._build_tasks(
+        run_id=run_id, snapshot=snapshot, items=snapshot.items
+    )
     first_submission = _submission(
         batch_id=backing_batch_id,
         artifact=target_artifact,
@@ -782,8 +842,14 @@ def test_weighted_rubric_local_benchmark_report_uses_numeric_score_detail(tmp_pa
     assert report["summary"]["failed_item_count"] == 1
     assert report["summary"]["correct_item_count"] is None
     assert report["summary"]["mean_total_score"] == pytest.approx(0.375)
-    assert report["evaluation_config"]["scoring_boundary"] == "benchmark-weighted-rubric-judge"
-    assert report["scoring_context"]["method"] == "weighted rubric criteria judged independently"
+    assert (
+        report["evaluation_config"]["scoring_boundary"]
+        == "benchmark-weighted-rubric-judge"
+    )
+    assert (
+        report["scoring_context"]["method"]
+        == "weighted rubric criteria judged independently"
+    )
     assert report["items"][0]["is_correct"] is None
     assert report["items"][0]["score"] == 0.75
     assert report["items"][0]["score_reason"] is None
@@ -793,7 +859,9 @@ def test_weighted_rubric_local_benchmark_report_uses_numeric_score_detail(tmp_pa
     assert report["items"][1]["error"]["code"] == "benchmark_scoring_failed"
 
 
-def test_weighted_rubric_report_keeps_correct_item_count_na_when_all_items_fail(tmp_path: Path) -> None:
+def test_weighted_rubric_report_keeps_correct_item_count_na_when_all_items_fail(
+    tmp_path: Path,
+) -> None:
     snapshot = _weighted_rubric_snapshot()
     source_batch_id = UUID("00000000-0000-4000-8000-00000000b501")
     run_id = benchmark_run_id_for_source_batch(
@@ -808,7 +876,9 @@ def test_weighted_rubric_report_keeps_correct_item_count_na_when_all_items_fail(
         run_id=run_id,
         target_bytes=target_bytes,
     )
-    tasks = local_benchmark._build_tasks(run_id=run_id, snapshot=snapshot, items=snapshot.items)
+    tasks = local_benchmark._build_tasks(
+        run_id=run_id, snapshot=snapshot, items=snapshot.items
+    )
     results = (
         local_benchmark._BenchmarkItemResult(
             item=snapshot.items[0],
@@ -850,7 +920,9 @@ def test_weighted_rubric_report_keeps_correct_item_count_na_when_all_items_fail(
     assert [item["score"] for item in report["items"]] == [None, None]
 
 
-def test_weighted_rubric_judge_exception_fails_item_without_partial_score(tmp_path: Path) -> None:
+def test_weighted_rubric_judge_exception_fails_item_without_partial_score(
+    tmp_path: Path,
+) -> None:
     snapshot = _weighted_rubric_snapshot()
     source_batch_id = UUID("00000000-0000-4000-8000-00000000b501")
     run_id = benchmark_run_id_for_source_batch(
@@ -865,7 +937,9 @@ def test_weighted_rubric_judge_exception_fails_item_without_partial_score(tmp_pa
         run_id=run_id,
         target_bytes=target_bytes,
     )
-    tasks = local_benchmark._build_tasks(run_id=run_id, snapshot=snapshot, items=snapshot.items)
+    tasks = local_benchmark._build_tasks(
+        run_id=run_id, snapshot=snapshot, items=snapshot.items
+    )
     submission = _submission(
         batch_id=backing_batch_id,
         artifact=target_artifact,
@@ -945,10 +1019,14 @@ def test_weighted_rubric_local_benchmark_bundle_uses_dedicated_judge_settings(
         lambda **_kwargs: _FakeRegistry(),
     )
 
-    bundle = local_benchmark._build_benchmark_scoring_bundle(BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION)
+    bundle = local_benchmark._build_benchmark_scoring_bundle(
+        BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+    )
 
     assert resolved_provider_names == ["vertex"]
-    assert isinstance(bundle.service, local_benchmark._WeightedRubricLocalBenchmarkScoringService)
+    assert isinstance(
+        bundle.service, local_benchmark._WeightedRubricLocalBenchmarkScoringService
+    )
     assert bundle.config == local_benchmark.BenchmarkWeightedRubricScoringConfig(
         provider="vertex",
         model="rubric-model",
@@ -972,4 +1050,6 @@ def test_weighted_rubric_local_benchmark_bundle_rejects_missing_dedicated_model(
     monkeypatch.delenv("BENCHMARK_RUBRIC_JUDGE_LLM_MODEL", raising=False)
 
     with pytest.raises(RuntimeError, match="BENCHMARK_RUBRIC_JUDGE_LLM_PROVIDER"):
-        local_benchmark._build_benchmark_scoring_bundle(BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION)
+        local_benchmark._build_benchmark_scoring_bundle(
+            BENCHMARK_WEIGHTED_RUBRIC_SCORING_VERSION
+        )

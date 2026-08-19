@@ -6,7 +6,11 @@ from dataclasses import replace
 import pytest
 
 import harnyx_commons.llm.provider as provider_module
-from harnyx_commons.llm.provider import BaseLlmProvider, LlmProviderError, LlmRetryExhaustedError
+from harnyx_commons.llm.provider import (
+    BaseLlmProvider,
+    LlmProviderError,
+    LlmRetryExhaustedError,
+)
 from harnyx_commons.llm.retry_utils import RetryPolicy
 from harnyx_commons.llm.schema import (
     AbstractLlmRequest,
@@ -135,25 +139,44 @@ def _response() -> LlmResponse:
     )
 
 
-async def test_retry_exception_log_includes_exception_details(caplog: pytest.LogCaptureFixture) -> None:
+async def test_retry_exception_log_includes_exception_details(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.WARNING, logger="harnyx_commons.llm.calls")
     provider = _RetryOnceExceptionProvider()
 
     result = await provider.invoke_with_retry(_request())
 
     assert result.choices[0].message.content[0].text == "ok"
-    retry_records = [record for record in caplog.records if record.name == "harnyx_commons.llm.calls"]
+    retry_records = [
+        record for record in caplog.records if record.name == "harnyx_commons.llm.calls"
+    ]
     assert retry_records
     retry_record = retry_records[0]
-    assert retry_record.message.startswith("llm.retry.exception: RuntimeError: provider transport failed")
-    assert retry_record.__dict__["data"]["reason"] == "transport_error: provider transport failed"
+    assert retry_record.message.startswith(
+        "llm.retry.exception: RuntimeError: provider transport failed"
+    )
+    assert (
+        retry_record.__dict__["data"]["reason"]
+        == "transport_error: provider transport failed"
+    )
     assert retry_record.__dict__["data"]["exception_type"] == "RuntimeError"
-    assert retry_record.__dict__["data"]["exception_message"] == "provider transport failed"
-    assert retry_record.__dict__["data"]["exception_repr"] == "RuntimeError('provider transport failed')"
-    assert retry_record.__dict__["data"]["cause_chain"] == ("ValueError: dns lookup failed",)
+    assert (
+        retry_record.__dict__["data"]["exception_message"]
+        == "provider transport failed"
+    )
+    assert (
+        retry_record.__dict__["data"]["exception_repr"]
+        == "RuntimeError('provider transport failed')"
+    )
+    assert retry_record.__dict__["data"]["cause_chain"] == (
+        "ValueError: dns lookup failed",
+    )
 
 
-async def test_retryable_exception_still_raises_retry_exhausted_after_attempts() -> None:
+async def test_retryable_exception_still_raises_retry_exhausted_after_attempts() -> (
+    None
+):
     provider = _RetryExhaustingExceptionProvider()
 
     with pytest.raises(LlmRetryExhaustedError, match="transport_error"):
@@ -167,15 +190,21 @@ async def test_retry_success_exposes_safe_retry_metadata() -> None:
 
     assert result.metadata is not None
     assert result.metadata["attempts"] == 2
-    assert result.metadata["retry_reasons"] == ("transport_error: provider transport failed",)
+    assert result.metadata["retry_reasons"] == (
+        "transport_error: provider transport failed",
+    )
     assert result.metadata["latency_ms_total"] >= 0
     assert "prompt_tokens" not in result.metadata
     assert "actual_cost_usd" not in result.metadata
 
 
-async def test_retry_exhaustion_without_response_carries_retry_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_retry_exhaustion_without_response_carries_retry_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     perf_counter_values = iter((0.0, 0.125, 0.125, 0.5))
-    monkeypatch.setattr(provider_module.time, "perf_counter", lambda: next(perf_counter_values))
+    monkeypatch.setattr(
+        provider_module.time, "perf_counter", lambda: next(perf_counter_values)
+    )
     provider = _RetryExhaustingExceptionProvider()
 
     with pytest.raises(LlmRetryExhaustedError, match="transport_error") as raised:
@@ -187,22 +216,30 @@ async def test_retry_exhaustion_without_response_carries_retry_metadata(monkeypa
     assert raised.value.latency_ms_total == 500.0
 
 
-async def test_non_retryable_exception_raises_provider_error_without_retry_exhaustion() -> None:
+async def test_non_retryable_exception_raises_provider_error_without_retry_exhaustion() -> (
+    None
+):
     provider = _NonRetryableExceptionProvider()
 
-    with pytest.raises(LlmProviderError, match="invalid_request: bad request") as exc_info:
+    with pytest.raises(
+        LlmProviderError, match="invalid_request: bad request"
+    ) as exc_info:
         await provider.invoke_with_retry(_request())
 
     assert isinstance(exc_info.value.__cause__, ValueError)
 
 
-async def test_retry_exception_log_includes_request_use_case(caplog: pytest.LogCaptureFixture) -> None:
+async def test_retry_exception_log_includes_request_use_case(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.WARNING, logger="harnyx_commons.llm.calls")
     provider = _RetryOnceExceptionProvider()
 
     await provider.invoke_with_retry(_request(use_case="miner_task_pairwise_judge"))
 
-    retry_records = [record for record in caplog.records if record.name == "harnyx_commons.llm.calls"]
+    retry_records = [
+        record for record in caplog.records if record.name == "harnyx_commons.llm.calls"
+    ]
     assert retry_records[0].__dict__["data"]["use_case"] == "miner_task_pairwise_judge"
 
 

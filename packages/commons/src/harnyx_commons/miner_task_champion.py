@@ -72,7 +72,9 @@ class ChampionSelection:
     artifact_scores: dict[UUID, float] = field(default_factory=dict, compare=False)
     incumbent_artifact_id: UUID | None = field(default=None, compare=False)
     ranking_trace: RankingCascadeTrace | None = field(default=None, compare=False)
-    similarity_fallback_artifact_ids: tuple[UUID, ...] = field(default=(), compare=False)
+    similarity_fallback_artifact_ids: tuple[UUID, ...] = field(
+        default=(), compare=False
+    )
 
 
 def selection_from_stored_champion_weights(
@@ -114,11 +116,19 @@ def select_batch_artifacts(
     challengers = tuple(
         record
         for record in latest_by_hotkey.values()
-        if record.submitted_at > previous_completed_cutoff and record.artifact_id not in incumbent_artifact_ids
+        if record.submitted_at > previous_completed_cutoff
+        and record.artifact_id not in incumbent_artifact_ids
     )
-    incumbent_hotkey = current_champion.miner_hotkey_ss58 if current_champion is not None else None
+    incumbent_hotkey = (
+        current_champion.miner_hotkey_ss58 if current_champion is not None else None
+    )
     challengers_ordered = tuple(
-        sorted(challengers, key=lambda record: _challenger_order_key(record, incumbent_hotkey=incumbent_hotkey))
+        sorted(
+            challengers,
+            key=lambda record: _challenger_order_key(
+                record, incumbent_hotkey=incumbent_hotkey
+            ),
+        )
     )
     return incumbent_records + challengers_ordered
 
@@ -141,7 +151,9 @@ def _challenger_order_key(
     )
 
 
-def has_required_successful_validators(successful_validator_ids: Sequence[UUID]) -> bool:
+def has_required_successful_validators(
+    successful_validator_ids: Sequence[UUID],
+) -> bool:
     return len(successful_validator_ids) >= REQUIRED_SUCCESSFUL_VALIDATOR_COUNT
 
 
@@ -166,10 +178,12 @@ def select_champion(
     current_champion_artifact_id: UUID | None,
     cascade: RankingCascade,
 ) -> ChampionSelection | None:
-    validated_runs, candidate_artifact_ids, artifact_identity_map = validate_champion_run_inputs(
-        task_ids=task_ids,
-        artifacts=artifacts,
-        runs=runs,
+    validated_runs, candidate_artifact_ids, artifact_identity_map = (
+        validate_champion_run_inputs(
+            task_ids=task_ids,
+            artifacts=artifacts,
+            runs=runs,
+        )
     )
     aggregates = aggregate_ranking_rows(
         tuple(
@@ -240,7 +254,9 @@ def validate_champion_run_inputs(
     task_ids: Sequence[UUID],
     artifacts: Sequence[ChampionArtifactInput],
     runs: Sequence[ChampionRunInput],
-) -> tuple[tuple[ChampionRunInput, ...], tuple[UUID, ...], dict[UUID, _ArtifactIdentity]]:
+) -> tuple[
+    tuple[ChampionRunInput, ...], tuple[UUID, ...], dict[UUID, _ArtifactIdentity]
+]:
     if not task_ids:
         raise ValueError("batch contains no tasks")
 
@@ -249,7 +265,10 @@ def validate_champion_run_inputs(
         raise ValueError("batch contains duplicate artifact ids")
 
     task_id_set = set(task_ids)
-    expected_pairs = {(artifact_id, task_id) for artifact_id, task_id in product(candidate_artifact_ids, task_id_set)}
+    expected_pairs = {
+        (artifact_id, task_id)
+        for artifact_id, task_id in product(candidate_artifact_ids, task_id_set)
+    }
 
     artifact_identity_map: dict[UUID, _ArtifactIdentity] = {}
     for artifact in artifacts:
@@ -268,7 +287,9 @@ def validate_champion_run_inputs(
         seen_pairs: set[tuple[UUID, UUID]] = set()
         for run in validator_runs:
             if run.artifact_id not in artifact_identity_map:
-                raise ValueError(f"run referenced artifact outside batch: {run.artifact_id}")
+                raise ValueError(
+                    f"run referenced artifact outside batch: {run.artifact_id}"
+                )
             if run.task_id not in task_id_set:
                 raise ValueError(f"run referenced task outside batch: {run.task_id}")
 
@@ -296,7 +317,9 @@ def _validated_incumbent(
     if current_champion is None:
         return (), set()
     if incumbent is None:
-        raise RuntimeError(f"incumbent script missing for cutoff: {current_champion.artifact_id}")
+        raise RuntimeError(
+            f"incumbent script missing for cutoff: {current_champion.artifact_id}"
+        )
     if current_champion.miner_hotkey_ss58 is None:
         raise RuntimeError("current champion missing miner hotkey")
     if incumbent.miner_hotkey_ss58 != current_champion.miner_hotkey_ss58:

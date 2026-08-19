@@ -12,7 +12,9 @@ from harnyx_commons.domain_tweak_generation import (
 
 def test_batch_result_rejects_partial_success_state() -> None:
     """Future failure: a partial refill must not escape as a successful batch result."""
-    with pytest.raises(ValidationError, match="finalized task count must equal target_count"):
+    with pytest.raises(
+        ValidationError, match="finalized task count must equal target_count"
+    ):
         DomainTweakBatchGenerationResult(
             target_count=1,
             portfolio_call_count=10_000,
@@ -62,7 +64,9 @@ def test_source_no_generate_requires_the_exact_failed_fetch_id() -> None:
 
 def test_reasoning_no_generate_forbids_a_source_failure_id() -> None:
     """Future failure: a model-decided dead end must not be attributed to an incidental fetch attempt."""
-    with pytest.raises(ValidationError, match="reasoning_no_generate cannot contain source_failure_id"):
+    with pytest.raises(
+        ValidationError, match="reasoning_no_generate cannot contain source_failure_id"
+    ):
         GroundedQuestionDossier(
             status="no_generate",
             failure_reason="the explored route cannot support the requested relationship",
@@ -128,7 +132,9 @@ def test_ready_dossier_requires_one_coherent_response_mode_contract() -> None:
 
     with pytest.raises(ValidationError, match="requires response_mode"):
         GroundedQuestionDossier(**common)
-    with pytest.raises(ValidationError, match="plain_text dossier cannot contain structured"):
+    with pytest.raises(
+        ValidationError, match="plain_text dossier cannot contain structured"
+    ):
         GroundedQuestionDossier(
             **common,
             response_mode="plain_text",
@@ -153,11 +159,18 @@ def test_reference_proof_enforces_public_citation_position_limit() -> None:
         "answer_text": "Alpha is the published result [[1]].",
         "answers": (ReferenceAnswerSelection(answer_id="A1"),),
         "proof_steps": (
-            ProofStep(step_id="S1", statement="Alpha is published.", kind="supported", evidence_ids=("E1",)),
+            ProofStep(
+                step_id="S1",
+                statement="Alpha is published.",
+                kind="supported",
+                evidence_ids=("E1",),
+            ),
         ),
     }
 
-    accepted = ReferenceProof(**common, citation_evidence_ids=tuple("E1" for _ in range(200)))
+    accepted = ReferenceProof(
+        **common, citation_evidence_ids=tuple("E1" for _ in range(200))
+    )
 
     assert len(accepted.citation_evidence_ids) == 200
     with pytest.raises(ValidationError, match="at most 200"):

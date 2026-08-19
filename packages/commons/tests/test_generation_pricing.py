@@ -11,7 +11,9 @@ from harnyx_commons.llm.schema import LlmUsage
 from harnyx_commons.llm.tool_models import ALLOWED_TOOL_MODELS
 
 
-def test_generation_usage_cost_breakdown_normalizes_vertex_claude_publisher_path_models() -> None:
+def test_generation_usage_cost_breakdown_normalizes_vertex_claude_publisher_path_models() -> (
+    None
+):
     usage = LlmUsage(
         prompt_tokens=1_000,
         completion_tokens=2_000,
@@ -31,7 +33,9 @@ def test_generation_usage_cost_breakdown_normalizes_vertex_claude_publisher_path
     assert breakdown["usd_cost"] == pytest.approx(0.0863)
 
 
-def test_generation_usage_cost_breakdown_normalizes_vertex_gemini_publisher_path_models() -> None:
+def test_generation_usage_cost_breakdown_normalizes_vertex_gemini_publisher_path_models() -> (
+    None
+):
     usage = LlmUsage(
         prompt_tokens=1_000,
         completion_tokens=500,
@@ -52,7 +56,9 @@ def test_generation_usage_cost_breakdown_normalizes_vertex_gemini_publisher_path
     assert breakdown["usd_cost"] == pytest.approx(0.04325)
 
 
-def test_generation_usage_cost_breakdown_multiplies_generic_vertex_grounding_by_search_calls() -> None:
+def test_generation_usage_cost_breakdown_multiplies_generic_vertex_grounding_by_search_calls() -> (
+    None
+):
     usage = LlmUsage(
         prompt_tokens=1_000,
         completion_tokens=500,
@@ -73,7 +79,9 @@ def test_generation_usage_cost_breakdown_multiplies_generic_vertex_grounding_by_
     assert breakdown["usd_cost"] == pytest.approx(0.18325)
 
 
-def test_generation_usage_cost_breakdown_normalizes_vertex_gemini_full_resource_models() -> None:
+def test_generation_usage_cost_breakdown_normalizes_vertex_gemini_full_resource_models() -> (
+    None
+):
     usage = LlmUsage(
         prompt_tokens=1_000,
         completion_tokens=500,
@@ -144,7 +152,9 @@ def test_generation_usage_cost_breakdown_prices_domain_tweak_flash_lite_model(
     assert breakdown["usd_cost"] == pytest.approx(expected_cost)
 
 
-def test_generation_usage_cost_breakdown_does_not_normalize_malformed_vertex_gemini_paths() -> None:
+def test_generation_usage_cost_breakdown_does_not_normalize_malformed_vertex_gemini_paths() -> (
+    None
+):
     usage = LlmUsage(
         prompt_tokens=1_000,
         completion_tokens=500,
@@ -160,7 +170,9 @@ def test_generation_usage_cost_breakdown_does_not_normalize_malformed_vertex_gem
     )
 
     assert breakdown["pricing_missing"] is True
-    assert breakdown["pricing_key"] == "vertex:foo/publishers/google/models/gemini-2.5-pro"
+    assert (
+        breakdown["pricing_key"] == "vertex:foo/publishers/google/models/gemini-2.5-pro"
+    )
     assert breakdown["usd_cost_grounded"] == pytest.approx(0.035)
     assert breakdown["usd_cost"] == pytest.approx(0.035)
 
@@ -172,7 +184,9 @@ def test_generation_usage_cost_breakdown_does_not_normalize_malformed_vertex_gem
         ("openai/gpt-oss-120b", 0.219),
     ),
 )
-def test_generation_usage_cost_breakdown_prices_openrouter_gpt_oss(model: str, expected_cost: float) -> None:
+def test_generation_usage_cost_breakdown_prices_openrouter_gpt_oss(
+    model: str, expected_cost: float
+) -> None:
     usage = LlmUsage(
         prompt_tokens=1_000_000,
         completion_tokens=1_000_000,

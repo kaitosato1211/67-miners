@@ -21,12 +21,22 @@ async def test_tavily_search_pins_generated_outputs_off_and_retains_usage() -> N
             json={
                 "request_id": "tavily-1",
                 "usage": {"credits": 2},
-                "results": [{"url": "https://example.com", "title": "Example", "content": "snippet"}],
+                "results": [
+                    {
+                        "url": "https://example.com",
+                        "title": "Example",
+                        "content": "snippet",
+                    }
+                ],
             },
         )
 
-    http_client = httpx.AsyncClient(base_url="https://api.tavily.com", transport=httpx.MockTransport(handler))
-    client = TavilyClient(base_url="https://api.tavily.com", api_key="tvly-key", client=http_client)
+    http_client = httpx.AsyncClient(
+        base_url="https://api.tavily.com", transport=httpx.MockTransport(handler)
+    )
+    client = TavilyClient(
+        base_url="https://api.tavily.com", api_key="tvly-key", client=http_client
+    )
     result = await client.search_web(
         SearchWebSearchRequest.model_validate(
             {
@@ -68,9 +78,15 @@ async def test_tavily_search_defaults_to_fast_retrieved_chunks() -> None:
         payloads.append(json.loads(request.content))
         return httpx.Response(200, json={"results": []})
 
-    http_client = httpx.AsyncClient(base_url="https://api.tavily.com", transport=httpx.MockTransport(handler))
-    client = TavilyClient(base_url="https://api.tavily.com", api_key="tvly-key", client=http_client)
-    await client.search_web(SearchWebSearchRequest(provider="tavily", search_queries=("harnyx",)))
+    http_client = httpx.AsyncClient(
+        base_url="https://api.tavily.com", transport=httpx.MockTransport(handler)
+    )
+    client = TavilyClient(
+        base_url="https://api.tavily.com", api_key="tvly-key", client=http_client
+    )
+    await client.search_web(
+        SearchWebSearchRequest(provider="tavily", search_queries=("harnyx",))
+    )
 
     assert isinstance(payloads[0], dict)
     assert payloads[0]["search_depth"] == "fast"
@@ -91,14 +107,22 @@ async def test_tavily_fetch_maps_extract_controls() -> None:
             },
         )
 
-    http_client = httpx.AsyncClient(base_url="https://api.tavily.com", transport=httpx.MockTransport(handler))
-    client = TavilyClient(base_url="https://api.tavily.com", api_key="tvly-key", client=http_client)
+    http_client = httpx.AsyncClient(
+        base_url="https://api.tavily.com", transport=httpx.MockTransport(handler)
+    )
+    client = TavilyClient(
+        base_url="https://api.tavily.com", api_key="tvly-key", client=http_client
+    )
     result = await client.fetch_page(
         FetchPageRequest.model_validate(
             {
                 "provider": "tavily",
                 "url": "https://example.com",
-                "provider_extra": {"query": "important", "chunks_per_source": 2, "format": "text"},
+                "provider_extra": {
+                    "query": "important",
+                    "chunks_per_source": 2,
+                    "format": "text",
+                },
             }
         )
     )

@@ -7,7 +7,10 @@ import pytest
 from pydantic import ValidationError
 
 from harnyx_commons.domain.miner_task import MinerTask, Query, ReferenceAnswer
-from harnyx_validator.application.dto.evaluation import MinerTaskBatchSpec, ScriptArtifactSpec
+from harnyx_validator.application.dto.evaluation import (
+    MinerTaskBatchSpec,
+    ScriptArtifactSpec,
+)
 
 _NOW = datetime.now(UTC)
 
@@ -31,8 +34,12 @@ def test_batch_rejects_duplicate_artifact_ids() -> None:
             created_at=_NOW.isoformat(),
             tasks=(_task(),),
             artifacts=(
-                ScriptArtifactSpec(uid=1, artifact_id=artifact_id, content_hash="a", size_bytes=10),
-                ScriptArtifactSpec(uid=2, artifact_id=artifact_id, content_hash="b", size_bytes=20),
+                ScriptArtifactSpec(
+                    uid=1, artifact_id=artifact_id, content_hash="a", size_bytes=10
+                ),
+                ScriptArtifactSpec(
+                    uid=2, artifact_id=artifact_id, content_hash="b", size_bytes=20
+                ),
             ),
         )
 

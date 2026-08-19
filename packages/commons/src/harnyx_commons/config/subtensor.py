@@ -22,11 +22,17 @@ class SubtensorSettings(BaseSettings):
     netuid: int = Field(default=67, alias="SUBTENSOR_NETUID")
     wallet_name: str = Field(default="harnyx-validator", alias="SUBTENSOR_WALLET_NAME")
     hotkey_name: str = Field(default="default", alias="SUBTENSOR_HOTKEY_NAME")
-    hotkey_mnemonic: SecretStr | None = Field(default=None, alias="SUBTENSOR_HOTKEY_MNEMONIC")
+    hotkey_mnemonic: SecretStr | None = Field(
+        default=None, alias="SUBTENSOR_HOTKEY_MNEMONIC"
+    )
     wait_for_inclusion: bool = Field(default=True, alias="SUBTENSOR_WAIT_FOR_INCLUSION")
-    wait_for_finalization: bool = Field(default=False, alias="SUBTENSOR_WAIT_FOR_FINALIZATION")
+    wait_for_finalization: bool = Field(
+        default=False, alias="SUBTENSOR_WAIT_FOR_FINALIZATION"
+    )
     transaction_mode: str = Field(default="immortal", alias="TRANSACTION_MODE")
-    transaction_period: int | None = Field(default=None, alias="TRANSACTION_MODE_PERIOD")
+    transaction_period: int | None = Field(
+        default=None, alias="TRANSACTION_MODE_PERIOD"
+    )
 
     @field_validator("hotkey_mnemonic", mode="before")
     @classmethod

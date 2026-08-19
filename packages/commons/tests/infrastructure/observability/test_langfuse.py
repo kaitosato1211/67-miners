@@ -90,14 +90,18 @@ def _response(*, postprocessed: object | None = None) -> LlmResponse:
     )
 
 
-def test_read_config_returns_none_when_all_env_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_config_returns_none_when_all_env_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     for key in _LANGFUSE_ENV_VARS:
         monkeypatch.delenv(key, raising=False)
 
     assert langfuse._read_config() is None
 
 
-def test_read_config_raises_runtime_error_for_partial_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_config_raises_runtime_error_for_partial_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("LANGFUSE_HOST", "https://langfuse.example")
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-test")
     monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
@@ -106,7 +110,9 @@ def test_read_config_raises_runtime_error_for_partial_env(monkeypatch: pytest.Mo
         langfuse._read_config()
 
 
-def test_read_config_returns_mapping_for_full_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_config_returns_mapping_for_full_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("LANGFUSE_HOST", " https://langfuse.example ")
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", " pk-test ")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", " sk-test ")
@@ -203,7 +209,9 @@ def test_build_generation_input_payload_preserves_tool_result_output_json() -> N
     ]
 
 
-def test_build_generation_input_payload_preserves_tool_loop_controls_and_replay_state() -> None:
+def test_build_generation_input_payload_preserves_tool_loop_controls_and_replay_state() -> (
+    None
+):
     reasoning_details = ({"type": "reasoning.encrypted", "data": "opaque"},)
     request = LlmRequest(
         provider="openrouter",
@@ -282,7 +290,9 @@ def test_build_generation_input_payload_redacts_tool_api_keys() -> None:
     payload = langfuse.build_generation_input_payload(request)
     tool_payload = payload["tools"][0]["config"]["retrieval"]["external_api"]
 
-    assert tool_payload["auth_config"]["api_key_config"]["api_key_string"] == "[REDACTED]"
+    assert (
+        tool_payload["auth_config"]["api_key_config"]["api_key_string"] == "[REDACTED]"
+    )
     assert tool_payload["auth_config"]["api_key_config"]["apiKeyString"] == "[REDACTED]"
     assert tool_payload["api_auth"]["api_key_config"]["api_key_string"] == "[REDACTED]"
     assert tool_payload["api_auth"]["api_key_config"]["apiKeyString"] == "[REDACTED]"
@@ -330,7 +340,9 @@ def test_record_child_observation_best_effort_swallows_observation_exception(
             return False
 
     class RaisingClient:
-        def start_as_current_observation(self, **kwargs: object) -> RaisingObservationContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> RaisingObservationContextManager:
             return RaisingObservationContextManager()
 
     monkeypatch.setattr(langfuse, "get_client", lambda: RaisingClient())
@@ -345,7 +357,9 @@ def test_record_child_observation_best_effort_swallows_observation_exception(
     )
 
 
-def test_record_child_observation_best_effort_swallows_client_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_record_child_observation_best_effort_swallows_client_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def _raise() -> object:
         raise RuntimeError("partial config")
 
@@ -396,13 +410,19 @@ def test_derive_tags_uses_only_low_cardinality_dimensions() -> None:
         }
     )
 
-    assert tags == ["server:harnyx-platform-execution-worker", "use_case:claim_generation"]
+    assert tags == [
+        "server:harnyx-platform-execution-worker",
+        "use_case:claim_generation",
+    ]
 
 
 def test_derive_standalone_llm_trace_name_uses_string_use_case() -> None:
     request = _request_with_metadata({}, use_case=" miner_task_pairwise_judge ")
 
-    assert langfuse.derive_standalone_llm_trace_name(request=request) == "miner_task_pairwise_judge"
+    assert (
+        langfuse.derive_standalone_llm_trace_name(request=request)
+        == "miner_task_pairwise_judge"
+    )
 
 
 def test_derive_standalone_llm_trace_name_preserves_explicit_langfuse_trace_name(
@@ -424,7 +444,9 @@ def test_derive_standalone_llm_trace_name_preserves_explicit_langfuse_trace_name
         lambda **kwargs: CaptureContextManager(),
     )
 
-    with langfuse.propagate_trace_attributes_best_effort(trace_name="content_review_job"):
+    with langfuse.propagate_trace_attributes_best_effort(
+        trace_name="content_review_job"
+    ):
         assert langfuse.has_active_langfuse_trace_name() is True
         assert langfuse.derive_standalone_llm_trace_name(request=request) is None
 
@@ -442,13 +464,21 @@ def test_trace_name_context_stays_inactive_when_propagate_enter_fails(
     monkeypatch.setattr(langfuse, "get_client", lambda: object())
     monkeypatch.setattr(langfuse, "propagate_attributes", _raising_propagate_attributes)
 
-    with langfuse.propagate_trace_attributes_best_effort(trace_name="content_review_job"):
+    with langfuse.propagate_trace_attributes_best_effort(
+        trace_name="content_review_job"
+    ):
         assert langfuse.has_active_langfuse_trace_name() is False
-        assert langfuse.derive_standalone_llm_trace_name(request=request) == "miner_task_pairwise_judge"
+        assert (
+            langfuse.derive_standalone_llm_trace_name(request=request)
+            == "miner_task_pairwise_judge"
+        )
 
 
 def test_derive_standalone_llm_trace_name_requires_typed_use_case() -> None:
-    assert langfuse.derive_standalone_llm_trace_name(request=_request_with_metadata({})) is None
+    assert (
+        langfuse.derive_standalone_llm_trace_name(request=_request_with_metadata({}))
+        is None
+    )
     with pytest.raises(ValueError, match="typed use_case field"):
         _request_with_metadata({"use_case": "miner_task_pairwise_judge"})
     with pytest.raises(ValueError, match="must not be blank"):
@@ -477,7 +507,9 @@ def test_generation_scope_propagates_trace_name_with_existing_tags(
             return False
 
     class CaptureClient:
-        def start_as_current_observation(self, **kwargs: object) -> ObservationContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> ObservationContextManager:
             captured_observation_kwargs.update(kwargs)
             return ObservationContextManager()
 
@@ -528,7 +560,9 @@ def test_metadata_only_generation_scope_omits_request_payload_and_internal_metad
             return False
 
     class CaptureClient:
-        def start_as_current_observation(self, **kwargs: object) -> ObservationContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> ObservationContextManager:
             return ObservationContextManager()
 
     monkeypatch.setenv("OTEL_SERVICE_NAME", "test-server")
@@ -575,10 +609,14 @@ def test_propagate_trace_attributes_best_effort_noops_when_unconfigured(
     def _unexpected_propagate_attributes(**kwargs: object) -> object:
         nonlocal called
         called = True
-        raise AssertionError("propagate_attributes should not be called when Langfuse is unconfigured")
+        raise AssertionError(
+            "propagate_attributes should not be called when Langfuse is unconfigured"
+        )
 
     monkeypatch.setattr(langfuse, "get_client", lambda: None)
-    monkeypatch.setattr(langfuse, "propagate_attributes", _unexpected_propagate_attributes)
+    monkeypatch.setattr(
+        langfuse, "propagate_attributes", _unexpected_propagate_attributes
+    )
 
     with langfuse.propagate_trace_attributes_best_effort(
         trace_name="content_review_job",
@@ -640,7 +678,10 @@ def test_propagate_trace_attributes_best_effort_calls_propagate_attributes(
             "attempt": "2",
             "is_retry": "True",
         },
-        "tags": ["server:harnyx-platform-execution-worker", "use_case:content_review_job"],
+        "tags": [
+            "server:harnyx-platform-execution-worker",
+            "use_case:content_review_job",
+        ],
     }
 
 
@@ -662,7 +703,9 @@ def test_propagate_trace_attributes_best_effort_swallows_enter_exception(
     ):
         pass
 
-    assert "langfuse.trace.propagate_start_failed" in [record.message for record in caplog.records]
+    assert "langfuse.trace.propagate_start_failed" in [
+        record.message for record in caplog.records
+    ]
 
 
 def test_propagate_trace_attributes_best_effort_swallows_exit_exception(
@@ -691,10 +734,14 @@ def test_propagate_trace_attributes_best_effort_swallows_exit_exception(
     ):
         pass
 
-    assert "langfuse.trace.propagate_cleanup_failed" in [record.message for record in caplog.records]
+    assert "langfuse.trace.propagate_cleanup_failed" in [
+        record.message for record in caplog.records
+    ]
 
 
-def test_close_propagate_scope_swallows_exit_exception_and_clears_state(caplog: pytest.LogCaptureFixture) -> None:
+def test_close_propagate_scope_swallows_exit_exception_and_clears_state(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     class RaisingPropagateContextManager:
         def __enter__(self) -> object:
             return object()
@@ -713,7 +760,9 @@ def test_close_propagate_scope_swallows_exit_exception_and_clears_state(caplog: 
     scope._close_propagate_scope()
 
     assert scope._propagate_cm is None
-    assert "langfuse.generation.propagate_cleanup_failed" in [record.message for record in caplog.records]
+    assert "langfuse.generation.propagate_cleanup_failed" in [
+        record.message for record in caplog.records
+    ]
     assert {"provider": "openai", "model": "gpt-5-mini"} in [
         record.__dict__.get("data") for record in caplog.records
     ]
@@ -738,7 +787,9 @@ def test_generation_scope_enter_error_path_does_not_raise_when_propagate_cleanup
             return False
 
     class FakeClient:
-        def start_as_current_observation(self, **kwargs: object) -> FailingObservationContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> FailingObservationContextManager:
             return FailingObservationContextManager()
 
     monkeypatch.setattr(
@@ -792,7 +843,9 @@ def test_generation_scope_exit_path_swallows_propagate_cleanup_failure(
 
     assert result is True
     assert scope._propagate_cm is None
-    assert "langfuse.generation.propagate_cleanup_failed" in [record.message for record in caplog.records]
+    assert "langfuse.generation.propagate_cleanup_failed" in [
+        record.message for record in caplog.records
+    ]
 
 
 def test_metadata_only_root_observation_forces_fresh_trace_and_scrubs_exception(
@@ -817,15 +870,21 @@ def test_metadata_only_root_observation_forces_fresh_trace_and_scrubs_exception(
             return False
 
     class CaptureClient:
-        def start_as_current_observation(self, **kwargs: object) -> ObservationContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> ObservationContextManager:
             observation_starts.append(kwargs)
             return ObservationContextManager()
 
     for key in _LANGFUSE_ENV_VARS:
         monkeypatch.setenv(key, f"test-{key.lower()}")
     monkeypatch.setattr(langfuse, "get_client", lambda: CaptureClient())
-    monkeypatch.setattr(langfuse, "attach", lambda context: context_events.append("attach") or object())
-    monkeypatch.setattr(langfuse, "detach", lambda token: context_events.append("detach"))
+    monkeypatch.setattr(
+        langfuse, "attach", lambda context: context_events.append("attach") or object()
+    )
+    monkeypatch.setattr(
+        langfuse, "detach", lambda token: context_events.append("detach")
+    )
 
     with pytest.raises(RuntimeError, match="private-exception-sentinel"):
         with langfuse.start_root_metadata_only_observation(
@@ -842,7 +901,9 @@ def test_metadata_only_root_observation_forces_fresh_trace_and_scrubs_exception(
             "trace_context": None,
         }
     ]
-    assert observation_updates == [{"metadata": {"miner_task_generation_batch_id": "batch-42"}}]
+    assert observation_updates == [
+        {"metadata": {"miner_task_generation_batch_id": "batch-42"}}
+    ]
     assert exit_args == [(None, None, None)]
     assert context_events == ["attach", "detach"]
 
@@ -866,7 +927,9 @@ def test_metadata_only_generation_records_explicit_usage_cost_and_status(
             return False
 
     class CaptureClient:
-        def start_as_current_observation(self, **kwargs: object) -> ObservationContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> ObservationContextManager:
             observation_starts.append(kwargs)
             return ObservationContextManager()
 
@@ -909,13 +972,17 @@ def test_metadata_only_generation_records_explicit_usage_cost_and_status(
             "status_message": "provider_rejected",
         },
     ]
-    assert all("input" not in update and "output" not in update for update in observation_updates)
+    assert all(
+        "input" not in update and "output" not in update
+        for update in observation_updates
+    )
 
 
 def test_metadata_only_observation_start_and_cleanup_failures_do_not_replace_application_outcome(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Future failure: optional Langfuse telemetry must never become the generation failure."""
+
     class RaisingContextManager:
         def __enter__(self) -> object:
             raise RuntimeError("observation start failed")
@@ -924,14 +991,18 @@ def test_metadata_only_observation_start_and_cleanup_failures_do_not_replace_app
             raise RuntimeError("observation cleanup failed")
 
     class RaisingClient:
-        def start_as_current_observation(self, **kwargs: object) -> RaisingContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> RaisingContextManager:
             return RaisingContextManager()
 
     for key in _LANGFUSE_ENV_VARS:
         monkeypatch.setenv(key, f"test-{key.lower()}")
     monkeypatch.setattr(langfuse, "get_client", lambda: RaisingClient())
 
-    with langfuse.start_metadata_only_observation("miner_task_generation.audit", "generation") as observation:
+    with langfuse.start_metadata_only_observation(
+        "miner_task_generation.audit", "generation"
+    ) as observation:
         assert observation is None
 
 
@@ -957,7 +1028,9 @@ def test_metadata_only_generation_tracker_marks_missing_stage_start_incomplete(
             return False
 
     class Client:
-        def start_as_current_observation(self, **kwargs: object) -> ObservationContextManager:
+        def start_as_current_observation(
+            self, **kwargs: object
+        ) -> ObservationContextManager:
             return ObservationContextManager()
 
     for key in _LANGFUSE_ENV_VARS:
@@ -965,9 +1038,13 @@ def test_metadata_only_generation_tracker_marks_missing_stage_start_incomplete(
     monkeypatch.setattr(langfuse, "get_client", lambda: Client())
 
     with langfuse.track_metadata_only_generations() as tracker:
-        with langfuse.start_metadata_only_observation("miner_task_generation.question", "generation"):
+        with langfuse.start_metadata_only_observation(
+            "miner_task_generation.question", "generation"
+        ):
             pass
-        with langfuse.start_metadata_only_observation("miner_task_generation.audit", "generation") as observation:
+        with langfuse.start_metadata_only_observation(
+            "miner_task_generation.audit", "generation"
+        ) as observation:
             assert observation is None
 
     assert tracker.metadata() == {
@@ -986,4 +1063,6 @@ def test_metadata_only_observation_preserves_partial_configuration_failure(
     monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
 
     with pytest.raises(RuntimeError, match="Langfuse configuration is partial"):
-        langfuse.start_metadata_only_observation("miner_task_generation.audit", "generation")
+        langfuse.start_metadata_only_observation(
+            "miner_task_generation.audit", "generation"
+        )

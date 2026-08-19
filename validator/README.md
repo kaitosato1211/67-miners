@@ -29,28 +29,28 @@ cp .env.example .env
 
 Edit `.env` and set at least:
 
-| Variable | Description |
-|----------|-------------|
-| `PLATFORM_BASE_URL` | Platform API endpoint (finney/mainnet: `https://api.harnyx.ai`, testnet: `https://api.staging.harnyx.ai`) |
-| `VALIDATOR_PUBLIC_BASE_URL` | How the platform can reach your validator |
-| `CHUTES_API_KEY` | API key for the default validator pairwise scoring and similarity provider |
-| `OPENROUTER_API_KEY` | API key required only when an explicit validator route uses OpenRouter, including the Brightmount-managed DeepSeek similarity route |
-| `SCORING_LLM_PROVIDER` | Optional pairwise scoring provider selector; defaults to `chutes` |
-| `SCORING_LLM_TEMPERATURE` | Optional pairwise scoring request temperature; defaults to provider default |
-| `SCORING_LLM_TIMEOUT_SECONDS` | Optional pairwise scoring LLM request timeout; defaults to `300` |
-| `SCORING_LLM_MAX_OUTPUT_TOKENS` | Optional pairwise scoring max output tokens; defaults to `20480` |
-| `SCORING_LLM_RETRY_ATTEMPTS` | Optional pairwise scoring LLM request retry attempts; defaults to `6` |
-| `SCORING_LLM_RETRY_INITIAL_MS` | Optional pairwise scoring LLM request retry initial backoff; defaults to `30000` |
-| `SCORING_LLM_RETRY_MAX_MS` | Optional pairwise scoring LLM request retry maximum backoff; defaults to `300000` |
-| `SCORING_LLM_RETRY_JITTER` | Optional pairwise scoring LLM request retry jitter ratio; defaults to `0.2` |
-| `SIMILARITY_LLM_PROVIDER` | Optional duplicate-preflight similarity provider selector; defaults to `chutes` |
-| `SIMILARITY_LLM_TEMPERATURE` | Optional duplicate-preflight similarity request temperature; defaults to provider default |
-| `SIMILARITY_LLM_TIMEOUT_SECONDS` | Optional duplicate-preflight similarity LLM request timeout; defaults to `300` |
-| `SIMILARITY_LLM_MAX_OUTPUT_TOKENS` | Optional duplicate-preflight similarity max output tokens; defaults to `20480` |
-| `SIMILARITY_LLM_RETRY_ATTEMPTS` | Optional duplicate-preflight similarity LLM request retry attempts; defaults to `1` |
-| `SIMILARITY_LLM_RETRY_INITIAL_MS` | Optional duplicate-preflight similarity LLM request retry initial backoff; defaults to `0` |
-| `SIMILARITY_LLM_RETRY_MAX_MS` | Optional duplicate-preflight similarity LLM request retry maximum backoff; defaults to `0` |
-| `SIMILARITY_LLM_RETRY_JITTER` | Optional duplicate-preflight similarity LLM request retry jitter ratio; defaults to `0.0` |
+| Variable                           | Description                                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `PLATFORM_BASE_URL`                | Platform API endpoint (finney/mainnet: `https://api.harnyx.ai`, testnet: `https://api.staging.harnyx.ai`)                           |
+| `VALIDATOR_PUBLIC_BASE_URL`        | How the platform can reach your validator                                                                                           |
+| `CHUTES_API_KEY`                   | API key for the default validator pairwise scoring and similarity provider                                                          |
+| `OPENROUTER_API_KEY`               | API key required only when an explicit validator route uses OpenRouter, including the Brightmount-managed DeepSeek similarity route |
+| `SCORING_LLM_PROVIDER`             | Optional pairwise scoring provider selector; defaults to `chutes`                                                                   |
+| `SCORING_LLM_TEMPERATURE`          | Optional pairwise scoring request temperature; defaults to provider default                                                         |
+| `SCORING_LLM_TIMEOUT_SECONDS`      | Optional pairwise scoring LLM request timeout; defaults to `300`                                                                    |
+| `SCORING_LLM_MAX_OUTPUT_TOKENS`    | Optional pairwise scoring max output tokens; defaults to `20480`                                                                    |
+| `SCORING_LLM_RETRY_ATTEMPTS`       | Optional pairwise scoring LLM request retry attempts; defaults to `6`                                                               |
+| `SCORING_LLM_RETRY_INITIAL_MS`     | Optional pairwise scoring LLM request retry initial backoff; defaults to `30000`                                                    |
+| `SCORING_LLM_RETRY_MAX_MS`         | Optional pairwise scoring LLM request retry maximum backoff; defaults to `300000`                                                   |
+| `SCORING_LLM_RETRY_JITTER`         | Optional pairwise scoring LLM request retry jitter ratio; defaults to `0.2`                                                         |
+| `SIMILARITY_LLM_PROVIDER`          | Optional duplicate-preflight similarity provider selector; defaults to `chutes`                                                     |
+| `SIMILARITY_LLM_TEMPERATURE`       | Optional duplicate-preflight similarity request temperature; defaults to provider default                                           |
+| `SIMILARITY_LLM_TIMEOUT_SECONDS`   | Optional duplicate-preflight similarity LLM request timeout; defaults to `300`                                                      |
+| `SIMILARITY_LLM_MAX_OUTPUT_TOKENS` | Optional duplicate-preflight similarity max output tokens; defaults to `20480`                                                      |
+| `SIMILARITY_LLM_RETRY_ATTEMPTS`    | Optional duplicate-preflight similarity LLM request retry attempts; defaults to `1`                                                 |
+| `SIMILARITY_LLM_RETRY_INITIAL_MS`  | Optional duplicate-preflight similarity LLM request retry initial backoff; defaults to `0`                                          |
+| `SIMILARITY_LLM_RETRY_MAX_MS`      | Optional duplicate-preflight similarity LLM request retry maximum backoff; defaults to `0`                                          |
+| `SIMILARITY_LLM_RETRY_JITTER`      | Optional duplicate-preflight similarity LLM request retry jitter ratio; defaults to `0.0`                                           |
 
 The defaults in `.env.example` already target mainnet (`finney`) and netuid `67`. Validator sandbox execution defaults to `harnyx/harnyx-subnet-sandbox:finney`; set `SANDBOX_IMAGE=harnyx/harnyx-subnet-sandbox:testnet` for staging/testnet, or use another explicit value only when you intentionally want to test or pin a different sandbox image. Validator miner-task execution uses fixed runtime concurrency: 4 concurrent artifact sandboxes and 20 task-attempt slots across active artifacts. Each sandbox retains a one-CPU limit. All validator-owned sandbox processes share at most 4 allowed logical CPUs; validators exposing 4 or fewer CPU IDs use all of them.
 
@@ -101,6 +101,7 @@ bash scripts/operator_logs.sh
 ```
 
 Look for:
+
 - Successful connection to the platform
 - Validator endpoint registration confirmation
 - Miner-task assignments being polled, executed, and submitted
@@ -109,11 +110,11 @@ Look for:
 
 ### Start / Stop / Logs
 
-| Action | Command |
-|--------|---------|
-| Start or update | `bash scripts/operator_up.sh` |
-| View logs | `bash scripts/operator_logs.sh` |
-| Stop | `bash scripts/operator_down.sh` |
+| Action          | Command                         |
+| --------------- | ------------------------------- |
+| Start or update | `bash scripts/operator_up.sh`   |
+| View logs       | `bash scripts/operator_logs.sh` |
+| Stop            | `bash scripts/operator_down.sh` |
 
 ### Auto-updates (Watchtower)
 

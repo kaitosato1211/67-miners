@@ -10,7 +10,10 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
-from harnyx_commons.llm.cost_settlement import settled_response_cost, with_settled_llm_cost
+from harnyx_commons.llm.cost_settlement import (
+    settled_response_cost,
+    with_settled_llm_cost,
+)
 from harnyx_commons.llm.provider import BaseLlmProvider, LlmProviderConfigurationError
 from harnyx_commons.llm.provider_types import AI_GATEWAY_PROVIDER
 from harnyx_commons.llm.providers.openai_chat_codec import OpenAiChatRequestParts
@@ -50,7 +53,9 @@ class AiGatewayLlmProvider(BaseLlmProvider):
         super().__init__(provider_label=AI_GATEWAY_PROVIDER, max_concurrent=None)
         normalized_key = ai_gateway_api_key.get_secret_value().strip()
         if not normalized_key:
-            raise LlmProviderConfigurationError("AI_GATEWAY_API_KEY must be configured to build AI Gateway provider")
+            raise LlmProviderConfigurationError(
+                "AI_GATEWAY_API_KEY must be configured to build AI Gateway provider"
+            )
         self._owns_client = client is None
         self._client = client or build_ai_gateway_client(normalized_key)
         self._chat_completions_url = f"{AI_GATEWAY_BASE_URL}/chat/completions"
@@ -58,7 +63,9 @@ class AiGatewayLlmProvider(BaseLlmProvider):
     async def _invoke(self, request: AbstractLlmRequest) -> LlmResponse:
         model = request.model.strip()
         if model not in AI_GATEWAY_SUPPORTED_MODELS:
-            raise ValueError(f"AI Gateway provider does not support model {request.model!r}")
+            raise ValueError(
+                f"AI Gateway provider does not support model {request.model!r}"
+            )
         return await self._call_with_retry(
             request,
             call_coro=lambda current_request: self._request_chat(
@@ -75,11 +82,15 @@ class AiGatewayLlmProvider(BaseLlmProvider):
         request: AbstractLlmRequest,
         response: LlmResponse,
     ) -> LlmResponse:
-        cost = settled_response_cost(response, provider=AI_GATEWAY_PROVIDER, model=request.model)
+        cost = settled_response_cost(
+            response, provider=AI_GATEWAY_PROVIDER, model=request.model
+        )
         if cost is None:
             self._llm_logger.warning(
                 "ai_gateway.cost_settlement.unavailable",
-                extra={"data": {"provider": AI_GATEWAY_PROVIDER, "model": request.model}},
+                extra={
+                    "data": {"provider": AI_GATEWAY_PROVIDER, "model": request.model}
+                },
             )
             return response
         return with_settled_llm_cost(response, cost)
@@ -117,7 +128,9 @@ class AiGatewayLlmProvider(BaseLlmProvider):
         state = OpenAiStreamState()
         provider_metadata: dict[str, Any] | None = None
         ttft_ms: float | None = None
-        async with self._client.stream("POST", self._chat_completions_url, **request_kwargs) as response:
+        async with self._client.stream(
+            "POST", self._chat_completions_url, **request_kwargs
+        ) as response:
             if response.is_error:
                 await response.aread()
             response.raise_for_status()
@@ -126,7 +139,9 @@ class AiGatewayLlmProvider(BaseLlmProvider):
                 invalid_data_message="AI Gateway chat completions returned non-JSON SSE data",
                 invalid_event_message="AI Gateway chat completions SSE event must be a JSON object",
             ):
-                provider_metadata = _provider_metadata_from_payload(payload) or provider_metadata
+                provider_metadata = (
+                    _provider_metadata_from_payload(payload) or provider_metadata
+                )
                 try:
                     event = _OpenAiStreamEvent.model_validate(payload)
                 except ValidationError as exc:
@@ -137,12 +152,21 @@ class AiGatewayLlmProvider(BaseLlmProvider):
                     ) from exc
                 if state.merge_event(
                     event,
-                    reasoning_keys=("reasoning", "reasoning_content", "reasoning_details"),
+                    reasoning_keys=(
+                        "reasoning",
+                        "reasoning_content",
+                        "reasoning_details",
+                    ),
                     normalize_reasoning_fragment=normalize_openai_reasoning_fragments,
                 ):
                     if ttft_ms is None:
                         ttft_ms = round((time.perf_counter() - started_at) * 1000, 2)
-        return _AiGatewayChatResponse.from_stream_state(state, provider_metadata=provider_metadata), ttft_ms
+        return (
+            _AiGatewayChatResponse.from_stream_state(
+                state, provider_metadata=provider_metadata
+            ),
+            ttft_ms,
+        )
 
     @staticmethod
     def _verify_response(response: LlmResponse) -> tuple[bool, bool, str | None]:
@@ -164,7 +188,11 @@ class AiGatewayLlmProvider(BaseLlmProvider):
             case httpx.HTTPStatusError():
                 status = exc.response.status_code if exc.response else None
                 retryable = status is not None and (status == 429 or status >= 500)
-                detail = _summarize_response(exc.response) if exc.response is not None else ""
+                detail = (
+                    _summarize_response(exc.response)
+                    if exc.response is not None
+                    else ""
+                )
                 if detail:
                     return retryable, f"http_{status}: {detail}"
                 return retryable, f"http_{status}"
@@ -187,7 +215,9 @@ class _AiGatewayChatRequest(BaseModel):
     model: str
     messages: list[dict[str, Any]]
     stream: bool = True
-    stream_options: dict[str, bool] = Field(default_factory=lambda: {"include_usage": True})
+    stream_options: dict[str, bool] = Field(
+        default_factory=lambda: {"include_usage": True}
+    )
     temperature: float | None = None
     max_tokens: int | None = None
     tools: list[dict[str, Any]] | None = None
@@ -196,7 +226,9 @@ class _AiGatewayChatRequest(BaseModel):
     include: list[str] | None = None
     response_format: dict[str, Any] | None = None
     reasoning: dict[str, Any] | None = None
-    provider_options: dict[str, Any] | None = Field(default=None, alias="providerOptions")
+    provider_options: dict[str, Any] | None = Field(
+        default=None, alias="providerOptions"
+    )
 
     @classmethod
     def from_request(cls, request: AbstractLlmRequest) -> _AiGatewayChatRequest:
@@ -211,11 +243,17 @@ class _AiGatewayChatRequest(BaseModel):
         )
         payload = cls(
             model=request.model,
-            messages=[message.model_dump(mode="python", exclude_none=True) for message in request_parts.messages],
+            messages=[
+                message.model_dump(mode="python", exclude_none=True)
+                for message in request_parts.messages
+            ],
             temperature=request.temperature,
             max_tokens=request.max_output_tokens,
             tools=(
-                [tool.model_dump(mode="python", exclude_none=True) for tool in request_parts.tools]
+                [
+                    tool.model_dump(mode="python", exclude_none=True)
+                    for tool in request_parts.tools
+                ]
                 if request_parts.tools
                 else None
             ),
@@ -223,7 +261,9 @@ class _AiGatewayChatRequest(BaseModel):
             parallel_tool_calls=request_parts.parallel_tool_calls,
             include=request_parts.include,
             response_format=(
-                request_parts.response_format.model_dump(mode="python", exclude_none=True)
+                request_parts.response_format.model_dump(
+                    mode="python", exclude_none=True
+                )
                 if request_parts.response_format is not None
                 else None
             ),
@@ -301,7 +341,11 @@ class _AiGatewayChatResponse(BaseModel):
             _AiGatewayChoicePayload.from_choice_state(index=index, state=choice_state)
             for index, choice_state in sorted(state.choices.items())
         ]
-        usage = _AiGatewayUsagePayload.model_validate(state.usage) if state.usage is not None else None
+        usage = (
+            _AiGatewayUsagePayload.model_validate(state.usage)
+            if state.usage is not None
+            else None
+        )
         return cls(
             id=state.response_id,
             choices=choices,
@@ -310,7 +354,9 @@ class _AiGatewayChatResponse(BaseModel):
         )
 
     def raw_payload(self) -> dict[str, Any]:
-        payload = self.model_dump(mode="python", exclude_none=True, exclude={"provider_metadata"})
+        payload = self.model_dump(
+            mode="python", exclude_none=True, exclude={"provider_metadata"}
+        )
         if self.provider_metadata is not None:
             payload["providerMetadata"] = self.provider_metadata
         return payload
@@ -336,7 +382,9 @@ class _AiGatewayChoicePayload(BaseModel):
     finish_reason: str | None = None
 
     @classmethod
-    def from_choice_state(cls, *, index: int, state: OpenAiChoiceState) -> _AiGatewayChoicePayload:
+    def from_choice_state(
+        cls, *, index: int, state: OpenAiChoiceState
+    ) -> _AiGatewayChoicePayload:
         return cls(
             index=index,
             content=state.content_text,
@@ -363,14 +411,18 @@ class _AiGatewayChoicePayload(BaseModel):
 def build_ai_gateway_client(api_key: str) -> httpx.AsyncClient:
     normalized_key = api_key.strip()
     if not normalized_key:
-        raise LlmProviderConfigurationError("AI_GATEWAY_API_KEY must be configured to build AI Gateway provider")
+        raise LlmProviderConfigurationError(
+            "AI_GATEWAY_API_KEY must be configured to build AI Gateway provider"
+        )
     return httpx.AsyncClient(
         base_url=AI_GATEWAY_BASE_URL,
         headers={"Authorization": f"Bearer {normalized_key}"},
     )
 
 
-def _provider_metadata_from_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+def _provider_metadata_from_payload(
+    payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
     provider_metadata = payload.get("providerMetadata")
     if not isinstance(provider_metadata, Mapping):
         provider_metadata = payload.get("provider_metadata")
@@ -413,7 +465,9 @@ def _completion_tokens_excluding_reasoning(
     return max(0, completion_tokens - reasoning_tokens)
 
 
-def _to_llm_tool_calls(state: OpenAiChoiceState) -> tuple[LlmMessageToolCall, ...] | None:
+def _to_llm_tool_calls(
+    state: OpenAiChoiceState,
+) -> tuple[LlmMessageToolCall, ...] | None:
     tool_calls = state.tool_call_values()
     if not tool_calls:
         return None
@@ -496,7 +550,9 @@ def _with_cerebras_gemma_reasoning_option(
 
     cerebras_options = provider_options.get("cerebras", {})
     if not isinstance(cerebras_options, Mapping):
-        raise ValueError("AI Gateway request extra.providerOptions.cerebras must be an object")
+        raise ValueError(
+            "AI Gateway request extra.providerOptions.cerebras must be an object"
+        )
 
     merged_provider_options = dict(provider_options)
     merged_provider_options["cerebras"] = {

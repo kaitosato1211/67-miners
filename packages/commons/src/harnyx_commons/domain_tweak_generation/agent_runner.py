@@ -169,7 +169,10 @@ class DomainTweakAgentRunner:
             except BaseException as exc:
                 update_generation_best_effort(
                     generation,
-                    metadata={"failure_type": type(exc).__name__, "cost_status": "unavailable"},
+                    metadata={
+                        "failure_type": type(exc).__name__,
+                        "cost_status": "unavailable",
+                    },
                     level="ERROR",
                     status_message=type(exc).__name__,
                 )
@@ -247,7 +250,9 @@ class DomainTweakAgentRunner:
             )
         search_capture_state = _WebSearchCaptureState()
         hooks = (
-            _web_search_capture_hooks(tool_set.search_result_registrar, search_capture_state)
+            _web_search_capture_hooks(
+                tool_set.search_result_registrar, search_capture_state
+            )
             if web_search and tool_set.search_result_registrar is not None
             else None
         )
@@ -268,7 +273,10 @@ class DomainTweakAgentRunner:
             skills=[],
             thinking={"type": "adaptive", "display": "summarized"},
             effort=EFFORT,
-            output_format={"type": "json_schema", "schema": output_model.model_json_schema()},
+            output_format={
+                "type": "json_schema",
+                "schema": output_model.model_json_schema(),
+            },
             hooks=hooks,
         )
         validation_repaired = False
@@ -285,10 +293,16 @@ class DomainTweakAgentRunner:
                         result, search_calls = await _receive_result(client)
                         usage = _usage_from_result(result, search_calls=search_calls)
                         attempted_query_costs[-1] = usage.actual_total_cost_usd
-                        total_usage = merge_complete_actual_cost_usage(total_usage, usage)
+                        total_usage = merge_complete_actual_cost_usage(
+                            total_usage, usage
+                        )
                         if search_capture_state.contract_error is not None:
-                            raise _WebSearchContractError(search_capture_state.contract_error)
-                        actual_llm_cost_usd = _strict_sum_attempted_query_costs(attempted_query_costs)
+                            raise _WebSearchContractError(
+                                search_capture_state.contract_error
+                            )
+                        actual_llm_cost_usd = _strict_sum_attempted_query_costs(
+                            attempted_query_costs
+                        )
                         _raise_for_provider_result(
                             stage,
                             result,
@@ -296,17 +310,24 @@ class DomainTweakAgentRunner:
                             actual_llm_cost_usd=actual_llm_cost_usd,
                         )
                         try:
-                            parsed = output_model.model_validate(result.structured_output)
+                            parsed = output_model.model_validate(
+                                result.structured_output
+                            )
                         except ValidationError as exc:
                             defects = _pydantic_defects(exc)
                         else:
-                            defects = tuple(output_validator(parsed)) if output_validator is not None else ()
+                            defects = (
+                                tuple(output_validator(parsed))
+                                if output_validator is not None
+                                else ()
+                            )
                         if defects:
                             if attempt_index == 1:
                                 raise CandidateStageError(
                                     "contract_invalid",
                                     stage,
-                                    "structured output remained invalid after feedback: " + "; ".join(defects),
+                                    "structured output remained invalid after feedback: "
+                                    + "; ".join(defects),
                                     tool_usage=total_usage,
                                     elapsed_ms=(time.perf_counter() - started) * 1000,
                                     actual_llm_cost_usd=actual_llm_cost_usd,
@@ -327,26 +348,34 @@ class DomainTweakAgentRunner:
         except BatchTerminalGenerationError:
             raise
         except TimeoutError as exc:
-            failure_usage = _usage_with_attempted_query_costs(total_usage, attempted_query_costs)
+            failure_usage = _usage_with_attempted_query_costs(
+                total_usage, attempted_query_costs
+            )
             raise CandidateStageError(
                 "transient_provider",
                 stage,
                 f"{stage} timed out",
                 tool_usage=failure_usage,
                 elapsed_ms=(time.perf_counter() - started) * 1000,
-                actual_llm_cost_usd=_strict_sum_attempted_query_costs(attempted_query_costs),
+                actual_llm_cost_usd=_strict_sum_attempted_query_costs(
+                    attempted_query_costs
+                ),
             ) from exc
         except asyncio.CancelledError:
             raise
         except Exception as exc:
-            failure_usage = _usage_with_attempted_query_costs(total_usage, attempted_query_costs)
+            failure_usage = _usage_with_attempted_query_costs(
+                total_usage, attempted_query_costs
+            )
             _raise_classified_exception(
                 stage,
                 exc,
                 client_initialized=client_initialized,
                 elapsed_ms=(time.perf_counter() - started) * 1000,
                 tool_usage=failure_usage,
-                actual_llm_cost_usd=_strict_sum_attempted_query_costs(attempted_query_costs),
+                actual_llm_cost_usd=_strict_sum_attempted_query_costs(
+                    attempted_query_costs
+                ),
             )
         raise AssertionError("stage execution must return or raise")
 
@@ -414,7 +443,10 @@ def _web_search_capture_hooks(
         _tool_use_id: str | None,
         _context: HookContext,
     ) -> SyncHookJSONOutput:
-        if hook_input["hook_event_name"] != "PostToolUse" or hook_input["tool_name"] != "WebSearch":
+        if (
+            hook_input["hook_event_name"] != "PostToolUse"
+            or hook_input["tool_name"] != "WebSearch"
+        ):
             return {}
         try:
             additional_context = registrar(hook_input["tool_response"])
@@ -430,7 +462,9 @@ def _web_search_capture_hooks(
                 }
             }
         if not additional_context:
-            raise _WebSearchContractError("WebSearch result registrar returned empty context")
+            raise _WebSearchContractError(
+                "WebSearch result registrar returned empty context"
+            )
         return {
             "hookSpecificOutput": {
                 "hookEventName": "PostToolUse",
@@ -450,7 +484,9 @@ async def _receive_result(client: ClaudeSDKClient) -> tuple[ResultMessage, int]:
                 1
                 for block in message.content
                 if (isinstance(block, ToolUseBlock) and block.name == "WebSearch")
-                or (isinstance(block, ServerToolUseBlock) and block.name == "web_search")
+                or (
+                    isinstance(block, ServerToolUseBlock) and block.name == "web_search"
+                )
             )
         if isinstance(message, ResultMessage):
             result = message
@@ -461,7 +497,8 @@ async def _receive_result(client: ClaudeSDKClient) -> tuple[ResultMessage, int]:
 
 def _pydantic_defects(error: ValidationError) -> tuple[str, ...]:
     defects = tuple(
-        f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in error.errors(include_url=False)
+        f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}"
+        for item in error.errors(include_url=False)
     )
     return defects
 
@@ -476,7 +513,10 @@ def _validation_feedback(defects: Sequence[str], output_model: type[BaseModel]) 
     return (
         "Your previous structured output violated the required contract. Correct only these concrete defects and "
         "return a complete replacement object. Do not restart research or change supported facts.\n"
-        + json.dumps({"defects": bounded_defects, "schema": output_model.model_json_schema()}, ensure_ascii=False)
+        + json.dumps(
+            {"defects": bounded_defects, "schema": output_model.model_json_schema()},
+            ensure_ascii=False,
+        )
     )
 
 
@@ -492,7 +532,8 @@ def _usage_from_result(result: ResultMessage, *, search_calls: int) -> ToolUsage
         )
     except ValidationError as exc:
         raise _AgentSDKResultContractError(
-            "Agent SDK result accounting contract invalid: " + "; ".join(_pydantic_defects(exc))
+            "Agent SDK result accounting contract invalid: "
+            + "; ".join(_pydantic_defects(exc))
         ) from exc
 
     raw_usage = accounting.usage
@@ -500,7 +541,9 @@ def _usage_from_result(result: ResultMessage, *, search_calls: int) -> ToolUsage
     completion_tokens = raw_usage.output_tokens if raw_usage is not None else 0
     reported_total_tokens = raw_usage.total_tokens if raw_usage is not None else None
     total_tokens = reported_total_tokens or prompt_tokens + completion_tokens
-    reasoning_tokens = (raw_usage.reasoning_tokens if raw_usage is not None else None) or 0
+    reasoning_tokens = (
+        raw_usage.reasoning_tokens if raw_usage is not None else None
+    ) or 0
     actual_cost = accounting.total_cost_usd
     call_count = accounting.num_turns
     totals = LlmUsageTotals(
@@ -540,7 +583,9 @@ def _usage_with_attempted_query_costs(
     usage: ToolUsageSummary,
     attempted_query_costs: Sequence[float | None],
 ) -> ToolUsageSummary:
-    if not attempted_query_costs or all(cost is not None for cost in attempted_query_costs):
+    if not attempted_query_costs or all(
+        cost is not None for cost in attempted_query_costs
+    ):
         return usage
     return merge_complete_actual_cost_usage(usage, ToolUsageSummary.zero())
 
@@ -650,7 +695,13 @@ def _raise_classified_exception(
         "sdk_or_provider_configuration"
         if isinstance(
             exc,
-            (ClaudeSDKError, ImportError, TypeError, _AgentSDKResultContractError, _WebSearchContractError),
+            (
+                ClaudeSDKError,
+                ImportError,
+                TypeError,
+                _AgentSDKResultContractError,
+                _WebSearchContractError,
+            ),
         )
         or _looks_batch_terminal(message)
         else "unexpected_sdk_failure"

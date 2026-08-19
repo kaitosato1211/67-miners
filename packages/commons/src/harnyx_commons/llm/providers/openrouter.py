@@ -22,7 +22,9 @@ from harnyx_commons.llm.tool_models import MINER_SELECTED_LLM_PROVIDER_MODELS
 OPENROUTER_ENDPOINT_ID = "openrouter"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 logger = logging.getLogger(__name__)
-OPENROUTER_NATIVE_SUPPORTED_MODELS = MINER_SELECTED_LLM_PROVIDER_MODELS[OPENROUTER_PROVIDER]
+OPENROUTER_NATIVE_SUPPORTED_MODELS = MINER_SELECTED_LLM_PROVIDER_MODELS[
+    OPENROUTER_PROVIDER
+]
 OPENROUTER_EMBEDDING_SUPPORTED_MODELS = ("qwen/qwen3-embedding-8b",)
 OPENROUTER_INTERNAL_TO_NATIVE_MODEL: Mapping[str, str] = {
     "deepseek-ai/DeepSeek-V3.2-TEE": "deepseek/deepseek-v3.2",
@@ -33,11 +35,15 @@ OPENROUTER_INTERNAL_TO_NATIVE_MODEL: Mapping[str, str] = {
 }
 OPENROUTER_INTERNAL_SUPPORTED_MODELS = tuple(OPENROUTER_INTERNAL_TO_NATIVE_MODEL)
 OPENROUTER_SUPPORTED_MODELS = tuple(
-    dict.fromkeys((*OPENROUTER_NATIVE_SUPPORTED_MODELS, *OPENROUTER_INTERNAL_SUPPORTED_MODELS))
+    dict.fromkeys(
+        (*OPENROUTER_NATIVE_SUPPORTED_MODELS, *OPENROUTER_INTERNAL_SUPPORTED_MODELS)
+    )
 )
 
 
-OpenRouterChatProviderFactory = Callable[[str], tuple[OpenAiCompatibleLlmProvider, httpx.AsyncClient]]
+OpenRouterChatProviderFactory = Callable[
+    [str], tuple[OpenAiCompatibleLlmProvider, httpx.AsyncClient]
+]
 
 
 class _OpenRouterEmbeddingDatum(BaseModel):
@@ -94,7 +100,9 @@ class OpenRouterEmbeddingClient:
     def __post_init__(self) -> None:
         normalized_model = self.model.strip()
         if normalized_model not in OPENROUTER_EMBEDDING_SUPPORTED_MODELS:
-            raise ValueError(f"OpenRouter embedding provider does not support model {self.model!r}")
+            raise ValueError(
+                f"OpenRouter embedding provider does not support model {self.model!r}"
+            )
         api_key_value = self.api_key.get_secret_value().strip()
         if not api_key_value:
             raise ValueError("OpenRouter API key must be provided for embeddings")
@@ -126,7 +134,9 @@ class OpenRouterEmbeddingClient:
         response = await self._require_client().post(
             "embeddings",
             json=self._request_body(normalized, extra=extra),
-            timeout=self.timeout_seconds if timeout_seconds is None else timeout_seconds,
+            timeout=(
+                self.timeout_seconds if timeout_seconds is None else timeout_seconds
+            ),
         )
         response.raise_for_status()
         payload = _OpenRouterEmbeddingResponse.model_validate(response.json())
@@ -134,7 +144,9 @@ class OpenRouterEmbeddingClient:
             enumerate(payload.data),
             key=lambda item: item[1].index if item[1].index is not None else item[0],
         )
-        vectors = tuple(tuple(float(value) for value in item.embedding) for _, item in ordered)
+        vectors = tuple(
+            tuple(float(value) for value in item.embedding) for _, item in ordered
+        )
         for vector in vectors:
             if self.dimensions is not None and len(vector) != self.dimensions:
                 raise RuntimeError(
@@ -159,7 +171,9 @@ class OpenRouterEmbeddingClient:
         if self._owns_client:
             await self._require_client().aclose()
 
-    def _request_body(self, texts: Sequence[str], *, extra: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    def _request_body(
+        self, texts: Sequence[str], *, extra: Mapping[str, Any] | None = None
+    ) -> dict[str, Any]:
         input_value: str | list[str]
         if len(texts) == 1:
             input_value = texts[0]
@@ -189,16 +203,22 @@ class OpenRouterLlmProvider(LlmProviderPort):
         openrouter_chat_provider_factory: OpenRouterChatProviderFactory | None = None,
     ) -> None:
         self._openrouter_api_key = openrouter_api_key
-        self._openrouter_chat_provider_factory = openrouter_chat_provider_factory or build_openrouter_chat_provider
+        self._openrouter_chat_provider_factory = (
+            openrouter_chat_provider_factory or build_openrouter_chat_provider
+        )
         self._openrouter_provider: OpenAiCompatibleLlmProvider | None = None
         self._openrouter_client: httpx.AsyncClient | None = None
 
     async def invoke(self, request: AbstractLlmRequest) -> LlmResponse:
         model = request.model.strip()
         if model not in OPENROUTER_SUPPORTED_MODELS:
-            raise ValueError(f"OpenRouter provider does not support model {request.model!r}")
+            raise ValueError(
+                f"OpenRouter provider does not support model {request.model!r}"
+            )
         openrouter_provider = self._ensure_openrouter_provider(model=model)
-        response = await openrouter_provider.invoke(self._openrouter_request(request, model=model))
+        response = await openrouter_provider.invoke(
+            self._openrouter_request(request, model=model)
+        )
         metadata = dict(response.metadata or {})
         metadata["effective_provider"] = OPENROUTER_PROVIDER
         metadata["effective_model"] = model
@@ -238,7 +258,9 @@ class OpenRouterLlmProvider(LlmProviderPort):
         self._openrouter_client = client
         return provider
 
-    def _openrouter_request(self, request: AbstractLlmRequest, *, model: str) -> AbstractLlmRequest:
+    def _openrouter_request(
+        self, request: AbstractLlmRequest, *, model: str
+    ) -> AbstractLlmRequest:
         extra = dict(request.extra or {})
         thinking = resolve_request_thinking(
             request_thinking=request.thinking,
@@ -253,10 +275,14 @@ class OpenRouterLlmProvider(LlmProviderPort):
         )
 
 
-def build_openrouter_chat_provider(api_key: str) -> tuple[OpenAiCompatibleLlmProvider, httpx.AsyncClient]:
+def build_openrouter_chat_provider(
+    api_key: str,
+) -> tuple[OpenAiCompatibleLlmProvider, httpx.AsyncClient]:
     normalized_key = api_key.strip()
     if not normalized_key:
-        raise LlmProviderConfigurationError("OPENROUTER_API_KEY must be configured to build OpenRouter provider")
+        raise LlmProviderConfigurationError(
+            "OPENROUTER_API_KEY must be configured to build OpenRouter provider"
+        )
     client = httpx.AsyncClient(
         base_url=OPENROUTER_BASE_URL,
         headers={
@@ -271,11 +297,14 @@ def build_openrouter_chat_provider(api_key: str) -> tuple[OpenAiCompatibleLlmPro
             "auth": {"type": "none"},
         }
     )
-    return OpenAiCompatibleLlmProvider(
-        endpoint=endpoint,
-        client=client,
-        response_metadata_extractor=_openrouter_response_metadata,
-    ), client
+    return (
+        OpenAiCompatibleLlmProvider(
+            endpoint=endpoint,
+            client=client,
+            response_metadata_extractor=_openrouter_response_metadata,
+        ),
+        client,
+    )
 
 
 class _OpenRouterEndpointMetadata(BaseModel):
@@ -317,7 +346,9 @@ def _openrouter_routing_evidence(raw_response: object) -> JsonObject:
     response_payload = cast(Mapping[str, object], raw_response)
 
     try:
-        provider_request_id = _OpenRouterResponseIdentity.model_validate(response_payload).id
+        provider_request_id = _OpenRouterResponseIdentity.model_validate(
+            response_payload
+        ).id
     except ValidationError:
         logger.warning("OpenRouter response identity is malformed")
         provider_request_id = None
@@ -341,7 +372,11 @@ def _openrouter_routing_evidence(raw_response: object) -> JsonObject:
     selected_endpoint = None
     if router_metadata.endpoints is not None:
         selected_endpoint = next(
-            (endpoint for endpoint in router_metadata.endpoints.available if endpoint.selected),
+            (
+                endpoint
+                for endpoint in router_metadata.endpoints.available
+                if endpoint.selected
+            ),
             None,
         )
     if selected_endpoint is None:

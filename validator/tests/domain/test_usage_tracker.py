@@ -67,12 +67,16 @@ def test_usage_tracker_records_matching_actual_cost_for_session_cost() -> None:
     assert updated.usage.total_cost_usd == pytest.approx(0.03)
     assert updated.usage.reference_total_cost_usd == pytest.approx(0.03)
     assert updated.usage.cost_by_provider == {"openrouter": pytest.approx(0.03)}
-    assert updated.usage.reference_cost_by_provider == {"openrouter": pytest.approx(0.03)}
+    assert updated.usage.reference_cost_by_provider == {
+        "openrouter": pytest.approx(0.03)
+    }
     assert updated.usage.actual_total_cost_usd == pytest.approx(0.03)
     assert updated.usage.actual_cost_by_provider == {"openrouter": pytest.approx(0.03)}
 
 
-def test_usage_tracker_accumulates_one_cost_space_for_cost_only_and_actual_cost_calls() -> None:
+def test_usage_tracker_accumulates_one_cost_space_for_cost_only_and_actual_cost_calls() -> (
+    None
+):
     tracker = UsageTracker()
     session = make_session(budget_usd=0.2)
     first = tracker.record_tool_call(
@@ -84,7 +88,9 @@ def test_usage_tracker_accumulates_one_cost_space_for_cost_only_and_actual_cost_
         actual_cost_provider="parallel",
     )
 
-    second = tracker.record_tool_call(first, tool_name="llm_chat", llm_tokens=10, cost_usd=0.02)
+    second = tracker.record_tool_call(
+        first, tool_name="llm_chat", llm_tokens=10, cost_usd=0.02
+    )
 
     assert second.usage.total_cost_usd == pytest.approx(0.025)
     assert second.usage.reference_total_cost_usd == pytest.approx(0.025)
@@ -167,7 +173,9 @@ def test_session_usage_normalizes_reference_fields_to_session_cost() -> None:
     assert usage.reference_cost_by_provider == {"parallel": pytest.approx(0.005)}
 
 
-def test_session_usage_update_keeps_reference_fields_aligned_with_updated_session_cost() -> None:
+def test_session_usage_update_keeps_reference_fields_aligned_with_updated_session_cost() -> (
+    None
+):
     usage = SessionUsage(
         total_cost_usd=0.0,
         cost_by_provider={"openrouter": 0.0},
@@ -188,7 +196,9 @@ def test_session_usage_update_keeps_reference_fields_aligned_with_updated_sessio
     assert updated.reference_cost_by_provider == {"parallel": pytest.approx(0.006)}
 
 
-def test_session_usage_update_ignores_legacy_reference_arguments_for_session_cost_aliases() -> None:
+def test_session_usage_update_ignores_legacy_reference_arguments_for_session_cost_aliases() -> (
+    None
+):
     usage = SessionUsage(
         total_cost_usd=0.005,
         cost_by_provider={"parallel": 0.005},
@@ -212,10 +222,14 @@ def test_session_usage_update_ignores_legacy_reference_arguments_for_session_cos
 def test_usage_tracker_records_completed_call_even_when_it_exhausts_budget() -> None:
     tracker = UsageTracker()
     session = make_session(budget_usd=0.05)
-    first = tracker.record_tool_call(session, tool_name="llm_chat", llm_tokens=50, cost_usd=0.04)
+    first = tracker.record_tool_call(
+        session, tool_name="llm_chat", llm_tokens=50, cost_usd=0.04
+    )
     assert first.usage.total_cost_usd == pytest.approx(0.04)
 
-    second = tracker.record_tool_call(first, tool_name="search_web", llm_tokens=50, cost_usd=0.02)
+    second = tracker.record_tool_call(
+        first, tool_name="search_web", llm_tokens=50, cost_usd=0.02
+    )
 
     assert second.usage.total_cost_usd == pytest.approx(0.06)
 
@@ -225,10 +239,14 @@ def test_usage_tracker_rejects_calls_when_session_inactive() -> None:
     session = make_session(budget_usd=0.1).mark_exhausted()
 
     with pytest.raises(BudgetExceededError):
-        tracker.record_tool_call(session, tool_name="search_web", llm_tokens=10, cost_usd=0.01)
+        tracker.record_tool_call(
+            session, tool_name="search_web", llm_tokens=10, cost_usd=0.01
+        )
 
 
-def test_usage_tracker_keeps_actual_total_unavailable_after_unknown_provider_cost() -> None:
+def test_usage_tracker_keeps_actual_total_unavailable_after_unknown_provider_cost() -> (
+    None
+):
     tracker = UsageTracker()
     session = make_session(budget_usd=0.1)
 
@@ -244,7 +262,9 @@ def test_usage_tracker_keeps_actual_total_unavailable_after_unknown_provider_cos
     assert updated.usage.actual_cost_by_provider == {}
 
 
-def test_usage_tracker_allows_usage_past_soft_budget_when_hard_limit_is_higher() -> None:
+def test_usage_tracker_allows_usage_past_soft_budget_when_hard_limit_is_higher() -> (
+    None
+):
     tracker = UsageTracker()
     session = make_session(budget_usd=0.5, hard_limit_usd=1.0)
 

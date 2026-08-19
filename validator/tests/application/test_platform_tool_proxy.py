@@ -8,7 +8,9 @@ from uuid import uuid4
 import pytest
 
 from harnyx_commons.domain.tool_call import ToolExecutionFacts
-from harnyx_commons.tools.executor import ToolInvocationContext as _ToolInvocationContext
+from harnyx_commons.tools.executor import (
+    ToolInvocationContext as _ToolInvocationContext,
+)
 from harnyx_validator.application.platform_tool_proxy import (
     PLATFORM_TOOL_PROXY_EXECUTE_TRANSPORT_TIMEOUT_SECONDS,
     PlatformToolProxyProxyToolInvoker,
@@ -86,7 +88,9 @@ class _RecordingPlatformToolProxyPlatform:
                 "assignment_token": assignment_token,
             }
         )
-        return PlatformToolProxyGrant(token=token, expires_at=datetime.now(UTC) + timedelta(minutes=5))
+        return PlatformToolProxyGrant(
+            token=token, expires_at=datetime.now(UTC) + timedelta(minutes=5)
+        )
 
     async def execute_platform_tool_proxy_tool(
         self,
@@ -131,7 +135,9 @@ class _RecordingPlatformToolProxyPlatform:
         )
 
 
-async def test_platform_tool_proxy_proxy_forwards_provider_tool_with_session_scope() -> None:
+async def test_platform_tool_proxy_proxy_forwards_provider_tool_with_session_scope() -> (
+    None
+):
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -171,11 +177,11 @@ async def test_platform_tool_proxy_proxy_forwards_provider_tool_with_session_sco
             "batch_id": batch_id,
             "artifact_id": artifact_id,
             "task_id": task_id,
-                "validator_session_id": session_id,
-                "attempt_number": 2,
-                "assignment_token": _ASSIGNMENT_TOKEN,
-            }
-        ]
+            "validator_session_id": session_id,
+            "attempt_number": 2,
+            "assignment_token": _ASSIGNMENT_TOKEN,
+        }
+    ]
     call = platform.calls[0]
     receipt_id = call["receipt_id"]
     receipt_started_at = call["receipt_started_at"]
@@ -205,7 +211,9 @@ async def test_platform_tool_proxy_proxy_forwards_provider_tool_with_session_sco
     assert scope.grants_by_attempt[2].token == f"{_GRANT_VALUE}-2"
 
 
-async def test_platform_tool_proxy_successful_proxy_call_restores_attempt_phase() -> None:
+async def test_platform_tool_proxy_successful_proxy_call_restores_attempt_phase() -> (
+    None
+):
     """Keep later sandbox timeouts attributed to miner invocation after a successful tool call."""
 
     batch_id = uuid4()
@@ -224,7 +232,9 @@ async def test_platform_tool_proxy_successful_proxy_call_restores_attempt_phase(
     )
     invoker = PlatformToolProxyProxyToolInvoker(
         local_invoker=_RecordingLocalInvoker(),
-        platform_tool_proxy_platform=_RecordingPlatformToolProxyPlatform(calls=[], grants=[]),
+        platform_tool_proxy_platform=_RecordingPlatformToolProxyPlatform(
+            calls=[], grants=[]
+        ),
         scopes=scopes,
     )
 
@@ -287,7 +297,9 @@ async def test_platform_tool_proxy_proxy_uses_fixed_execute_transport_timeout() 
     assert platform.calls[0]["transport_timeout_seconds"] > 1.0
 
 
-async def test_platform_tool_proxy_proxy_serializes_concurrent_first_grant_creation() -> None:
+async def test_platform_tool_proxy_proxy_serializes_concurrent_first_grant_creation() -> (
+    None
+):
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -300,7 +312,9 @@ async def test_platform_tool_proxy_proxy_serializes_concurrent_first_grant_creat
         task_id=task_id,
         assignment_token=_ASSIGNMENT_TOKEN,
     )
-    platform = _RecordingPlatformToolProxyPlatform(calls=[], grants=[], grant_delay_seconds=0.01)
+    platform = _RecordingPlatformToolProxyPlatform(
+        calls=[], grants=[], grant_delay_seconds=0.01
+    )
     invoker = PlatformToolProxyProxyToolInvoker(
         local_invoker=_RecordingLocalInvoker(),
         platform_tool_proxy_platform=platform,
@@ -327,7 +341,9 @@ async def test_platform_tool_proxy_proxy_serializes_concurrent_first_grant_creat
     assert platform.grants[0]["attempt_number"] == 1
 
 
-async def test_platform_tool_proxy_proxy_rejects_expired_cached_token_without_reissue() -> None:
+async def test_platform_tool_proxy_proxy_rejects_expired_cached_token_without_reissue() -> (
+    None
+):
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -408,10 +424,15 @@ async def test_platform_tool_proxy_proxy_mints_new_grant_for_later_attempt() -> 
         )
 
     assert [grant["attempt_number"] for grant in platform.grants] == [1, 2]
-    assert [call["token"] for call in platform.calls] == [f"{_GRANT_VALUE}-1", f"{_GRANT_VALUE}-2"]
+    assert [call["token"] for call in platform.calls] == [
+        f"{_GRANT_VALUE}-1",
+        f"{_GRANT_VALUE}-2",
+    ]
 
 
-async def test_platform_tool_proxy_proxy_allows_later_attempt_after_earlier_attempt_token_expires() -> None:
+async def test_platform_tool_proxy_proxy_allows_later_attempt_after_earlier_attempt_token_expires() -> (
+    None
+):
     batch_id = uuid4()
     expired_session_id = uuid4()
     session_id = uuid4()
@@ -513,7 +534,9 @@ async def test_platform_tool_proxy_missing_context_preserves_denied_metadata() -
     assert platform.calls == []
 
 
-async def test_platform_tool_proxy_proxy_forwards_invalid_provider_selection_to_platform() -> None:
+async def test_platform_tool_proxy_proxy_forwards_invalid_provider_selection_to_platform() -> (
+    None
+):
     batch_id = uuid4()
     session_id = uuid4()
     artifact_id = uuid4()
@@ -548,8 +571,15 @@ async def test_platform_tool_proxy_proxy_forwards_invalid_provider_selection_to_
     assert len(platform.calls) == 1
     call = platform.calls[0]
     assert call["tool"] == "search_web"
-    assert call["kwargs"] == {"provider": "chutes", "search_queries": ["harnyx"], "timeout": 3.5}
-    assert call["transport_timeout_seconds"] == PLATFORM_TOOL_PROXY_EXECUTE_TRANSPORT_TIMEOUT_SECONDS
+    assert call["kwargs"] == {
+        "provider": "chutes",
+        "search_queries": ["harnyx"],
+        "timeout": 3.5,
+    }
+    assert (
+        call["transport_timeout_seconds"]
+        == PLATFORM_TOOL_PROXY_EXECUTE_TRANSPORT_TIMEOUT_SECONDS
+    )
 
 
 async def test_platform_tool_proxy_proxy_keeps_local_tools_local() -> None:

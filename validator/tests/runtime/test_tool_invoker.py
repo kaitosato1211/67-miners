@@ -20,7 +20,9 @@ from harnyx_commons.llm.schema import (
     LlmResponse,
     LlmUsage,
 )
-from harnyx_commons.platform_tool_proxy import platform_tool_proxy_provider_timeout_seconds
+from harnyx_commons.platform_tool_proxy import (
+    platform_tool_proxy_provider_timeout_seconds,
+)
 from harnyx_commons.tools.embedding_models import (
     QWEN3_CHUTES_EMBEDDING_MODEL,
     QWEN3_OPENROUTER_EMBEDDING_MODEL,
@@ -31,7 +33,10 @@ from harnyx_commons.tools.embedding_models import (
 )
 from harnyx_commons.tools.executor import ToolInvocationContext, ToolInvocationOutput
 from harnyx_commons.tools.ports import EmbeddingProviderResult
-from harnyx_commons.tools.provider_billing import ProviderBillingMetadata, SearchProviderResult
+from harnyx_commons.tools.provider_billing import (
+    ProviderBillingMetadata,
+    SearchProviderResult,
+)
 from harnyx_commons.tools.runtime_invoker import (
     DEFAULT_EMBEDDING_TOOL_TIMEOUT_SECONDS,
     DEFAULT_SEARCH_TOOL_TIMEOUT_SECONDS,
@@ -78,9 +83,9 @@ def test_effective_tool_timeout_uses_request_timeout_then_runtime_default() -> N
         "model": CHUTES_TOOL_MODEL,
         "messages": [{"role": "user", "content": "hi"}],
     }
-    assert effective_tool_timeout_seconds("llm_chat", args=(), kwargs=llm_kwargs) == pytest.approx(
-        DEFAULT_TOOL_LLM_TIMEOUT_SECONDS
-    )
+    assert effective_tool_timeout_seconds(
+        "llm_chat", args=(), kwargs=llm_kwargs
+    ) == pytest.approx(DEFAULT_TOOL_LLM_TIMEOUT_SECONDS)
     assert effective_tool_timeout_seconds(
         "llm_chat",
         args=(),
@@ -94,7 +99,12 @@ def test_effective_tool_timeout_uses_request_timeout_then_runtime_default() -> N
     assert effective_tool_timeout_seconds(
         "embed_text",
         args=(),
-        kwargs={"provider": "chutes", "texts": ["harnyx"], "input_type": "query", "timeout": 9},
+        kwargs={
+            "provider": "chutes",
+            "texts": ["harnyx"],
+            "input_type": "query",
+            "timeout": 9,
+        },
     ) == pytest.approx(9.0)
 
 
@@ -135,10 +145,18 @@ class StubDeSearchClient:
             ]
         )
         self.fetch_page_response = FetchPageResponse(
-            data=[{"url": "https://example.com", "content": "page text", "title": "Example"}]
+            data=[
+                {
+                    "url": "https://example.com",
+                    "content": "page text",
+                    "title": "Example",
+                }
+            ]
         )
 
-    def _result(self, request: object, response: Any, *, billable_units: int) -> SearchProviderResult[Any]:
+    def _result(
+        self, request: object, response: Any, *, billable_units: int
+    ) -> SearchProviderResult[Any]:
         provider = getattr(request, "provider", None)
         provider_name = provider if isinstance(provider, str) else "desearch"
         return SearchProviderResult(
@@ -148,25 +166,43 @@ class StubDeSearchClient:
                 actual_cost_usd=self.actual_cost_usd,
                 billable_units=billable_units,
                 provider_request_id="provider-request-id",
-                source="response_results" if provider_name == "parallel" else "response_headers",
+                source=(
+                    "response_results"
+                    if provider_name == "parallel"
+                    else "response_headers"
+                ),
             ),
         )
 
-    async def search_web(self, request: SearchWebSearchRequest) -> SearchProviderResult[SearchWebSearchResponse]:
+    async def search_web(
+        self, request: SearchWebSearchRequest
+    ) -> SearchProviderResult[SearchWebSearchResponse]:
         data = request.model_dump(exclude_none=True, exclude={"provider"})
         self.calls.append(("web", data))
         response = SearchWebSearchResponse(data=[])
         return self._result(request, response, billable_units=len(response.data))
 
-    async def search_ai(self, request: SearchAiSearchRequest) -> SearchProviderResult[SearchAiSearchResponse]:
+    async def search_ai(
+        self, request: SearchAiSearchRequest
+    ) -> SearchProviderResult[SearchAiSearchResponse]:
         data = request.model_dump(exclude_none=True, exclude={"provider"})
         self.calls.append(("search_ai", data))
-        return self._result(request, self.search_ai_response, billable_units=len(self.search_ai_response.data))
+        return self._result(
+            request,
+            self.search_ai_response,
+            billable_units=len(self.search_ai_response.data),
+        )
 
-    async def fetch_page(self, request: FetchPageRequest) -> SearchProviderResult[FetchPageResponse]:
+    async def fetch_page(
+        self, request: FetchPageRequest
+    ) -> SearchProviderResult[FetchPageResponse]:
         data = request.model_dump(exclude_none=True, exclude={"provider"})
         self.calls.append(("fetch_page", data))
-        return self._result(request, self.fetch_page_response, billable_units=len(self.fetch_page_response.data))
+        return self._result(
+            request,
+            self.fetch_page_response,
+            billable_units=len(self.fetch_page_response.data),
+        )
 
     async def aclose(self) -> None:
         return None
@@ -188,7 +224,9 @@ class CostedSearchClient(StubDeSearchClient):
         self,
         request: SearchWebSearchRequest,
     ) -> SearchProviderResult[SearchWebSearchResponse]:
-        self.calls.append(("web", request.model_dump(exclude_none=True, exclude={"provider"})))
+        self.calls.append(
+            ("web", request.model_dump(exclude_none=True, exclude={"provider"}))
+        )
         response = SearchWebSearchResponse(
             data=[
                 {
@@ -205,7 +243,9 @@ class CostedSearchClient(StubDeSearchClient):
         self,
         request: SearchAiSearchRequest,
     ) -> SearchProviderResult[SearchAiSearchResponse]:
-        self.calls.append(("search_ai", request.model_dump(exclude_none=True, exclude={"provider"})))
+        self.calls.append(
+            ("search_ai", request.model_dump(exclude_none=True, exclude={"provider"}))
+        )
         response = SearchAiSearchResponse(
             data=[
                 {
@@ -222,19 +262,31 @@ class CostedSearchClient(StubDeSearchClient):
         self,
         request: FetchPageRequest,
     ) -> SearchProviderResult[FetchPageResponse]:
-        self.calls.append(("fetch_page", request.model_dump(exclude_none=True, exclude={"provider"})))
-        response = FetchPageResponse(data=[{"url": request.url, "content": "page text", "title": "Example"}])
+        self.calls.append(
+            ("fetch_page", request.model_dump(exclude_none=True, exclude={"provider"}))
+        )
+        response = FetchPageResponse(
+            data=[{"url": request.url, "content": "page text", "title": "Example"}]
+        )
         return self._result(request, response, billable_units=len(response.data))
 
 
 class SlowFetchPageClient(StubDeSearchClient):
-    async def fetch_page(self, request: FetchPageRequest) -> SearchProviderResult[FetchPageResponse]:
+    async def fetch_page(
+        self, request: FetchPageRequest
+    ) -> SearchProviderResult[FetchPageResponse]:
         await asyncio.sleep(1.0)
-        return self._result(request, self.fetch_page_response, billable_units=len(self.fetch_page_response.data))
+        return self._result(
+            request,
+            self.fetch_page_response,
+            billable_units=len(self.fetch_page_response.data),
+        )
 
 
 class SlowSearchWebClient(StubDeSearchClient):
-    async def search_web(self, request: SearchWebSearchRequest) -> SearchProviderResult[SearchWebSearchResponse]:
+    async def search_web(
+        self, request: SearchWebSearchRequest
+    ) -> SearchProviderResult[SearchWebSearchResponse]:
         await asyncio.sleep(1.0)
         response = SearchWebSearchResponse(data=[])
         return self._result(request, response, billable_units=len(response.data))
@@ -246,7 +298,9 @@ class CancellableSearchWebClient(StubDeSearchClient):
         self.started = asyncio.Event()
         self.cancelled = asyncio.Event()
 
-    async def search_web(self, request: SearchWebSearchRequest) -> SearchProviderResult[SearchWebSearchResponse]:
+    async def search_web(
+        self, request: SearchWebSearchRequest
+    ) -> SearchProviderResult[SearchWebSearchResponse]:
         self.started.set()
         try:
             await asyncio.sleep(60.0)
@@ -258,26 +312,38 @@ class CancellableSearchWebClient(StubDeSearchClient):
 
 
 class ProviderTimeoutSearchWebClient(StubDeSearchClient):
-    async def search_web(self, request: SearchWebSearchRequest) -> SearchProviderResult[SearchWebSearchResponse]:
+    async def search_web(
+        self, request: SearchWebSearchRequest
+    ) -> SearchProviderResult[SearchWebSearchResponse]:
         raise TimeoutError("provider timed out")
 
 
 def _raise_provider_response_validation_error() -> None:
-    FetchPageResponse.model_validate({"data": [{"url": "https://example.com", "content": ""}]})
+    FetchPageResponse.model_validate(
+        {"data": [{"url": "https://example.com", "content": ""}]}
+    )
     raise AssertionError("invalid provider response unexpectedly validated")
 
 
 class ResponseValidationFetchPageClient(StubDeSearchClient):
-    async def fetch_page(self, request: FetchPageRequest) -> SearchProviderResult[FetchPageResponse]:
+    async def fetch_page(
+        self, request: FetchPageRequest
+    ) -> SearchProviderResult[FetchPageResponse]:
         data = request.model_dump(exclude_none=True, exclude={"provider"})
         self.calls.append(("fetch_page", data))
         _raise_provider_response_validation_error()
 
 
 class SlowSearchAiClient(StubDeSearchClient):
-    async def search_ai(self, request: SearchAiSearchRequest) -> SearchProviderResult[SearchAiSearchResponse]:
+    async def search_ai(
+        self, request: SearchAiSearchRequest
+    ) -> SearchProviderResult[SearchAiSearchResponse]:
         await asyncio.sleep(1.0)
-        return self._result(request, self.search_ai_response, billable_units=len(self.search_ai_response.data))
+        return self._result(
+            request,
+            self.search_ai_response,
+            billable_units=len(self.search_ai_response.data),
+        )
 
 
 class StubChutesProvider:
@@ -477,7 +543,9 @@ class StubEmbeddingProvider:
         )
         return EmbeddingProviderResult(
             response=response,
-            actual_cost_usd=price_embedding(request.provider, request.model, input_tokens=8),
+            actual_cost_usd=price_embedding(
+                request.provider, request.model, input_tokens=8
+            ),
             actual_cost_provider=request.provider,
             actual_cost_evidence={"settlement_source": "static_pricing"},
         )
@@ -541,7 +609,9 @@ async def test_runtime_invoker_routes_search_payload() -> None:
     ]
 
 
-async def test_runtime_invoker_uses_search_provider_resolver_for_requested_provider() -> None:
+async def test_runtime_invoker_uses_search_provider_resolver_for_requested_provider() -> (
+    None
+):
     configured_client = StubDeSearchClient()
     parallel_client = StubDeSearchClient()
     resolved_providers: list[str] = []
@@ -586,7 +656,9 @@ async def test_runtime_invoker_uses_search_provider_resolver_for_requested_provi
     assert configured_client.calls == []
 
 
-async def test_runtime_invoker_search_provider_resolver_failure_does_not_fall_back_to_configured_provider() -> None:
+async def test_runtime_invoker_search_provider_resolver_failure_does_not_fall_back_to_configured_provider() -> (
+    None
+):
     configured_client = StubDeSearchClient()
 
     def resolve_search_provider(
@@ -604,7 +676,9 @@ async def test_runtime_invoker_search_provider_resolver_failure_does_not_fall_ba
         allowed_models=ALLOWED_TOOL_MODELS,
     )
 
-    with pytest.raises(ToolProviderError, match="selected miner search credential missing"):
+    with pytest.raises(
+        ToolProviderError, match="selected miner search credential missing"
+    ):
         await _invoke(
             invoker,
             "search_web",
@@ -616,7 +690,9 @@ async def test_runtime_invoker_search_provider_resolver_failure_does_not_fall_ba
 
 
 async def test_runtime_invoker_parallel_actual_cost_uses_provider_metadata() -> None:
-    client = CostedSearchClient(provider="parallel", actual_cost_usd=0.0061, returned_results=1)
+    client = CostedSearchClient(
+        provider="parallel", actual_cost_usd=0.0061, returned_results=1
+    )
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
         web_search_client=client,
@@ -642,8 +718,12 @@ async def test_runtime_invoker_parallel_actual_cost_uses_provider_metadata() -> 
     assert "provider_request_id" not in result.public_payload
 
 
-async def test_runtime_invoker_desearch_actual_cost_uses_provider_billing_metadata() -> None:
-    client = CostedSearchClient(provider="desearch", actual_cost_usd=0.00015, returned_results=2)
+async def test_runtime_invoker_desearch_actual_cost_uses_provider_billing_metadata() -> (
+    None
+):
+    client = CostedSearchClient(
+        provider="desearch", actual_cost_usd=0.00015, returned_results=2
+    )
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
         web_search_client=client,
@@ -668,8 +748,12 @@ async def test_runtime_invoker_desearch_actual_cost_uses_provider_billing_metada
     assert provider_billing["source"] == "response_headers"
 
 
-async def test_runtime_invoker_desearch_missing_provider_actual_cost_uses_static_pricing() -> None:
-    client = CostedSearchClient(provider="desearch", actual_cost_usd=0.0075, returned_results=3)
+async def test_runtime_invoker_desearch_missing_provider_actual_cost_uses_static_pricing() -> (
+    None
+):
+    client = CostedSearchClient(
+        provider="desearch", actual_cost_usd=0.0075, returned_results=3
+    )
     client.actual_cost_usd = None
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -696,8 +780,12 @@ async def test_runtime_invoker_desearch_missing_provider_actual_cost_uses_static
     assert result.actual_cost_evidence["referenceable_results"] == 3
 
 
-async def test_runtime_invoker_rejects_nonfinite_search_actual_cost_as_provider_error() -> None:
-    client = CostedSearchClient(provider="desearch", actual_cost_usd=float("nan"), returned_results=1)
+async def test_runtime_invoker_rejects_nonfinite_search_actual_cost_as_provider_error() -> (
+    None
+):
+    client = CostedSearchClient(
+        provider="desearch", actual_cost_usd=float("nan"), returned_results=1
+    )
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
         web_search_client=client,
@@ -734,7 +822,9 @@ async def test_runtime_invoker_routes_search_web_timeout() -> None:
 
     assert isinstance(result, ToolInvocationOutput)
     assert result.public_payload == {"data": []}
-    assert stub_desearch.calls == [("web", {"search_queries": ("harnyx",), "timeout": 5.0})]
+    assert stub_desearch.calls == [
+        ("web", {"search_queries": ("harnyx",), "timeout": 5.0})
+    ]
 
 
 async def test_runtime_invoker_enforces_search_web_timeout() -> None:
@@ -745,15 +835,23 @@ async def test_runtime_invoker_enforces_search_web_timeout() -> None:
         allowed_models=ALLOWED_TOOL_MODELS,
     )
 
-    with pytest.raises(ToolInvocationTimeoutError, match="search_web timed out after 0.01 seconds"):
+    with pytest.raises(
+        ToolInvocationTimeoutError, match="search_web timed out after 0.01 seconds"
+    ):
         await _invoke(
             invoker,
             "search_web",
-            kwargs={"provider": "desearch", "search_queries": ["harnyx"], "timeout": 0.01},
+            kwargs={
+                "provider": "desearch",
+                "search_queries": ["harnyx"],
+                "timeout": 0.01,
+            },
         )
 
 
-async def test_runtime_invoker_cancels_timed_search_web_provider_when_parent_cancelled() -> None:
+async def test_runtime_invoker_cancels_timed_search_web_provider_when_parent_cancelled() -> (
+    None
+):
     stub_desearch = CancellableSearchWebClient()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -767,7 +865,11 @@ async def test_runtime_invoker_cancels_timed_search_web_provider_when_parent_can
         _invoke(
             invoker,
             "search_web",
-            kwargs={"provider": "desearch", "search_queries": ["harnyx"], "timeout": 30.0},
+            kwargs={
+                "provider": "desearch",
+                "search_queries": ["harnyx"],
+                "timeout": 30.0,
+            },
         )
     )
     await stub_desearch.started.wait()
@@ -807,11 +909,20 @@ async def test_runtime_invoker_rejects_prompt_for_search_web() -> None:
     )
 
     with pytest.raises(ValidationError) as excinfo:
-        await _invoke(invoker, "search_web", kwargs={"provider": "desearch", "prompt": "harnyx subnet"})
-    assert any(err.get("type") == "extra_forbidden" and err.get("loc") == ("prompt",) for err in excinfo.value.errors())
+        await _invoke(
+            invoker,
+            "search_web",
+            kwargs={"provider": "desearch", "prompt": "harnyx subnet"},
+        )
+    assert any(
+        err.get("type") == "extra_forbidden" and err.get("loc") == ("prompt",)
+        for err in excinfo.value.errors()
+    )
 
 
-async def test_runtime_invoker_rejects_negative_search_web_num_before_parallel_pricing() -> None:
+async def test_runtime_invoker_rejects_negative_search_web_num_before_parallel_pricing() -> (
+    None
+):
     stub_desearch = StubDeSearchClient()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -827,7 +938,10 @@ async def test_runtime_invoker_rejects_negative_search_web_num_before_parallel_p
             kwargs={"provider": "desearch", "search_queries": ["harnyx"], "num": -1},
         )
 
-    assert any(err.get("type") == "greater_than_equal" and err.get("loc") == ("num",) for err in excinfo.value.errors())
+    assert any(
+        err.get("type") == "greater_than_equal" and err.get("loc") == ("num",)
+        for err in excinfo.value.errors()
+    )
     assert stub_desearch.calls == []
 
 
@@ -871,10 +985,15 @@ async def test_runtime_invoker_routes_fetch_page_timeout() -> None:
 
     assert isinstance(result, ToolInvocationOutput)
     assert result.public_payload["data"][0]["content"] == "page text"
-    assert stub_desearch.calls[-1] == ("fetch_page", {"url": "https://example.com", "timeout": 5.0})
+    assert stub_desearch.calls[-1] == (
+        "fetch_page",
+        {"url": "https://example.com", "timeout": 5.0},
+    )
 
 
-async def test_runtime_invoker_maps_provider_response_validation_to_tool_provider_error() -> None:
+async def test_runtime_invoker_maps_provider_response_validation_to_tool_provider_error() -> (
+    None
+):
     client = ResponseValidationFetchPageClient()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -897,7 +1016,9 @@ async def test_runtime_invoker_maps_provider_response_validation_to_tool_provide
     )
 
 
-async def test_runtime_invoker_maps_timed_provider_response_validation_to_tool_provider_error() -> None:
+async def test_runtime_invoker_maps_timed_provider_response_validation_to_tool_provider_error() -> (
+    None
+):
     client = ResponseValidationFetchPageClient()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -914,7 +1035,10 @@ async def test_runtime_invoker_maps_timed_provider_response_validation_to_tool_p
         )
 
     assert isinstance(excinfo.value.__cause__, ValidationError)
-    assert client.calls[-1] == ("fetch_page", {"url": "https://example.com", "timeout": 5.0})
+    assert client.calls[-1] == (
+        "fetch_page",
+        {"url": "https://example.com", "timeout": 5.0},
+    )
 
 
 async def test_runtime_invoker_enforces_fetch_page_timeout() -> None:
@@ -925,11 +1049,17 @@ async def test_runtime_invoker_enforces_fetch_page_timeout() -> None:
         allowed_models=ALLOWED_TOOL_MODELS,
     )
 
-    with pytest.raises(ToolInvocationTimeoutError, match="fetch_page timed out after 0.01 seconds"):
+    with pytest.raises(
+        ToolInvocationTimeoutError, match="fetch_page timed out after 0.01 seconds"
+    ):
         await _invoke(
             invoker,
             "fetch_page",
-            kwargs={"provider": "desearch", "url": "https://example.com", "timeout": 0.01},
+            kwargs={
+                "provider": "desearch",
+                "url": "https://example.com",
+                "timeout": 0.01,
+            },
         )
 
 
@@ -943,8 +1073,13 @@ async def test_runtime_invoker_rejects_prompt_for_fetch_page() -> None:
     )
 
     with pytest.raises(ValidationError) as excinfo:
-        await _invoke(invoker, "fetch_page", kwargs={"provider": "desearch", "prompt": "#harnyx"})
-    assert any(err.get("type") == "extra_forbidden" and err.get("loc") == ("prompt",) for err in excinfo.value.errors())
+        await _invoke(
+            invoker, "fetch_page", kwargs={"provider": "desearch", "prompt": "#harnyx"}
+        )
+    assert any(
+        err.get("type") == "extra_forbidden" and err.get("loc") == ("prompt",)
+        for err in excinfo.value.errors()
+    )
 
 
 async def test_runtime_invoker_routes_search_ai() -> None:
@@ -991,12 +1126,20 @@ async def test_runtime_invoker_routes_search_ai_timeout() -> None:
     result = await _invoke(
         invoker,
         "search_ai",
-        kwargs={"provider": "desearch", "prompt": "harnyx subnet", "count": 10, "timeout": 5},
+        kwargs={
+            "provider": "desearch",
+            "prompt": "harnyx subnet",
+            "count": 10,
+            "timeout": 5,
+        },
     )
 
     assert isinstance(result, ToolInvocationOutput)
     assert result.public_payload["data"][0]["url"] == "https://example.com"
-    assert stub_desearch.calls[-1] == ("search_ai", {"prompt": "harnyx subnet", "count": 10, "timeout": 5.0})
+    assert stub_desearch.calls[-1] == (
+        "search_ai",
+        {"prompt": "harnyx subnet", "count": 10, "timeout": 5.0},
+    )
 
 
 async def test_runtime_invoker_enforces_search_ai_timeout() -> None:
@@ -1009,11 +1152,18 @@ async def test_runtime_invoker_enforces_search_ai_timeout() -> None:
         allowed_models=ALLOWED_TOOL_MODELS,
     )
 
-    with pytest.raises(ToolInvocationTimeoutError, match="search_ai timed out after 0.01 seconds"):
+    with pytest.raises(
+        ToolInvocationTimeoutError, match="search_ai timed out after 0.01 seconds"
+    ):
         await _invoke(
             invoker,
             "search_ai",
-            kwargs={"provider": "desearch", "prompt": "harnyx", "count": 10, "timeout": 0.01},
+            kwargs={
+                "provider": "desearch",
+                "prompt": "harnyx",
+                "count": 10,
+                "timeout": 0.01,
+            },
         )
 
 
@@ -1123,7 +1273,9 @@ async def test_runtime_invoker_routes_llm_chat(model: str) -> None:
     )
 
 
-async def test_runtime_invoker_uses_llm_provider_resolver_for_requested_provider() -> None:
+async def test_runtime_invoker_uses_llm_provider_resolver_for_requested_provider() -> (
+    None
+):
     configured_chutes = StubChutesProvider()
     openrouter = StubOpenRouterProvider()
     resolved_providers: list[str] = []
@@ -1164,7 +1316,9 @@ async def test_runtime_invoker_uses_llm_provider_resolver_for_requested_provider
     assert configured_chutes.calls == []
 
 
-async def test_runtime_invoker_llm_provider_resolver_failure_does_not_fall_back_to_configured_provider() -> None:
+async def test_runtime_invoker_llm_provider_resolver_failure_does_not_fall_back_to_configured_provider() -> (
+    None
+):
     configured_chutes = StubChutesProvider()
 
     async def resolve_llm_provider(
@@ -1182,7 +1336,9 @@ async def test_runtime_invoker_llm_provider_resolver_failure_does_not_fall_back_
         allowed_models=ALLOWED_TOOL_MODELS,
     )
 
-    with pytest.raises(ToolProviderError, match="selected miner llm credential missing"):
+    with pytest.raises(
+        ToolProviderError, match="selected miner llm credential missing"
+    ):
         await _invoke(
             invoker,
             "llm_chat",
@@ -1270,7 +1426,9 @@ async def test_runtime_invoker_routes_llm_chat_from_first_positional_payload() -
     assert recorded.temperature == 0.2
 
 
-async def test_runtime_invoker_routes_llm_chat_short_timeout_keeps_provider_default() -> None:
+async def test_runtime_invoker_routes_llm_chat_short_timeout_keeps_provider_default() -> (
+    None
+):
     stub_chutes = StubChutesProvider()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -1296,7 +1454,9 @@ async def test_runtime_invoker_routes_llm_chat_short_timeout_keeps_provider_defa
     assert recorded.timeout_seconds == pytest.approx(120.0)
 
 
-async def test_runtime_invoker_routes_llm_chat_long_timeout_to_provider_request() -> None:
+async def test_runtime_invoker_routes_llm_chat_long_timeout_to_provider_request() -> (
+    None
+):
     stub_chutes = StubChutesProvider()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -1319,7 +1479,9 @@ async def test_runtime_invoker_routes_llm_chat_long_timeout_to_provider_request(
 
     assert isinstance(invocation_output, ToolInvocationOutput)
     recorded = stub_chutes.calls[0]
-    assert recorded.timeout_seconds == pytest.approx(platform_tool_proxy_provider_timeout_seconds(180.0))
+    assert recorded.timeout_seconds == pytest.approx(
+        platform_tool_proxy_provider_timeout_seconds(180.0)
+    )
 
 
 async def test_runtime_invoker_enforces_llm_chat_timeout() -> None:
@@ -1330,7 +1492,9 @@ async def test_runtime_invoker_enforces_llm_chat_timeout() -> None:
         allowed_models=ALLOWED_TOOL_MODELS,
     )
 
-    with pytest.raises(ToolInvocationTimeoutError, match="llm_chat timed out after 0.01 seconds"):
+    with pytest.raises(
+        ToolInvocationTimeoutError, match="llm_chat timed out after 0.01 seconds"
+    ):
         await _invoke(
             invoker,
             "llm_chat",
@@ -1391,7 +1555,9 @@ async def test_runtime_invoker_maps_llm_provider_error_to_tool_provider_error() 
     assert len(provider.calls) == 1
 
 
-async def test_runtime_invoker_preserves_llm_chat_provider_capability_value_error() -> None:
+async def test_runtime_invoker_preserves_llm_chat_provider_capability_value_error() -> (
+    None
+):
     provider = ProviderCapabilityValueErrorLlmProvider()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -1420,18 +1586,20 @@ async def test_runtime_invoker_accepts_local_tool_timeouts() -> None:
         allowed_models=ALLOWED_TOOL_MODELS,
     )
 
-    test_result = await _invoke(invoker, "test_tool", args=("ping",), kwargs={"timeout": 5})
+    test_result = await _invoke(
+        invoker, "test_tool", args=("ping",), kwargs={"timeout": 5}
+    )
     tooling_result = await _invoke(invoker, "tooling_info", kwargs={"timeout": 5})
 
     assert test_result == {"status": "ok", "echo": "ping"}
     assert "tool_names" in tooling_result
     assert "embed_text" in tooling_result["tool_names"]
-    assert tooling_result["pricing"]["embed_text"]["provider_models"]["chutes"][QWEN3_CHUTES_EMBEDDING_MODEL][
-        "usd_per_second"
-    ] == pytest.approx(0.0005)
-    assert tooling_result["pricing"]["embed_text"]["provider_models"]["openrouter"][QWEN3_OPENROUTER_EMBEDDING_MODEL][
-        "input_per_million"
-    ] == pytest.approx(0.01)
+    assert tooling_result["pricing"]["embed_text"]["provider_models"]["chutes"][
+        QWEN3_CHUTES_EMBEDDING_MODEL
+    ]["usd_per_second"] == pytest.approx(0.0005)
+    assert tooling_result["pricing"]["embed_text"]["provider_models"]["openrouter"][
+        QWEN3_OPENROUTER_EMBEDDING_MODEL
+    ]["input_per_million"] == pytest.approx(0.01)
 
 
 async def test_runtime_invoker_prefers_kwargs_over_first_positional_payload() -> None:
@@ -1453,7 +1621,11 @@ async def test_runtime_invoker_prefers_kwargs_over_first_positional_payload() ->
                 "model": "unauthorized/model",
             },
         ),
-        kwargs={"provider": "chutes", "messages": [{"role": "user", "content": "from kwargs"}], "model": model},
+        kwargs={
+            "provider": "chutes",
+            "messages": [{"role": "user", "content": "from kwargs"}],
+            "model": model,
+        },
     )
 
     assert isinstance(invocation_output, ToolInvocationOutput)
@@ -1462,7 +1634,9 @@ async def test_runtime_invoker_prefers_kwargs_over_first_positional_payload() ->
     assert recorded.messages[0].content[0].text == "from kwargs"
 
 
-async def test_runtime_invoker_does_not_expose_internal_provider_metadata_for_llm_chat() -> None:
+async def test_runtime_invoker_does_not_expose_internal_provider_metadata_for_llm_chat() -> (
+    None
+):
     stub_provider = StubChutesProvider()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -1603,7 +1777,8 @@ async def test_runtime_invoker_rejects_raw_llm_chat_provider_body_kwargs() -> No
         )
 
     assert any(
-        err.get("type") == "extra_forbidden" and err.get("loc") == ("chat_template_kwargs",)
+        err.get("type") == "extra_forbidden"
+        and err.get("loc") == ("chat_template_kwargs",)
         for err in excinfo.value.errors()
     )
 
@@ -1619,7 +1794,10 @@ async def test_runtime_invoker_returns_public_payload_plus_execution_facts(
         allowed_models=ALLOWED_TOOL_MODELS,
     )
     perf_counter_values = iter((10.0, 11.25))
-    monkeypatch.setattr("harnyx_commons.tools.runtime_invoker.time.perf_counter", lambda: next(perf_counter_values))
+    monkeypatch.setattr(
+        "harnyx_commons.tools.runtime_invoker.time.perf_counter",
+        lambda: next(perf_counter_values),
+    )
 
     result = await _invoke(
         invoker,
@@ -1665,10 +1843,14 @@ async def test_runtime_invoker_uses_retry_aggregate_llm_cost() -> None:
     assert result.actual_cost_usd == pytest.approx(0.03)
     assert result.actual_cost_evidence is not None
     assert result.actual_cost_evidence["settlement_source"] == "retry_aggregate"
-    assert result.actual_cost_evidence["final_response_actual_cost_usd"] == pytest.approx(0.02)
+    assert result.actual_cost_evidence[
+        "final_response_actual_cost_usd"
+    ] == pytest.approx(0.02)
 
 
-async def test_runtime_invoker_openrouter_missing_usage_cost_uses_static_pricing() -> None:
+async def test_runtime_invoker_openrouter_missing_usage_cost_uses_static_pricing() -> (
+    None
+):
     class MissingUsageCostOpenRouterProvider(StubOpenRouterProvider):
         async def invoke(self, request: LlmRequest) -> LlmResponse:
             response = await super().invoke(request)
@@ -1680,7 +1862,9 @@ async def test_runtime_invoker_openrouter_missing_usage_cost_uses_static_pricing
                     "effective_provider": "openrouter",
                     "raw_response": {"usage": {}},
                     "actual_cost_provider": "openrouter",
-                    "actual_cost_usd": price_miner_llm("openrouter", OPENROUTER_NATIVE_TOOL_MODEL, response.usage),
+                    "actual_cost_usd": price_miner_llm(
+                        "openrouter", OPENROUTER_NATIVE_TOOL_MODEL, response.usage
+                    ),
                     "actual_cost_evidence": {"settlement_source": "static_pricing"},
                 },
                 finish_reason=response.finish_reason,
@@ -1717,7 +1901,9 @@ async def test_runtime_invoker_openrouter_missing_usage_cost_uses_static_pricing
     assert result.actual_cost_evidence["settlement_source"] == "static_pricing"
 
 
-async def test_runtime_invoker_rejects_boolean_normalized_llm_actual_cost_as_provider_error() -> None:
+async def test_runtime_invoker_rejects_boolean_normalized_llm_actual_cost_as_provider_error() -> (
+    None
+):
     class BooleanActualCostOpenRouterProvider(StubOpenRouterProvider):
         async def invoke(self, request: LlmRequest) -> LlmResponse:
             response = await super().invoke(request)
@@ -1756,7 +1942,9 @@ async def test_runtime_invoker_rejects_boolean_normalized_llm_actual_cost_as_pro
     assert "actual_cost_usd must be numeric" in str(exc_info.value.__cause__)
 
 
-async def test_runtime_invoker_rejects_llm_chat_without_normalized_cost_metadata() -> None:
+async def test_runtime_invoker_rejects_llm_chat_without_normalized_cost_metadata() -> (
+    None
+):
     class MissingSettledCostProvider(StubOpenRouterProvider):
         async def invoke(self, request: LlmRequest) -> LlmResponse:
             response = await super().invoke(request)
@@ -1764,7 +1952,10 @@ async def test_runtime_invoker_rejects_llm_chat_without_normalized_cost_metadata
                 id=response.id,
                 choices=response.choices,
                 usage=response.usage,
-                metadata={"effective_provider": "openrouter", "raw_response": {"usage": {"cost": 0.0042}}},
+                metadata={
+                    "effective_provider": "openrouter",
+                    "raw_response": {"usage": {"cost": 0.0042}},
+                },
                 finish_reason=response.finish_reason,
             )
 
@@ -1829,7 +2020,9 @@ async def test_runtime_invoker_rejects_llm_chat_without_actual_cost_evidence() -
     assert "missing settled cost" in str(exc_info.value.__cause__)
 
 
-async def test_runtime_invoker_uses_chutes_actual_cost_metadata_and_keeps_payload_public() -> None:
+async def test_runtime_invoker_uses_chutes_actual_cost_metadata_and_keeps_payload_public() -> (
+    None
+):
     provider = StubChutesActualCostProvider()
     invoker = RuntimeToolInvoker(
         FakeReceiptLog(),
@@ -1859,7 +2052,9 @@ async def test_runtime_invoker_uses_chutes_actual_cost_metadata_and_keeps_payloa
     assert "metadata" not in result.public_payload
 
 
-async def test_runtime_invoker_rejects_nonfinite_llm_actual_cost_as_provider_error() -> None:
+async def test_runtime_invoker_rejects_nonfinite_llm_actual_cost_as_provider_error() -> (
+    None
+):
     class NonFiniteCostChutesProvider(StubChutesProvider):
         async def invoke(self, request: LlmRequest) -> LlmResponse:
             response = await super().invoke(request)
@@ -1870,7 +2065,9 @@ async def test_runtime_invoker_rejects_nonfinite_llm_actual_cost_as_provider_err
                 metadata={
                     "actual_cost_provider": "chutes",
                     "actual_cost_usd": float("nan"),
-                    "actual_cost_evidence": {"settlement_source": "cached_provider_pricing"},
+                    "actual_cost_evidence": {
+                        "settlement_source": "cached_provider_pricing"
+                    },
                 },
                 finish_reason=response.finish_reason,
             )
@@ -1915,7 +2112,8 @@ async def test_runtime_invoker_rejects_blank_search_ai_prompt() -> None:
             kwargs={"provider": "desearch", "prompt": "   ", "count": 10},
         )
     assert any(
-        err.get("type") == "string_too_short" and err.get("loc") == ("prompt",) for err in excinfo.value.errors()
+        err.get("type") == "string_too_short" and err.get("loc") == ("prompt",)
+        for err in excinfo.value.errors()
     )
 
 
@@ -1929,7 +2127,11 @@ async def test_runtime_invoker_rejects_missing_clients() -> None:
         await _invoke(
             invoker,
             "llm_chat",
-            kwargs={"provider": "chutes", "messages": [{"role": "user", "content": "hi"}], "model": "demo"},
+            kwargs={
+                "provider": "chutes",
+                "messages": [{"role": "user", "content": "hi"}],
+                "model": "demo",
+            },
         )
 
 

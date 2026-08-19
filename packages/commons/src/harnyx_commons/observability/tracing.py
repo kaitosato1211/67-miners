@@ -32,8 +32,8 @@ def configure_tracing(*, service_name: str) -> None:
         _TRACING_CONFIGURED = True
         return
 
-    otlp_endpoint = (
-        os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") or os.getenv(
+        "OTEL_EXPORTER_OTLP_ENDPOINT"
     )
     if not otlp_endpoint:
         if traces_exporter and traces_exporter != "none":
@@ -63,7 +63,11 @@ def attach_baggage(values: dict[str, str]) -> Token[context.Context]:
     ctx = None
     for key, value in values.items():
         ctx = baggage.set_baggage(key, value, context=ctx)
-    return context.attach(ctx) if ctx is not None else context.attach(context.get_current())
+    return (
+        context.attach(ctx)
+        if ctx is not None
+        else context.attach(context.get_current())
+    )
 
 
 __all__ = [

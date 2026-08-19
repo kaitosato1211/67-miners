@@ -94,7 +94,9 @@ async def test_tool_proxy_invokes_endpoint_with_token() -> None:
 
 
 async def test_tool_proxy_raises_on_http_error() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover - executed via proxy
+    def handler(
+        request: httpx.Request,
+    ) -> httpx.Response:  # pragma: no cover - executed via proxy
         return httpx.Response(500)
 
     transport = httpx.MockTransport(handler)
@@ -144,7 +146,9 @@ async def test_search_web_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -157,7 +161,11 @@ async def test_search_web_helper_invokes_tool_proxy() -> None:
     assert result.results[0].url == "https://example.com"
     payload = captured["payload"]
     assert payload["tool"] == "search_web"
-    assert payload["kwargs"] == {"search_queries": ["harnyx", "subnet"], "provider": "parallel", "num": 3}
+    assert payload["kwargs"] == {
+        "search_queries": ["harnyx", "subnet"],
+        "provider": "parallel",
+        "num": 3,
+    }
 
 
 async def test_search_web_helper_normalizes_plain_string_query() -> None:
@@ -185,7 +193,9 @@ async def test_search_web_helper_normalizes_plain_string_query() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -196,7 +206,11 @@ async def test_search_web_helper_normalizes_plain_string_query() -> None:
     assert result.receipt_id == "r2"
     payload = captured["payload"]
     assert payload["tool"] == "search_web"
-    assert payload["kwargs"] == {"search_queries": ["harnyx subnet"], "provider": "parallel", "num": 3}
+    assert payload["kwargs"] == {
+        "search_queries": ["harnyx subnet"],
+        "provider": "parallel",
+        "num": 3,
+    }
 
 
 async def test_llm_chat_helper_invokes_tool_proxy() -> None:
@@ -224,7 +238,11 @@ async def test_llm_chat_helper_invokes_tool_proxy() -> None:
                             },
                         }
                     ],
-                    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    "usage": {
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                     "citations": [],
                 },
                 "results": [
@@ -248,7 +266,9 @@ async def test_llm_chat_helper_invokes_tool_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -279,13 +299,17 @@ async def test_llm_chat_helper_invokes_tool_proxy() -> None:
 
 async def test_llm_chat_helper_rejects_thinking_effort_and_budget() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("llm_chat should reject invalid thinking before invoking the tool proxy")
+        raise AssertionError(
+            "llm_chat should reject invalid thinking before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -302,13 +326,17 @@ async def test_llm_chat_helper_rejects_thinking_effort_and_budget() -> None:
 
 async def test_llm_chat_helper_rejects_coerced_thinking_scalars() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("llm_chat should reject invalid thinking before invoking the tool proxy")
+        raise AssertionError(
+            "llm_chat should reject invalid thinking before invoking the tool proxy"
+        )
 
     proxy = ToolProxy(
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     try:
         with bind_tool_invoker(proxy):
@@ -349,12 +377,19 @@ async def test_llm_chat_full_tool_loop_crosses_sandbox_proxy() -> None:
                                     }
                                 ],
                                 "reasoning_details": [
-                                    {"type": "reasoning.encrypted", "data": "opaque-response"}
+                                    {
+                                        "type": "reasoning.encrypted",
+                                        "data": "opaque-response",
+                                    }
                                 ],
                             },
                         }
                     ],
-                    "usage": {"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3},
+                    "usage": {
+                        "prompt_tokens": 2,
+                        "completion_tokens": 1,
+                        "total_tokens": 3,
+                    },
                 },
                 "results": [],
                 "result_policy": "log_only",
@@ -371,7 +406,9 @@ async def test_llm_chat_full_tool_loop_crosses_sandbox_proxy() -> None:
         base_url="http://validator",
         token=TEST_TOKEN,
         session_id=SESSION_ID,
-        client=httpx.AsyncClient(base_url="http://validator", transport=httpx.MockTransport(handler)),
+        client=httpx.AsyncClient(
+            base_url="http://validator", transport=httpx.MockTransport(handler)
+        ),
     )
     messages = [
         {

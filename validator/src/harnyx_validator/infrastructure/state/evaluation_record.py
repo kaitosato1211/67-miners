@@ -13,7 +13,9 @@ class CompactEvaluationRecordStore(EvaluationRecordPort):
     """Stores miner-task run submissions without full execution logs."""
 
     def __init__(self) -> None:
-        self._records_by_pair: dict[tuple[UUID, UUID, UUID], MinerTaskRunSubmission] = {}
+        self._records_by_pair: dict[tuple[UUID, UUID, UUID], MinerTaskRunSubmission] = (
+            {}
+        )
         self._lock = Lock()
 
     def record(self, result: MinerTaskRunSubmission) -> None:

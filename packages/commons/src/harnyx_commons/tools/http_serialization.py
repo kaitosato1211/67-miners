@@ -12,7 +12,9 @@ from harnyx_commons.tools.http_models import (
 )
 
 
-def serialize_tool_execute_response(result: ToolInvocationResult) -> ToolExecuteResponseDTO:
+def serialize_tool_execute_response(
+    result: ToolInvocationResult,
+) -> ToolExecuteResponseDTO:
     receipt = result.receipt
     results = tuple(_serialize_tool_result(r) for r in receipt.details.results)
     usage = _serialize_usage(result)

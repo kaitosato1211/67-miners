@@ -8,7 +8,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from harnyx_commons.domain.judge_usage import JudgeUsageSummary
-from harnyx_commons.miner_task_similarity import SimilarityJudgeRequest, SimilarityJudgeResult
+from harnyx_commons.miner_task_similarity import (
+    SimilarityJudgeRequest,
+    SimilarityJudgeResult,
+)
 from harnyx_validator.domain.shared_config import VALIDATOR_STRICT_CONFIG
 
 _VALIDATOR_TRANSPORT_CONFIG = ConfigDict(

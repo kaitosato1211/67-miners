@@ -3,6 +3,7 @@
 Generated from FastAPI OpenAPI.
 
 ## Domains
+
 - [{entrypoint_name}](#entrypoint_name)
   - [POST /entry/{entrypoint_name}](#endpoint-post-entry-entrypoint_name)
 - [Misc](#misc)
@@ -11,6 +12,7 @@ Generated from FastAPI OpenAPI.
 ## {entrypoint_name}
 
 <a id="endpoint-post-entry-entrypoint_name"></a>
+
 ### POST /entry/{entrypoint_name}
 
 Invoke a registered entrypoint by name in a sandboxed worker process.
@@ -18,19 +20,20 @@ Invoke a registered entrypoint by name in a sandboxed worker process.
 **Auth**: Tool token (`x-platform-token` header)
 
 **Parameters**
-| Param | In | Req | Notes |
-| --- | --- | --- | --- |
+
+| Param             | In   | Req | Notes    |
+| ----------------- | ---- | --- | -------- |
 | `entrypoint_name` | path | req | `string` |
 
 **Request**
 Content-Type: `application/json`
 Body: [EntrypointRequest](#model-entrypointrequest)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `context` |  |  | opt | `object` |
-| `payload` |  |  | opt | `object` |
-| `tool_config` |  |  | opt | `object` (nullable) |
+| 1st level     | 2nd level | 3rd level | Req | Notes               |
+| ------------- | --------- | --------- | --- | ------------------- |
+| `context`     |           |           | opt | `object`            |
+| `payload`     |           |           | opt | `object`            |
+| `tool_config` |           |           | opt | `object` (nullable) |
 
 **Responses**
 `200` Successful Response
@@ -43,22 +46,21 @@ Body: `object`
 Content-Type: `application/json`
 Body: [HTTPValidationError](#model-httpvalidationerror)
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
-
-
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 ## Misc
 
 ### healthz
 
 <a id="endpoint-get-healthz"></a>
+
 #### GET /healthz
 
 Sandbox health check.
@@ -72,18 +74,17 @@ Body: `object`
 
 (no documented fields)
 
-
-
 ## Models
 
 <a id="model-entrypointrequest"></a>
+
 ### Model: EntrypointRequest
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `context` |  |  | opt | `object` |
-| `payload` |  |  | opt | `object` |
-| `tool_config` |  |  | opt | `object` (nullable) |
+| 1st level     | 2nd level | 3rd level | Req | Notes               |
+| ------------- | --------- | --------- | --- | ------------------- |
+| `context`     |           |           | opt | `object`            |
+| `payload`     |           |           | opt | `object`            |
+| `tool_config` |           |           | opt | `object` (nullable) |
 
 <details>
 <summary>JSON schema</summary>
@@ -122,16 +123,17 @@ Body: `object`
 </details>
 
 <a id="model-httpvalidationerror"></a>
+
 ### Model: HTTPValidationError
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `detail` |  |  | opt | array[[ValidationError](#model-validationerror)] |
-|  | `ctx` |  | opt | `object` |
-|  | `input` |  | opt | `object` |
-|  | `loc` |  | req | array[anyOf: `string` OR `integer`] |
-|  | `msg` |  | req | `string` |
-|  | `type` |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                                            |
+| --------- | --------- | --------- | --- | ------------------------------------------------ |
+| `detail`  |           |           | opt | array[[ValidationError](#model-validationerror)] |
+|           | `ctx`     |           | opt | `object`                                         |
+|           | `input`   |           | opt | `object`                                         |
+|           | `loc`     |           | req | array[anyOf: `string` OR `integer`]              |
+|           | `msg`     |           | req | `string`                                         |
+|           | `type`    |           | req | `string`                                         |
 
 <details>
 <summary>JSON schema</summary>
@@ -155,15 +157,16 @@ Body: `object`
 </details>
 
 <a id="model-validationerror"></a>
+
 ### Model: ValidationError
 
-| 1st level | 2nd level | 3rd level | Req | Notes |
-| --- | --- | --- | --- | --- |
-| `ctx` |  |  | opt | `object` |
-| `input` |  |  | opt | `object` |
-| `loc` |  |  | req | array[anyOf: `string` OR `integer`] |
-| `msg` |  |  | req | `string` |
-| `type` |  |  | req | `string` |
+| 1st level | 2nd level | 3rd level | Req | Notes                               |
+| --------- | --------- | --------- | --- | ----------------------------------- |
+| `ctx`     |           |           | opt | `object`                            |
+| `input`   |           |           | opt | `object`                            |
+| `loc`     |           |           | req | array[anyOf: `string` OR `integer`] |
+| `msg`     |           |           | req | `string`                            |
+| `type`    |           |           | req | `string`                            |
 
 <details>
 <summary>JSON schema</summary>
@@ -201,11 +204,7 @@ Body: `object`
       "type": "string"
     }
   },
-  "required": [
-    "loc",
-    "msg",
-    "type"
-  ],
+  "required": ["loc", "msg", "type"],
   "title": "ValidationError",
   "type": "object"
 }

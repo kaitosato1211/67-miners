@@ -64,7 +64,9 @@ class _SequencedProvider(BaseLlmProvider):
         max_concurrent: int | None = None,
     ) -> None:
         super().__init__(provider_label=provider_label, max_concurrent=max_concurrent)
-        self._retry_policy = RetryPolicy(attempts=len(responses), initial_ms=0, max_ms=0, jitter=0.0)
+        self._retry_policy = RetryPolicy(
+            attempts=len(responses), initial_ms=0, max_ms=0, jitter=0.0
+        )
         self._responses = list(responses)
         self.requests: list[AbstractLlmRequest] = []
         self._postprocessor = postprocessor
@@ -138,7 +140,10 @@ async def test_provider_uses_feedback_retry_for_json_decode_failure() -> None:
     provider = _SequencedProvider(
         responses=[
             _response("not valid json", response_id="resp-1"),
-            _response(json.dumps({"verdict": 1, "justification": "repaired"}), response_id="resp-2"),
+            _response(
+                json.dumps({"verdict": 1, "justification": "repaired"}),
+                response_id="resp-2",
+            ),
         ],
         postprocessor=pydantic_postprocessor(_ExpectedAnswer),
     )
@@ -169,7 +174,10 @@ async def test_provider_uses_feedback_retry_for_validation_failure() -> None:
     provider = _SequencedProvider(
         responses=[
             _response(json.dumps({"verdict": 1}), response_id="resp-1"),
-            _response(json.dumps({"verdict": 1, "justification": "completed"}), response_id="resp-2"),
+            _response(
+                json.dumps({"verdict": 1, "justification": "completed"}),
+                response_id="resp-2",
+            ),
         ],
         postprocessor=pydantic_postprocessor(_ExpectedAnswer),
     )
@@ -183,13 +191,18 @@ async def test_provider_uses_feedback_retry_for_validation_failure() -> None:
     assert result.postprocessed == _ExpectedAnswer(verdict=1, justification="completed")
 
 
-async def test_provider_feedback_retry_rebuilds_from_original_messages_each_attempt() -> None:
+async def test_provider_feedback_retry_rebuilds_from_original_messages_each_attempt() -> (
+    None
+):
     provider = _SequencedProvider(
         responses=[
             _response("first invalid", response_id="resp-1"),
             _response("second invalid", response_id="resp-2"),
             _response("third invalid", response_id="resp-3"),
-            _response(json.dumps({"verdict": 1, "justification": "fixed"}), response_id="resp-4"),
+            _response(
+                json.dumps({"verdict": 1, "justification": "fixed"}),
+                response_id="resp-4",
+            ),
         ],
         postprocessor=pydantic_postprocessor(_ExpectedAnswer),
     )
@@ -212,11 +225,16 @@ async def test_provider_feedback_retry_rebuilds_from_original_messages_each_atte
     assert result.postprocessed == _ExpectedAnswer(verdict=1, justification="fixed")
 
 
-async def test_provider_feedback_retry_does_not_deadlock_under_semaphore_limit() -> None:
+async def test_provider_feedback_retry_does_not_deadlock_under_semaphore_limit() -> (
+    None
+):
     provider = _SequencedProvider(
         responses=[
             _response("not valid json", response_id="resp-1"),
-            _response(json.dumps({"verdict": 1, "justification": "repaired"}), response_id="resp-2"),
+            _response(
+                json.dumps({"verdict": 1, "justification": "repaired"}),
+                response_id="resp-2",
+            ),
         ],
         postprocessor=pydantic_postprocessor(_ExpectedAnswer),
         max_concurrent=1,
@@ -243,7 +261,10 @@ async def test_provider_feedback_retry_preserves_or_falls_back_tool_role(
     provider = _SequencedProvider(
         responses=[
             _response("broken tool payload", role="tool", response_id="resp-1"),
-            _response(json.dumps({"verdict": 1, "justification": "repaired"}), response_id="resp-2"),
+            _response(
+                json.dumps({"verdict": 1, "justification": "repaired"}),
+                response_id="resp-2",
+            ),
         ],
         postprocessor=pydantic_postprocessor(_ExpectedAnswer),
         provider_label=provider_name,
@@ -255,7 +276,9 @@ async def test_provider_feedback_retry_preserves_or_falls_back_tool_role(
     assert retry_request.messages[2].role == expected_role
 
 
-async def test_provider_feedback_retry_accumulates_actual_cost_metadata_with_usage() -> None:
+async def test_provider_feedback_retry_accumulates_actual_cost_metadata_with_usage() -> (
+    None
+):
     first_response = _response(
         "not valid json",
         response_id="resp-1",
@@ -275,7 +298,9 @@ async def test_provider_feedback_retry_accumulates_actual_cost_metadata_with_usa
 
     result = await provider.invoke(_request())
 
-    assert result.usage == LlmUsage(prompt_tokens=21, completion_tokens=5, total_tokens=26)
+    assert result.usage == LlmUsage(
+        prompt_tokens=21, completion_tokens=5, total_tokens=26
+    )
     assert result.metadata is not None
     assert result.metadata["attempts"] == 2
     assert result.metadata["billable_response_count"] == 2
@@ -315,7 +340,9 @@ async def test_provider_retry_sums_each_already_settled_byok_response_once() -> 
     }
 
 
-async def test_provider_feedback_retry_rejects_invalid_intermediate_actual_cost_metadata() -> None:
+async def test_provider_feedback_retry_rejects_invalid_intermediate_actual_cost_metadata() -> (
+    None
+):
     first_response = _response(
         "not valid json",
         response_id="resp-1",
@@ -335,7 +362,9 @@ async def test_provider_feedback_retry_rejects_invalid_intermediate_actual_cost_
         await provider.invoke(_request())
 
 
-async def test_provider_feedback_retry_omits_actual_cost_total_when_cost_is_missing() -> None:
+async def test_provider_feedback_retry_omits_actual_cost_total_when_cost_is_missing() -> (
+    None
+):
     first_response = _response(
         "not valid json",
         response_id="resp-1",
@@ -354,14 +383,18 @@ async def test_provider_feedback_retry_omits_actual_cost_total_when_cost_is_miss
 
     result = await provider.invoke(_request())
 
-    assert result.usage == LlmUsage(prompt_tokens=21, completion_tokens=5, total_tokens=26)
+    assert result.usage == LlmUsage(
+        prompt_tokens=21, completion_tokens=5, total_tokens=26
+    )
     assert result.metadata is not None
     assert result.metadata["billable_response_count"] == 2
     assert result.metadata["actual_cost_usd"] == pytest.approx(0.02)
     assert "actual_cost_usd_total" not in result.metadata
 
 
-async def test_provider_retry_exhaustion_returns_accumulated_actual_cost_metadata_with_usage() -> None:
+async def test_provider_retry_exhaustion_returns_accumulated_actual_cost_metadata_with_usage() -> (
+    None
+):
     provider = _SequencedProvider(
         responses=[
             _response(
@@ -386,7 +419,9 @@ async def test_provider_retry_exhaustion_returns_accumulated_actual_cost_metadat
     response = raised.value.response
     assert response is not None
     assert response.id == "resp-2"
-    assert response.usage == LlmUsage(prompt_tokens=21, completion_tokens=5, total_tokens=26)
+    assert response.usage == LlmUsage(
+        prompt_tokens=21, completion_tokens=5, total_tokens=26
+    )
     assert response.metadata is not None
     assert response.metadata["attempts"] == 2
     assert response.metadata["billable_response_count"] == 2
@@ -394,7 +429,9 @@ async def test_provider_retry_exhaustion_returns_accumulated_actual_cost_metadat
     assert response.metadata["actual_cost_usd_total"] == pytest.approx(0.03)
 
 
-async def test_provider_retryable_postprocess_failure_without_recovery_keeps_original_history() -> None:
+async def test_provider_retryable_postprocess_failure_without_recovery_keeps_original_history() -> (
+    None
+):
     attempts = 0
 
     def _semantic_postprocessor(response: LlmResponse) -> PostprocessResult:

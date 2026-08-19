@@ -34,7 +34,9 @@ class TransientNetworkCause:
     errno: int | None = None
 
 
-def classify_transient_network_failure(exc: BaseException) -> TransientNetworkCause | None:
+def classify_transient_network_failure(
+    exc: BaseException,
+) -> TransientNetworkCause | None:
     """Return sanitized cause metadata when an exception is clearly transient network failure."""
 
     for candidate in _exception_chain(exc):
@@ -43,7 +45,10 @@ def classify_transient_network_failure(exc: BaseException) -> TransientNetworkCa
                 kind="websocket_handshake_timeout",
                 exception_type=type(candidate).__name__,
             )
-        if isinstance(candidate, socket.gaierror) and candidate.errno == socket.EAI_AGAIN:
+        if (
+            isinstance(candidate, socket.gaierror)
+            and candidate.errno == socket.EAI_AGAIN
+        ):
             return TransientNetworkCause(
                 kind="temporary_dns",
                 exception_type=type(candidate).__name__,

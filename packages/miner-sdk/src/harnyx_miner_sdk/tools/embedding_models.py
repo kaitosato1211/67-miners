@@ -8,7 +8,10 @@ from typing import Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from harnyx_miner_sdk.tools.llm_provider_extra import OpenRouterExtra, validate_provider_extra
+from harnyx_miner_sdk.tools.llm_provider_extra import (
+    OpenRouterExtra,
+    validate_provider_extra,
+)
 from harnyx_miner_sdk.tools.types import ToolInvocationTimeout
 
 EmbeddingProviderName = Literal["chutes", "openrouter"]
@@ -16,12 +19,16 @@ EmbeddingInputType = Literal["query", "document"]
 
 QWEN3_CHUTES_EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B-TEE"
 QWEN3_OPENROUTER_EMBEDDING_MODEL = "qwen/qwen3-embedding-8b"
-QWEN3_DEFAULT_QUERY_INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"
+QWEN3_DEFAULT_QUERY_INSTRUCTION = (
+    "Given a web search query, retrieve relevant passages that answer the query"
+)
 MINER_SELECTED_EMBEDDING_PROVIDERS: tuple[EmbeddingProviderName, ...] = (
     "chutes",
     "openrouter",
 )
-MINER_SELECTED_EMBEDDING_PROVIDER_MODELS: Mapping[EmbeddingProviderName, tuple[str, ...]] = {
+MINER_SELECTED_EMBEDDING_PROVIDER_MODELS: Mapping[
+    EmbeddingProviderName, tuple[str, ...]
+] = {
     "chutes": (QWEN3_CHUTES_EMBEDDING_MODEL,),
     "openrouter": (QWEN3_OPENROUTER_EMBEDDING_MODEL,),
 }
@@ -74,14 +81,18 @@ class EmbedTextRequest(BaseModel):
         if not isinstance(provider, str):
             return value
 
-        parsed = validate_provider_extra(provider=provider, provider_extra=data.get("provider_extra"))
+        parsed = validate_provider_extra(
+            provider=provider, provider_extra=data.get("provider_extra")
+        )
         normalized = dict(data)
         normalized["provider_extra"] = parsed
         return normalized
 
     @model_validator(mode="after")
     def _validate_provider_model_and_instruction_scope(self) -> EmbedTextRequest:
-        parse_miner_selected_embedding_provider_model(provider=self.provider, model=self.model)
+        parse_miner_selected_embedding_provider_model(
+            provider=self.provider, model=self.model
+        )
         if self.input_type == "document" and self.instruction is not None:
             raise ValueError("instruction is only supported for query embeddings")
         return self
@@ -132,11 +143,16 @@ def parse_miner_selected_embedding_provider_model(
     selected_model = model.strip()
     if not selected_model:
         raise ValueError("model must be provided for validator tools")
-    if selected_model not in MINER_SELECTED_EMBEDDING_PROVIDER_MODELS[selected_provider]:
+    if (
+        selected_model
+        not in MINER_SELECTED_EMBEDDING_PROVIDER_MODELS[selected_provider]
+    ):
         raise ValueError(
             f"model {selected_model!r} is not supported for embedding provider {selected_provider!r}"
         )
-    return MinerSelectedEmbeddingProviderModel(provider=selected_provider, model=selected_model)
+    return MinerSelectedEmbeddingProviderModel(
+        provider=selected_provider, model=selected_model
+    )
 
 
 __all__ = [
