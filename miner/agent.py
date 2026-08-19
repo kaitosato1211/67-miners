@@ -9,7 +9,7 @@ from harnyx_miner_sdk.api import fetch_page, llm_chat, search_web, tooling_info
 from harnyx_miner_sdk.decorators import entrypoint
 from harnyx_miner_sdk.query import CitationRef, CitationSlice, Query, Response
 
-VERSION = "v53-pool-slice"
+VERSION = "v55-text-code-slice"
 
 LLM_LANE_A = "openrouter"
 LLM_LANE_B = "openrouter"
@@ -2712,25 +2712,11 @@ def _cap(text: str) -> str:
 
 
 _JS_MARKERS = (
-    "function ",
-    "const ",
-    "let ",
-    "var ",
-    "=>",
     "console.log",
-    "document.",
-    "window.",
-    "===",
+    "====",
     "!==",
     "typeof ",
-    "undefined",
-    "null;",
-    "async ",
-    "await ",
-    "require(",
     "module.exports",
-    "export ",
-    "import ",
     ".then(",
     ".catch(",
     "JSON.parse",
@@ -2753,7 +2739,7 @@ async def query(query: Query) -> Response:
     question = (query.text or "").strip()
     if not question:
         return Response(text="No question provided.")
-    has_js = _has_javascript(query.text or "")
+    has_js = _has_javascript(question)
     if has_js:
         return await _solve_code_agent(query, question)
     try:
@@ -2898,136 +2884,460 @@ async def _solve_text_agent(query: Query, question: str) -> Response:
         return Response(text=text)
 
 
-async def _solve_code_agent(query: Query, question: str) -> Response:
-    deadline = monotonic() + WALL_BUDGET_S
-    try:
-        info = await tooling_info(timeout=10.0)
-        _spend_note(info)
-    except Exception:
-        pass
+_CODE_WALL_S = 266.0
+_CODE_TURN_S = 80.0
+_CODE_WRAP_S = 85.0
+_CODE_TAIL_S = 10.0
+_CODE_SEARCH_S = 18.0
+_CODE_FETCH_S = 16.0
+_CODE_MAX_TURNS = 10
+_CODE_NOTE_CHARS = 8000
+_CODE_ANSWER_CHARS = 60000
+_CODE_CITE_RE = re.compile(r"\[(\d+)\]")
+_CODE_RULES = (
+    "You are an auto-reasoning code agent. Use your reasoning channel. "
+    "The question is about code, JavaScript, APIs, runtime behavior, or program output.\n"
+    "Think through execution, types, scope, async, DOM, and library contracts before you answer. "
+    "When a fact depends on a specific API, spec, version, or docs page, call web_search "
+    "and/or read_page. Batch independent lookups in one turn. tool_choice is auto: "
+    "call tools only when they change the answer.\n"
+    "First sentence is the answer. No preamble. If the question wants code, emit the code; "
+    "if it wants a value, emit the value. Cite [n] immediately after claims taken from "
+    "numbered tool results. Never refuse."
+)
+_CODE_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Search the web for docs, specs, or source. Returns numbered results.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "search query"}
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_page",
+            "description": "Fetch a URL and return its main text.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "URL to fetch"}
+                },
+                "required": ["url"],
+            },
+        },
+    },
+]
 
-    draft = ""
-    brief = ""
-    try:
-        if _spend_left() >= BRIEF_MIN_USD and (deadline - monotonic()) > 120.0:
-            draft, brief = await _knowledge_brief(question)
-    except Exception:
-        brief = ""
 
-    ledger = EvidenceLedger()
-    answer = ""
-    messages: list[dict] = []
+def _code_think(model: str) -> dict:
+    if str(model).startswith("openai/gpt-oss"):
+        return {"enabled": True, "effort": "medium"}
+    return {"enabled": True}
+
+
+def _code_note_spend(state: dict, payload) -> None:
+    budget = getattr(payload, "budget", None)
+    left = getattr(budget, "session_remaining_budget_usd", None)
+    if isinstance(left, (int, float)):
+        state["left"] = float(left)
+
+
+def _code_left(state: dict) -> float:
+    left = state.get("left")
+    if isinstance(left, (int, float)):
+        return float(left)
+    return 1.0
+
+
+def _code_llm_text(payload) -> str:
+    llm = getattr(payload, "llm", None)
+    text = (getattr(llm, "raw_text", None) or "").strip()
+    if text:
+        return text
+    choices = getattr(llm, "choices", None) or []
+    if not choices:
+        return ""
+    content = getattr(choices[0].message, "content", None)
+    if isinstance(content, str):
+        return content.strip()
+    return ""
+
+
+def _code_ref(row: dict) -> CitationRef | None:
+    receipt = str(row.get("receipt_id") or "")
+    rid = str(row.get("result_id") or "")
+    n_len = int(row.get("note_len") or 0)
+    if not receipt or not rid or n_len <= 0:
+        return None
+    end = min(max(n_len, 1), 6000)
     try:
-        pool_hint = ""
-        try:
-            if _needs_set_completeness(question) or _needs_superlative_proof(question):
-                pool_hint = await _draft_candidate_pool(question, deadline)
-        except Exception:
-            pool_hint = ""
-        answer, messages = await _loop(
-            question, brief, ledger, deadline, MAX_TURNS, pool_hint=pool_hint
+        return CitationRef(
+            receipt_id=receipt,
+            result_id=rid,
+            slices=[CitationSlice(start=0, end=end)],
         )
     except Exception:
-        answer = ""
+        return None
 
+
+def _code_citations(answer: str, rows: list[dict]) -> list[CitationRef]:
+    used: list[CitationRef] = []
+    seen: set[tuple[str, str]] = set()
+    for m in _CODE_CITE_RE.finditer(answer or ""):
+        i = int(m.group(1)) - 1
+        if i < 0 or i >= len(rows):
+            continue
+        row = rows[i]
+        key = (str(row.get("receipt_id") or ""), str(row.get("result_id") or ""))
+        if key in seen:
+            continue
+        ref = _code_ref(row)
+        if ref is None:
+            continue
+        seen.add(key)
+        used.append(ref)
+    if not used:
+        for row in rows:
+            key = (str(row.get("receipt_id") or ""), str(row.get("result_id") or ""))
+            if key in seen:
+                continue
+            ref = _code_ref(row)
+            if ref is None:
+                continue
+            seen.add(key)
+            used.append(ref)
+            if len(used) >= 12:
+                break
+    return used[:24]
+
+
+async def _code_search(query_text: str, state: dict, rows: list[dict]) -> str:
+    q = (query_text or "").strip()
+    if not q:
+        return "# web_search: empty query"
+    payload = None
     try:
-        if (
-            _is_usable_answer(answer)
-            and (deadline - monotonic()) > 75.0
-            and _spend_left() >= AUDIT_MIN_USD
-        ):
-            patched = await _audit_patch(question, answer, messages, ledger, deadline)
-            if _is_usable_answer(patched):
-                answer = patched
+        payload = await search_web(
+            q, provider=SEARCH_PROVIDER, num=8, timeout=_CODE_SEARCH_S
+        )
     except Exception:
-        pass
+        payload = None
+    if payload is None:
+        return f"# web_search({q!r}) failed"
+    _code_note_spend(state, payload)
+    receipt = str(getattr(payload, "receipt_id", "") or "")
+    results = list(getattr(payload, "results", None) or [])
+    if not receipt or not results:
+        return f"# web_search({q!r}): no results"
+    lines = [f"# web_search({q!r}): {len(results)} results"]
+    for item in results:
+        rid = getattr(item, "result_id", None)
+        note = getattr(item, "note", None) or ""
+        if not isinstance(rid, str) or not rid or not str(note).strip():
+            continue
+        title = (getattr(item, "title", None) or "").strip()
+        url = (getattr(item, "url", None) or "").strip()
+        rows.append(
+            {
+                "receipt_id": receipt,
+                "result_id": rid,
+                "note_len": len(note),
+                "title": title,
+                "url": url,
+            }
+        )
+        n = len(rows)
+        lines.append(f"[{n}] {title} — {url}\n    {note[:550]}")
+    return "\n".join(lines) if len(lines) > 1 else f"# web_search({q!r}): no citable results"
 
-    for _sweep in (_align_timeframe, _second_source_check):
+
+async def _code_fetch(url: str, state: dict, rows: list[dict]) -> str:
+    target = (url or "").strip()
+    if not target:
+        return "# read_page: empty url"
+    payload = None
+    try:
+        payload = await fetch_page(
+            target, provider=SEARCH_PROVIDER, timeout=_CODE_FETCH_S
+        )
+    except Exception:
+        payload = None
+    if payload is None:
+        return f"# read_page({target!r}) failed"
+    _code_note_spend(state, payload)
+    receipt = str(getattr(payload, "receipt_id", "") or "")
+    results = list(getattr(payload, "results", None) or [])
+    if not receipt or not results:
+        return f"# read_page({target!r}): no content"
+    item = results[0]
+    rid = getattr(item, "result_id", None)
+    note = getattr(item, "note", None) or ""
+    if not isinstance(rid, str) or not rid or not str(note).strip():
+        return f"# read_page({target!r}): no usable content"
+    rows.append(
+        {
+            "receipt_id": receipt,
+            "result_id": rid,
+            "note_len": len(note),
+            "title": target,
+            "url": target,
+        }
+    )
+    n = len(rows)
+    body = note[:_CODE_NOTE_CHARS]
+    return f"# read_page({target!r}) -> [{n}] {len(note)} chars\n{body}"
+
+
+async def _code_chat(
+    messages: list,
+    deadline: float,
+    state: dict,
+    *,
+    finish_only: bool,
+):
+    timeout = min(_CODE_TURN_S, deadline - monotonic() - 4.0)
+    if timeout <= 6.0:
+        return None
+    lanes = (
+        (LLM_LANE_A, LOOP_MODEL_A),
+        (LLM_LANE_B, LOOP_MODEL_B),
+        (LLM_LANE_A, AUDIT_MODEL),
+    )
+    tools = None if finish_only else _CODE_TOOLS
+    choice = None if finish_only else "auto"
+    for lane, model in lanes:
+        left = deadline - monotonic()
+        if left <= _CODE_TAIL_S:
+            return None
         try:
-            if not _is_usable_answer(answer):
-                break
-            if (deadline - monotonic()) <= SECOND_SOURCE_MIN_LEFT_S:
-                break
-            if _spend_left() <= AUDIT_MIN_USD:
-                break
-            swept = await _sweep(question, answer, messages, ledger, deadline)
-            if _is_usable_answer(swept):
-                answer = swept
+            payload = await asyncio.wait_for(
+                llm_chat(
+                    provider=lane,
+                    model=model,
+                    messages=messages,
+                    tools=tools,
+                    tool_choice=choice,
+                    parallel_tool_calls=None if finish_only else True,
+                    temperature=0.2,
+                    thinking=_code_think(model),
+                    timeout=min(timeout, left - 2.0),
+                ),
+                timeout=min(timeout + 6.0, max(1.0, left - 1.0)),
+            )
+            _code_note_spend(state, payload)
+            return payload
         except Exception:
             continue
+    return None
 
-    if not _is_usable_answer(answer) and ledger.rows:
+
+async def _code_schema(
+    question: str, answer: str, schema, deadline: float, state: dict
+):
+    ask = (
+        "Convert the answer to a JSON value valid under the schema. "
+        "Output ONLY the JSON value.\n\n"
+        f"Schema:\n{json.dumps(schema)}\n\nQuestion:\n{question}\n\n"
+        f"Answer:\n{answer[:14000]}"
+    )
+    for lane, model in (
+        (LLM_LANE_A, SCHEMA_MODEL),
+        (LLM_LANE_A, RESORT_MODEL),
+        (LLM_LANE_B, LOOP_MODEL_B),
+    ):
+        left = deadline - monotonic()
+        if left < 12.0:
+            break
         try:
-            rescued = await _write_from_digest(question, ledger, deadline)
-            if _is_usable_answer(rescued):
-                answer = rescued
+            payload = await llm_chat(
+                provider=lane,
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You output strictly valid JSON."},
+                    {"role": "user", "content": ask},
+                ],
+                temperature=0.0,
+                max_output_tokens=3400,
+                thinking=_code_think(model),
+                timeout=min(45.0, left - 4.0),
+            )
+            _code_note_spend(state, payload)
+            raw = _code_llm_text(payload)
+            raw = re.sub(
+                r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.I | re.M
+            ).strip()
+            value = json.loads(raw)
+            return value
         except Exception:
-            pass
-    if not _is_usable_answer(answer) and ledger.rows:
-        det = _deterministic_answer(question, ledger)
-        if _is_usable_answer(det):
-            answer = det
-    if not _is_usable_answer(answer):
-        fallback = _sanitize_draft(draft) or await _knowledge_resort(question, deadline)
-        if _is_usable_answer(fallback):
-            answer = fallback
+            continue
+    return None
 
+
+async def _solve_code_agent(query: Query, question: str) -> Response:
+    deadline = monotonic() + _CODE_WALL_S
+    state: dict = {"left": None}
+    rows: list[dict] = []
     try:
-        citations = _citations_for(answer, ledger)
+        info = await tooling_info(timeout=10.0)
+        _code_note_spend(state, info)
     except Exception:
-        citations = []
-
-    answer = _normalize_brackets(answer)
-    answer = _strip_lead_narration(answer)
-    answer = _answer_line_only(answer, question)
-    text = _cap(answer) or f"Best-effort answer unavailable for: {question[:400]}"
-
+        pass
+    messages: list = [
+        {"role": "system", "content": _CODE_RULES},
+        {"role": "user", "content": question},
+    ]
+    answer = ""
+    try:
+        for turn in range(1, _CODE_MAX_TURNS + 1):
+            left = deadline - monotonic()
+            if left <= _CODE_TAIL_S:
+                break
+            finish_only = (
+                left <= _CODE_WRAP_S
+                or _code_left(state) <= 0.02
+                or turn >= _CODE_MAX_TURNS
+            )
+            payload = await _code_chat(
+                messages, deadline, state, finish_only=finish_only
+            )
+            if payload is None:
+                break
+            llm = getattr(payload, "llm", None)
+            choices = getattr(llm, "choices", None) or []
+            if not choices:
+                break
+            msg = choices[0].message
+            calls = getattr(msg, "tool_calls", None) or ()
+            if not calls:
+                candidate = _code_llm_text(payload)
+                if candidate.strip():
+                    answer = candidate.strip()
+                break
+            try:
+                replay = msg.to_input_message()
+            except Exception:
+                replay = {
+                    "role": "assistant",
+                    "content": _code_llm_text(payload) or None,
+                    "tool_calls": [
+                        {
+                            "id": getattr(c, "id", ""),
+                            "type": getattr(c, "type", "function") or "function",
+                            "name": getattr(c, "name", ""),
+                            "arguments": getattr(c, "arguments", "{}") or "{}",
+                        }
+                        for c in calls
+                    ],
+                }
+            messages.append(replay)
+            run_calls = list(calls)[:6]
+            for call in run_calls:
+                raw_args = getattr(call, "arguments", "") or "{}"
+                try:
+                    args = json.loads(raw_args)
+                    if not isinstance(args, dict):
+                        args = {}
+                except Exception:
+                    args = {}
+                name = getattr(call, "name", "") or ""
+                try:
+                    if name == "web_search":
+                        body = await _code_search(
+                            str(args.get("query") or ""), state, rows
+                        )
+                    elif name == "read_page":
+                        body = await _code_fetch(
+                            str(args.get("url") or ""), state, rows
+                        )
+                    else:
+                        body = f"# unknown tool {name!r}"
+                except Exception as exc:
+                    body = f"# tool crashed: {exc}"
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": getattr(call, "id", "") or "tool",
+                        "content": str(body) or "# empty",
+                    }
+                )
+            for call in calls[6:]:
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": getattr(call, "id", "") or "tool",
+                        "content": "# skipped: per-turn tool budget reached",
+                    }
+                )
+    except Exception:
+        answer = ""
+    if not (answer or "").strip() and (deadline - monotonic()) > 12.0:
+        try:
+            payload = await llm_chat(
+                provider=LLM_LANE_A,
+                model=LOOP_MODEL_A,
+                messages=[
+                    {"role": "system", "content": _CODE_RULES},
+                    {"role": "user", "content": question},
+                ],
+                temperature=0.2,
+                max_output_tokens=4000,
+                thinking=_code_think(LOOP_MODEL_A),
+                timeout=min(45.0, deadline - monotonic() - 4.0),
+            )
+            _code_note_spend(state, payload)
+            answer = _code_llm_text(payload)
+        except Exception:
+            try:
+                payload = await llm_chat(
+                    provider=LLM_LANE_B,
+                    model=LOOP_MODEL_B,
+                    messages=[
+                        {"role": "system", "content": _CODE_RULES},
+                        {"role": "user", "content": question},
+                    ],
+                    temperature=0.2,
+                    max_output_tokens=4000,
+                    thinking=_code_think(LOOP_MODEL_B),
+                    timeout=min(40.0, deadline - monotonic() - 3.0),
+                )
+                _code_note_spend(state, payload)
+                answer = _code_llm_text(payload)
+            except Exception:
+                answer = ""
+    text = (answer or "").strip()[:_CODE_ANSWER_CHARS]
+    if not text:
+        text = f"Best-effort answer unavailable for: {question[:400]}"
+    citations = _code_citations(text, rows)
     if query.output_schema is not None:
         structured = None
         try:
-            structured = await _schema_output(
-                question, answer, query.output_schema, deadline
+            structured = await _code_schema(
+                question, text, query.output_schema, deadline, state
             )
         except Exception:
             structured = None
         if structured is not None:
             try:
-                structured = _verbatim_structured(structured, ledger)
-            except Exception:
-                pass
-            try:
                 return Response(output=structured, citations=citations or None)
             except Exception:
                 structured = None
-        basis = answer if _is_usable_answer(answer) else ""
-        if not basis:
-            basis = _deterministic_answer(question, ledger)
-        if not basis or _STUB_ANSWER_RE.match(basis.strip()):
-            basis = question[:400]
-        if basis is not answer:
-            try:
-                salvaged = await _schema_output(
-                    question, basis, query.output_schema, deadline
-                )
-            except Exception:
-                salvaged = None
-            if salvaged is not None:
-                try:
-                    return Response(output=salvaged, citations=citations or None)
-                except Exception:
-                    pass
-        if basis is not answer:
-            cleaned = _undigest_for_schema(basis)
-            basis = cleaned if cleaned else ""
         try:
-            forced = _coerce_to_schema(_cap(basis), query.output_schema)
+            forced = json.loads(text)
             return Response(output=forced, citations=citations or None)
         except Exception:
-            try:
-                return Response(output=_cap(basis)[:2000], citations=citations or None)
-            except Exception:
-                pass
-
+            pass
+        try:
+            return Response(output=text[:2000], citations=citations or None)
+        except Exception:
+            pass
     try:
         return Response(text=text, citations=citations or None)
     except Exception:
