@@ -2962,15 +2962,18 @@ async def _solve_text_agent(query: Query, question: str) -> Response:
 
 _CODE_WALL_S = 266.0
 _CODE_TURN_S = 80.0
-_CODE_WRAP_S = 85.0
+_CODE_WRAP_S = 95.0
 _CODE_TAIL_S = 10.0
-_CODE_MAX_TURNS = 10
+_CODE_MAX_TURNS = 12
+_CODE_REPAIR_TURNS = 2
 _CODE_AUDIT_EXTRA_TURNS = 3
 _CODE_AUDIT_MIN_LEFT_S = 75.0
 _CODE_ANSWER_CHARS = 60000
+_CODE_SEED_MIN_LEFT_S = 45.0
 _CODE_RULES = (
-    "You are an auto-reasoning code agent. Use your reasoning channel. "
-    "The question is about code, JavaScript, APIs, runtime behavior, or program output.\n"
+    "You are an auto-reasoning code agent. Use your reasoning channel on every turn.\n"
+    "The question is about code, JavaScript/TypeScript/Python, APIs, runtime behavior, "
+    "or program output.\n"
     "You have a SEPARATE toolset from the factual research agent, but you share the SAME "
     "evidence state and flow: tool results are committed into a numbered EvidenceLedger "
     "([n] rows with receipt/result spans, retained excerpts, and digest consumption).\n"
@@ -2980,18 +2983,19 @@ _CODE_RULES = (
     "- docs_grep(source, pattern): grep an already-fetched ledger page (URL or [n]).\n"
     "- docs_read(source, offset, length): read a character range from a ledger page.\n"
     "- docs_retain(source, quote): retain an exact quote from a ledger row for citation.\n"
-    "Workflow:\n"
-    "1) RESEARCH LOOP: decide the next docs_* call, when evidence is enough, and when to stop.\n"
-    "2) EVIDENCE LEDGER: every citable tool result is numbered [n] via the shared ledger commit "
-    "path; that ledger is the only evidence state between research and the final answer.\n"
-    "3) ANSWER PRODUCTION: write the final answer from the ledger; cite [n] on every "
-    "load-bearing claim.\n"
-    "Prefer official docs over blogs. Batch independent lookups in one turn. tool_choice "
-    "is auto: call tools only when they change the answer.\n"
-    "First sentence is the answer. No preamble. If the question wants code, emit the code; "
-    "if it wants a value, emit the value. Never refuse. Never call web_search, read_page, "
-    "sec_filing, page_grep, page_read, or retain_evidence by those names — use the docs_* "
-    "aliases above (they feed the same ledger machinery)."
+    "QUALITY METHOD:\n"
+    "1) Trace the asked behavior step by step (scope, types, async, return values, "
+    "edge cases) before asserting an answer.\n"
+    "2) RESEARCH LOOP: for any API/library/spec/version claim you are not certain of, "
+    "search and fetch official docs; then docs_retain the exact sentence that proves it.\n"
+    "3) EVIDENCE LEDGER: every citable tool result is numbered [n]; that ledger is the "
+    "only evidence state between research and the final answer.\n"
+    "4) ANSWER PRODUCTION: first sentence IS the answer (value, code, or diagnosis). "
+    "Cite [n] on every load-bearing claim. Prefer official docs over blogs.\n"
+    "Batch independent lookups in one turn. tool_choice is auto: call tools only when "
+    "they change the answer. Never refuse. Never emit tool-call JSON as the answer. "
+    "Never call web_search, read_page, sec_filing, page_grep, page_read, or "
+    "retain_evidence by those names — use the docs_* aliases above."
 )
 _CODE_AUDIT_RULES = (
     "Strict code-answer auditor. JSON only. Keys: "
@@ -3000,6 +3004,19 @@ _CODE_AUDIT_RULES = (
     '"wrong_behavior" (list; likely incorrect execution, types, or library contracts), '
     '"docs_gaps" (list; docs/spec pages that should still be searched or fetched). '
     "Empty lists when clean."
+)
+_CODE_REPAIR_ORDER = (
+    "Your last message was not a usable final answer (empty, tool markup, refusal, "
+    "or uncited when ledger evidence exists). Do NOT emit tool syntax as text. "
+    "Write the FINAL ANSWER now as plain prose: first words are the answer itself; "
+    "cite [n] on every load-bearing claim from the numbered ledger results; then a short "
+    "proof or explanation. Nothing else."
+)
+_CODE_CITE_ORDER = (
+    "The draft answer asserts facts without [n] citations even though the ledger already "
+    "has numbered evidence. Rewrite the COMPLETE final answer now, citing the matching "
+    "[n] after each load-bearing claim. Prefer docs_retain quotes when present. "
+    "No more tool calls unless a decisive fact is still missing."
 )
 _CODE_TOOLS = [
     {
@@ -3119,10 +3136,147 @@ _CODE_TOOLS = [
 ]
 
 
-def _code_think(model: str) -> dict:
+def _code_think(model: str, *, finish: bool = False) -> dict:
     if str(model).startswith("openai/gpt-oss"):
+        return {"enabled": True, "effort": "high" if finish else "medium"}
+    if finish:
         return {"enabled": True, "effort": "medium"}
     return {"enabled": True}
+
+
+def _code_wrapup_order(seconds_left: float, ledger: EvidenceLedger) -> str:
+    n = len(ledger.rows)
+    base = (
+        f"TIME IS UP (~{int(seconds_left)}s left). No more tool calls. Write the "
+        "COMPLETE final answer NOW from your reasoning and the numbered ledger "
+        "results already in context: first words are the answer itself (value, "
+        "code, or diagnosis), cite [n] on every load-bearing claim, no preamble, "
+        "no refusal. A cited partial answer scores; an empty or tool-markup reply "
+        "scores zero."
+    )
+    if n:
+        base += (
+            f" The ledger currently holds {n} numbered result(s) — prefer those "
+            "[n] citations over unsupported memory."
+        )
+    if seconds_left < 50:
+        base += (
+            " BREVITY OVERRIDE: lead with the answer, then one short cited proof "
+            "paragraph. Finish now."
+        )
+    return base
+
+
+def _code_seed_queries(question: str) -> list[str]:
+    q = " ".join((question or "").split())
+    if not q:
+        return []
+    seeds: list[str] = []
+    fence = re.search(r"```(?:\w+)?\n([\s\S]{0,800}?)\n```", q)
+    body = fence.group(1) if fence else q
+    tokens = [
+        t
+        for t in re.findall(r"[A-Za-z][A-Za-z0-9_.-]{2,}", body)
+        if t.lower()
+        not in {
+            "the",
+            "and",
+            "for",
+            "that",
+            "this",
+            "with",
+            "from",
+            "what",
+            "when",
+            "which",
+            "function",
+            "return",
+            "const",
+            "let",
+            "var",
+            "async",
+            "await",
+            "true",
+            "false",
+            "null",
+            "undefined",
+            "import",
+            "export",
+            "class",
+            "def",
+            "print",
+        }
+    ]
+    libs = [
+        t
+        for t in tokens
+        if t[:1].islower()
+        or t
+        in {
+            "React",
+            "Node",
+            "Express",
+            "Django",
+            "Flask",
+            "Pandas",
+            "NumPy",
+            "TypeScript",
+            "JavaScript",
+            "Python",
+            "Promise",
+            "Array",
+            "Object",
+            "JSON",
+            "HTTP",
+            "CSS",
+            "HTML",
+            "DOM",
+            "fetch",
+            "axios",
+            "lodash",
+            "pytest",
+            "unittest",
+        }
+    ]
+    if libs:
+        seeds.append(" ".join(libs[:6]) + " official docs")
+    if tokens:
+        seeds.append(" ".join(tokens[:8]) + " documentation")
+    out: list[str] = []
+    for s in seeds:
+        s = s.strip()
+        if s and s not in out:
+            out.append(s)
+    return out[:2]
+
+
+async def _code_preseed(
+    question: str, ledger: EvidenceLedger, deadline: float, state: dict
+) -> str:
+    if (deadline - monotonic()) < _CODE_SEED_MIN_LEFT_S:
+        return ""
+    seeds = _code_seed_queries(question)
+    if not seeds:
+        return ""
+    blocks: list[str] = []
+    for seed in seeds:
+        if (deadline - monotonic()) < 30.0:
+            break
+        try:
+            out = await _code_run_tool(
+                "docs_search", {"query": seed}, question, state, ledger
+            )
+            body = _commit_tool_output(out, ledger)
+            if isinstance(body, str) and _CITE_MARK_RE.search(body):
+                blocks.append(body)
+        except Exception:
+            continue
+    if not blocks:
+        return ""
+    return (
+        "Automatic first-pass docs searches (already numbered — cite these [n] "
+        "directly, and search further as needed):\n\n" + "\n".join(blocks)
+    )
 
 
 def _code_note_spend(state: dict, payload) -> None:
@@ -3224,6 +3378,7 @@ async def _code_chat(
     state: dict,
     *,
     finish_only: bool,
+    force_tools: bool = False,
 ):
     timeout = min(_CODE_TURN_S, deadline - monotonic() - 4.0)
     if timeout <= 6.0:
@@ -3233,8 +3388,15 @@ async def _code_chat(
         (LLM_LANE_B, LOOP_MODEL_B),
         (LLM_LANE_A, AUDIT_MODEL),
     )
-    tools = None if finish_only else _CODE_TOOLS
-    choice = None if finish_only else "auto"
+    if force_tools and not finish_only:
+        tools = _CODE_TOOLS
+        choice = "required"
+    elif finish_only:
+        tools = None
+        choice = None
+    else:
+        tools = _CODE_TOOLS
+        choice = "auto"
     for lane, model in lanes:
         left = deadline - monotonic()
         if left <= _CODE_TAIL_S:
@@ -3248,8 +3410,9 @@ async def _code_chat(
                     tools=tools,
                     tool_choice=choice,
                     parallel_tool_calls=None if finish_only else True,
-                    temperature=0.2,
-                    thinking=_code_think(model),
+                    temperature=0.15 if finish_only else 0.2,
+                    thinking=_code_think(model, finish=finish_only),
+                    max_output_tokens=5000 if finish_only else None,
                     timeout=min(timeout, left - 2.0),
                 ),
                 timeout=min(timeout + 6.0, max(1.0, left - 1.0)),
@@ -3288,7 +3451,7 @@ async def _code_schema(
                 ],
                 temperature=0.0,
                 max_output_tokens=3400,
-                thinking=_code_think(model),
+                thinking=_code_think(model, finish=True),
                 timeout=min(45.0, left - 4.0),
             )
             _code_note_spend(state, payload)
@@ -3317,11 +3480,18 @@ async def _code_agent_loop(
     if carry is not None:
         messages = carry
     else:
-        messages = [
-            {"role": "system", "content": _CODE_RULES},
-            {"role": "user", "content": question},
-        ]
+        messages = [{"role": "system", "content": _CODE_RULES}]
+        try:
+            seeded = await _code_preseed(question, ledger, deadline, state)
+        except Exception:
+            seeded = ""
+        if seeded:
+            messages.append({"role": "system", "content": seeded})
+        messages.append({"role": "user", "content": question})
     answer = ""
+    ordered_wrapup = False
+    repairs_left = _CODE_REPAIR_TURNS
+    cite_nudge_left = 1
     try:
         for turn in range(1, turn_cap + 1):
             left = deadline - monotonic()
@@ -3332,10 +3502,23 @@ async def _code_agent_loop(
                 or _code_left(state) <= 0.02
                 or turn >= turn_cap
             )
-            if allow_tools_in_wrapup and turn == 1:
+            force_tools = allow_tools_in_wrapup and turn == 1
+            if force_tools:
                 finish_only = False
+            if (finish_only or turn >= turn_cap - 1) and not ordered_wrapup:
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": _code_wrapup_order(left, ledger),
+                    }
+                )
+                ordered_wrapup = True
             payload = await _code_chat(
-                messages, deadline, state, finish_only=finish_only
+                messages,
+                deadline,
+                state,
+                finish_only=finish_only,
+                force_tools=force_tools,
             )
             if payload is None:
                 break
@@ -3346,10 +3529,33 @@ async def _code_agent_loop(
             msg = choices[0].message
             calls = getattr(msg, "tool_calls", None) or ()
             if not calls:
-                candidate = _code_llm_text(payload)
-                if candidate.strip():
-                    answer = candidate.strip()
-                    messages.append({"role": "assistant", "content": answer})
+                candidate = _code_llm_text(payload).strip()
+                if not _is_usable_answer(candidate):
+                    if (
+                        repairs_left > 0
+                        and (deadline - monotonic()) > _CODE_TAIL_S + 10.0
+                    ):
+                        repairs_left -= 1
+                        messages.append(
+                            {"role": "system", "content": _CODE_REPAIR_ORDER}
+                        )
+                        answer = ""
+                        continue
+                    answer = ""
+                    break
+                if (
+                    cite_nudge_left > 0
+                    and ledger.rows
+                    and not _CITE_MARK_RE.search(candidate)
+                    and (deadline - monotonic()) > _CODE_TAIL_S + 12.0
+                    and not finish_only
+                ):
+                    cite_nudge_left -= 1
+                    messages.append({"role": "assistant", "content": candidate})
+                    messages.append({"role": "system", "content": _CODE_CITE_ORDER})
+                    continue
+                answer = candidate
+                messages.append({"role": "assistant", "content": answer})
                 break
             try:
                 replay = msg.to_input_message()
@@ -3371,7 +3577,7 @@ async def _code_agent_loop(
             run_calls = list(calls)[:6]
             tool_budget = max(
                 5.0,
-                min(FETCH_TIMEOUT_S * 2 + 6.0, deadline - monotonic() - _CODE_TAIL_S),
+                min(FETCH_TIMEOUT_S * 2 + 8.0, deadline - monotonic() - _CODE_TAIL_S),
             )
             tool_tasks = []
             for c in run_calls:
@@ -3438,7 +3644,7 @@ async def _code_audit_retry(
     state: dict,
 ) -> tuple[str, list]:
     """Audit draft; on gaps, re-enter the research loop then regenerate the answer."""
-    if not (answer or "").strip():
+    if not _is_usable_answer(answer):
         return answer, messages
     if (deadline - monotonic()) < _CODE_AUDIT_MIN_LEFT_S:
         return answer, messages
@@ -3464,7 +3670,7 @@ async def _code_audit_retry(
                 ],
                 temperature=0.0,
                 max_output_tokens=1800,
-                thinking=_code_think(model),
+                thinking=_code_think(model, finish=True),
                 timeout=min(28.0, left - 8.0),
             )
             _code_note_spend(state, payload)
@@ -3504,7 +3710,9 @@ async def _code_audit_retry(
         allow_tools_in_wrapup=True,
     )
     patched = (patched or "").strip()
-    if not patched or len(patched) < int(len(answer) * 0.55):
+    if not _is_usable_answer(patched):
+        return answer, messages
+    if len(patched) < int(len(answer) * 0.55):
         return answer, messages
     return patched, messages
 
@@ -3521,7 +3729,7 @@ async def _code_answer_from_ledger(
     ask = (
         "Write the FINAL ANSWER from the numbered evidence below. "
         "First sentence is the answer. Cite [n] on load-bearing claims. "
-        "No preamble.\n\n"
+        "No preamble. Prefer exact docs wording for API/spec facts.\n\n"
         f"Question:\n{question}\n\nEvidence:\n{digest}"
     )
     for lane, model in (
@@ -3540,14 +3748,14 @@ async def _code_answer_from_ledger(
                     {"role": "system", "content": _CODE_RULES},
                     {"role": "user", "content": ask},
                 ],
-                temperature=0.2,
+                temperature=0.15,
                 max_output_tokens=4000,
-                thinking=_code_think(model),
+                thinking=_code_think(model, finish=True),
                 timeout=min(45.0, left - 4.0),
             )
             _code_note_spend(state, payload)
             text = _code_llm_text(payload).strip()
-            if text:
+            if _is_usable_answer(text):
                 return text
         except Exception:
             continue
@@ -3560,6 +3768,7 @@ async def _code_knowledge_fallback(question: str, deadline: float, state: dict) 
     for lane, model, reserve in (
         (LLM_LANE_A, LOOP_MODEL_A, 4.0),
         (LLM_LANE_B, LOOP_MODEL_B, 3.0),
+        (LLM_LANE_A, AUDIT_MODEL, 4.0),
     ):
         left = deadline - monotonic()
         if left <= 12.0:
@@ -3572,14 +3781,14 @@ async def _code_knowledge_fallback(question: str, deadline: float, state: dict) 
                     {"role": "system", "content": _CODE_RULES},
                     {"role": "user", "content": question},
                 ],
-                temperature=0.2,
+                temperature=0.15,
                 max_output_tokens=4000,
-                thinking=_code_think(model),
+                thinking=_code_think(model, finish=True),
                 timeout=min(45.0 if lane == LLM_LANE_A else 40.0, left - reserve),
             )
             _code_note_spend(state, payload)
             text = _code_llm_text(payload).strip()
-            if text:
+            if _is_usable_answer(text):
                 return text
         except Exception:
             continue
@@ -3611,30 +3820,44 @@ async def _solve_code_agent(query: Query, question: str) -> Response:
         messages = []
 
     try:
-        if (answer or "").strip() and (deadline - monotonic()) > _CODE_AUDIT_MIN_LEFT_S:
+        if _is_usable_answer(answer) and (deadline - monotonic()) > _CODE_AUDIT_MIN_LEFT_S:
             answer, messages = await _code_audit_retry(
                 question, answer, messages, ledger, deadline, state
             )
     except Exception:
         pass
 
-    if not (answer or "").strip() and ledger.rows:
+    if (not _is_usable_answer(answer) or (
+        ledger.rows and not _CITE_MARK_RE.search(answer or "")
+    )) and ledger.rows:
         try:
             rescued = await _code_answer_from_ledger(question, ledger, deadline, state)
-            if rescued.strip():
-                answer = rescued
+            if _is_usable_answer(rescued):
+                if not _is_usable_answer(answer) or (
+                    not _CITE_MARK_RE.search(answer or "")
+                    and _CITE_MARK_RE.search(rescued)
+                ):
+                    answer = rescued
         except Exception:
             pass
-    if not (answer or "").strip():
+    if not _is_usable_answer(answer):
         try:
             answer = await _code_knowledge_fallback(question, deadline, state)
         except Exception:
             answer = ""
 
+    answer = _normalize_brackets(answer)
+    try:
+        answer = _strip_lead_narration(answer)
+    except Exception:
+        pass
     text = (answer or "").strip()[:_CODE_ANSWER_CHARS]
     if not text:
         text = f"Best-effort answer unavailable for: {question[:400]}"
-    citations = _citations_for(text, ledger)
+    try:
+        citations = _citations_for(text, ledger)
+    except Exception:
+        citations = []
     if query.output_schema is not None:
         structured = None
         try:
@@ -3644,6 +3867,10 @@ async def _solve_code_agent(query: Query, question: str) -> Response:
         except Exception:
             structured = None
         if structured is not None:
+            try:
+                structured = _verbatim_structured(structured, ledger)
+            except Exception:
+                pass
             try:
                 return Response(output=structured, citations=citations or None)
             except Exception:
