@@ -3,12 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-from enum import Enum
 from time import monotonic
 
 from harnyx_miner_sdk.api import fetch_page, llm_chat, search_web, tooling_info
 from harnyx_miner_sdk.decorators import entrypoint
 from harnyx_miner_sdk.query import CitationRef, CitationSlice, Query, Response
+
+VERSION = "v55-text-code-slice"
 
 LLM_LANE_A = "openrouter"
 LLM_LANE_B = "openrouter"
@@ -2702,112 +2703,27 @@ def _cap(text: str) -> str:
     return t
 
 
-class AgentType(str, Enum):
-    """Concrete solver route for a query."""
-
-    CODE = "code"
-    TEXT = "text"
-
-
-_CODE_FENCE_RE = re.compile(
-    r"```(?:js|javascript|ts|typescript|tsx|jsx|python|py|java|c\+\+|cpp|c|go|rust|"
-    r"sql|bash|sh|shell|html|css|json|yaml|yml|php|ruby|swift|kotlin)?\b",
-    re.IGNORECASE,
-)
-_CODE_SYNTAX_RE = re.compile(
-    r"(?:"
-    r"console\.log\b"
-    r"|module\.exports\b"
-    r"|JSON\.(?:parse|stringify)\b"
-    r"|\btypeof\s+\w+"
-    r"|\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*="
-    r"|\bfunction\s*(?:[A-Za-z_$][\w$]*)?\s*\("
-    r"|=>\s*[{(]"
-    r"|===|!=="
-    r"|\.then\b|\.catch\b|\bPromise\b"
-    r"|\basync\s+function\b|\bawait\s+"
-    r"|document\.(?:getElementById|querySelector)\b"
-    r"|process\.env\b"
-    r"|npm\s+(?:install|run)\b"
-    r"|package\.json\b"
-    r"|\bdef\s+[A-Za-z_]\w*\s*\("
-    r"|\bclass\s+[A-Za-z_]\w*\s*[:(]"
-    r"|#include\s*<"
-    r"|public\s+static\s+void\s+main"
-    r"|\bimport\s+(?:\{|[\w*])|\bfrom\s+['\"]|require\s*\("
-    r"|\breturn\s+[^;]+;?"
-    r"|;\s*(?://|/\*|$)"
-    r")",
-    re.IGNORECASE | re.MULTILINE,
-)
-_CODE_LANG_RE = re.compile(
-    r"\b(?:javascript|typescript|node\.?js|python|java|golang|go lang|rust|sql|"
-    r"c\+\+|csharp|c#|php|ruby|swift|kotlin|html|css|dom|react|vue|angular)\b",
-    re.IGNORECASE,
-)
-_CODE_TASK_RE = re.compile(
-    r"(?:"
-    r"\b(?:code|snippet|script|program|source|algorithm|pseudocode)\b"
-    r"|\b(?:function|method|class|module|package|library|framework|api|sdk)\b"
-    r"|\b(?:compile|compiler|runtime|execute|execution|interpreter|stack\s*trace|"
-    r"exception|traceback|bug|debug|refactor|lint)\b"
-    r"|\b(?:output\s+of|return\s+value|time\s*complexity|big[- ]?o)\b"
-    r"|\bwhat\s+(?:does|is|will)\s+this\s+(?:code|function|script|program)\b"
-    r"|\b(?:write|implement|fix|debug|complete)\b.{0,40}\b"
-    r"(?:code|function|script|program|snippet|method|class|bug|error)\b"
-    r"|\bexplain\b.{0,40}\b(?:code|function|script|program|snippet|promise|async|await|api)\b"
-    r")",
-    re.IGNORECASE,
-)
-_FACTUAL_SIGNAL_RE = re.compile(
-    r"(?:"
-    r"\b(?:who|when|where|which|whose)\b"
-    r"|\b(?:according to|based on (?:the )?(?:report|study|filing|census|survey))\b"
-    r"|\b(?:population|revenue|gdp|election|treaty|nobel|olympic|war|company|ceo|"
-    r"founded|headquarters|sec\s*filing|10-k|10-q)\b"
-    r"|\b(?:in\s+(?:19|20)\d{2}|as of\s+(?:19|20)\d{2})\b"
-    r")",
-    re.IGNORECASE,
+_JS_MARKERS = (
+    "console.log",
+    "====",
+    "!==",
+    "typeof ",
+    "module.exports",
+    ".then(",
+    ".catch(",
+    "JSON.parse",
+    "JSON.stringify",
 )
 
 
-def _detect_agent_type(text: str) -> AgentType:
-    """Return the real solver type for this question: AgentType.CODE or AgentType.TEXT."""
-    raw = (text or "").strip()
-    if not raw:
-        return AgentType.TEXT
-
-    has_fence = _CODE_FENCE_RE.search(raw) is not None
-    has_syntax = _CODE_SYNTAX_RE.search(raw) is not None
-    has_lang = _CODE_LANG_RE.search(raw) is not None
-    has_task = _CODE_TASK_RE.search(raw) is not None
-    has_braces = "{" in raw and "}" in raw
-    has_many_semicolons = raw.count(";") >= 2
-    has_factual = _FACTUAL_SIGNAL_RE.search(raw) is not None
-
-    # Hard route: embedded source or clear programming syntax.
-    if has_fence or has_syntax:
-        return AgentType.CODE
-
-    score = 0
-    if "```" in raw:
-        score += 3
-    if has_lang:
-        score += 2
-    if has_task:
-        score += 3
-    if has_braces:
-        score += 1
-    if has_many_semicolons:
-        score += 1
-    if has_lang and has_task:
-        score += 2
-    if has_factual and not (has_lang or has_task):
-        score -= 2
-
-    if score >= 4:
-        return AgentType.CODE
-    return AgentType.TEXT
+def _has_javascript(text: str) -> bool:
+    raw = (text or "").lower()
+    if not raw.strip():
+        return False
+    for marker in _JS_MARKERS:
+        if marker.lower() in raw:
+            return True
+    return False
 
 
 @entrypoint("query")
@@ -2815,10 +2731,11 @@ async def query(query: Query) -> Response:
     question = (query.text or "").strip()
     if not question:
         return Response(text="No question provided.")
-    agent_type = _detect_agent_type(question)
+    has_js = _has_javascript(question)
+    if has_js:
+        print(has_js)
+        return await _solve_code_agent(query, question)
     try:
-        if agent_type is AgentType.CODE:
-            return await _solve_code_agent(query, question)
         return await _solve_text_agent(query, question)
     except Exception:
         return Response(text=f"Best-effort answer unavailable for: {question[:500]}")
@@ -2960,63 +2877,37 @@ async def _solve_text_agent(query: Query, question: str) -> Response:
         return Response(text=text)
 
 
-_CODE_WALL_S = 140.0
-_CODE_TURN_S = 36.0
-_CODE_WRAP_S = 40.0
-_CODE_TAIL_S = 6.0
-_CODE_MAX_TURNS = 4
+_CODE_WALL_S = 266.0
+_CODE_TURN_S = 80.0
+_CODE_WRAP_S = 85.0
+_CODE_TAIL_S = 10.0
+_CODE_SEARCH_S = 18.0
+_CODE_FETCH_S = 16.0
+_CODE_MAX_TURNS = 10
+_CODE_NOTE_CHARS = 8000
 _CODE_ANSWER_CHARS = 60000
-_CODE_TURN_TOKENS = 2600
-_CODE_FINISH_TOKENS = 3600
-_CODE_TOOL_WAIT_S = 18.0
-_CODE_TOOLS_PER_TURN = 4
-_CODE_MAX_TOOL_ROUNDS = 2
-_CODE_WRAP_MSG = (
-    "No more tool calls. Write the complete final answer NOW from the numbered "
-    "ledger plus your knowledge. First sentence is the answer. Cite [n] on "
-    "load-bearing claims. No preamble."
-)
+_CODE_CITE_RE = re.compile(r"\[(\d+)\]")
 _CODE_RULES = (
-    "You are a fast code agent. Prefer a direct answer from known language, API, "
-    "and runtime facts. Call tools only when a spec, signature, or version is uncertain.\n"
-    "You have a SEPARATE toolset from the factual research agent, but you share the SAME "
-    "evidence state and flow: tool results are committed into a numbered EvidenceLedger "
-    "([n] rows with receipt/result spans, retained excerpts, and digest consumption).\n"
-    "Use ONLY these tools:\n"
-    "- docs_search(query): docs/specs search; commits search rows into the ledger.\n"
-    "- docs_fetch(url, focus): fetch a docs/spec page; commits a fetch row like read_page.\n"
-    "- docs_grep(source, pattern): grep an already-fetched ledger page (URL or [n]).\n"
-    "- docs_read(source, offset, length): read a character range from a ledger page.\n"
-    "- docs_retain(source, quote): retain an exact quote from a ledger row for citation.\n"
-    "Workflow:\n"
-    "1) If you already know the answer, emit it immediately — no tools.\n"
-    "2) Otherwise RESEARCH: at most two docs_* rounds; batch independent lookups in one turn.\n"
-    "3) EVIDENCE LEDGER: every citable tool result is numbered [n] via the shared ledger commit "
-    "path; that ledger is the only evidence state between research and the final answer.\n"
-    "4) ANSWER PRODUCTION: write the final answer; cite [n] on load-bearing claims.\n"
-    "Prefer official docs over blogs. tool_choice is auto: call tools only when they change "
-    "the answer. Never mix tool calls with the final answer in one turn.\n"
+    "You are an auto-reasoning code agent. Use your reasoning channel. "
+    "The question is about code, JavaScript, APIs, runtime behavior, or program output.\n"
+    "Think through execution, types, scope, async, DOM, and library contracts before you answer. "
+    "When a fact depends on a specific API, spec, version, or docs page, call web_search "
+    "and/or read_page. Batch independent lookups in one turn. tool_choice is auto: "
+    "call tools only when they change the answer.\n"
     "First sentence is the answer. No preamble. If the question wants code, emit the code; "
-    "if it wants a value, emit the value. Never refuse. Never call web_search, read_page, "
-    "sec_filing, page_grep, page_read, or retain_evidence by those names — use the docs_* "
-    "aliases above (they feed the same ledger machinery)."
+    "if it wants a value, emit the value. Cite [n] immediately after claims taken from "
+    "numbered tool results. Never refuse."
 )
 _CODE_TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "docs_search",
-            "description": (
-                "Search docs/specs/source for APIs, language behavior, library contracts, "
-                "or runtime output. Prefer official documentation. Commits numbered ledger rows."
-            ),
+            "name": "web_search",
+            "description": "Search the web for docs, specs, or source. Returns numbered results.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "docs-oriented search query",
-                    }
+                    "query": {"type": "string", "description": "search query"}
                 },
                 "required": ["query"],
             },
@@ -3025,94 +2916,14 @@ _CODE_TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "docs_fetch",
-            "description": (
-                "Fetch a documentation/spec/source URL into the shared evidence ledger "
-                "(same commit path as read_page). Pass focus to steer relevant sections."
-            ),
+            "name": "read_page",
+            "description": "Fetch a URL and return its main text.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "url": {"type": "string", "description": "docs/spec URL to fetch"},
-                    "focus": {
-                        "type": "string",
-                        "description": "optional section/API/symbol to locate",
-                    },
+                    "url": {"type": "string", "description": "URL to fetch"}
                 },
                 "required": ["url"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "docs_grep",
-            "description": (
-                "Search inside a page already in the evidence ledger by [n] or URL "
-                "(same ledger flow as page_grep)."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "source": {
-                        "type": "string",
-                        "description": "ledger index like [3] or a previously fetched URL",
-                    },
-                    "pattern": {
-                        "type": "string",
-                        "description": "literal or regex pattern to find",
-                    },
-                },
-                "required": ["source", "pattern"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "docs_read",
-            "description": (
-                "Read a character range from a page already in the evidence ledger "
-                "(same ledger flow as page_read)."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "source": {
-                        "type": "string",
-                        "description": "ledger index like [3] or a previously fetched URL",
-                    },
-                    "offset": {"type": "integer", "description": "start offset"},
-                    "length": {
-                        "type": "integer",
-                        "description": "max characters to return",
-                    },
-                },
-                "required": ["source"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "docs_retain",
-            "description": (
-                "Retain an exact quote from a ledger row for tighter citations "
-                "(same ledger flow as retain_evidence)."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "source": {
-                        "type": "string",
-                        "description": "ledger index like [3]",
-                    },
-                    "quote": {
-                        "type": "string",
-                        "description": "exact excerpt present in that row's stored text",
-                    },
-                },
-                "required": ["source", "quote"],
             },
         },
     },
@@ -3121,8 +2932,8 @@ _CODE_TOOLS = [
 
 def _code_think(model: str) -> dict:
     if str(model).startswith("openai/gpt-oss"):
-        return {"enabled": True, "effort": "low"}
-    return {"enabled": False}
+        return {"enabled": True, "effort": "medium"}
+    return {"enabled": True}
 
 
 def _code_note_spend(state: dict, payload) -> None:
@@ -3130,12 +2941,6 @@ def _code_note_spend(state: dict, payload) -> None:
     left = getattr(budget, "session_remaining_budget_usd", None)
     if isinstance(left, (int, float)):
         state["left"] = float(left)
-    else:
-        state["left"] = _spend_left()
-
-
-def _code_sync_spend(state: dict) -> None:
-    state["left"] = _spend_left()
 
 
 def _code_left(state: dict) -> float:
@@ -3159,60 +2964,133 @@ def _code_llm_text(payload) -> str:
     return ""
 
 
-def _code_resolve_source_url(source: str, ledger: EvidenceLedger) -> str:
-    src = (source or "").strip()
-    m = re.fullmatch(r"\[?(\d+)\]?", src)
-    if m:
-        n = int(m.group(1))
-        if 1 <= n <= len(ledger.rows):
-            return (ledger.rows[n - 1].get("url") or "").strip() or src
-    return src
+def _code_ref(row: dict) -> CitationRef | None:
+    receipt = str(row.get("receipt_id") or "")
+    rid = str(row.get("result_id") or "")
+    n_len = int(row.get("note_len") or 0)
+    if not receipt or not rid or n_len <= 0:
+        return None
+    end = min(max(n_len, 1), 6000)
+    try:
+        return CitationRef(
+            receipt_id=receipt,
+            result_id=rid,
+            slices=[CitationSlice(start=0, end=end)],
+        )
+    except Exception:
+        return None
 
 
-async def _code_run_tool(
-    name: str, args: dict, question: str, state: dict, ledger: EvidenceLedger
-):
-    """Dispatch docs_* tools onto the shared evidence helpers (ToolOutput + ledger commit)."""
-    if name == "docs_search":
-        q = str(args.get("query") or "").strip()
-        if not q:
-            return "# docs_search: empty query"
-        biased = (
-            q if re.search(r"\b(?:mdn|docs|spec|rfc|api)\b", q, re.I) else f"{q} docs"
+def _code_citations(answer: str, rows: list[dict]) -> list[CitationRef]:
+    used: list[CitationRef] = []
+    seen: set[tuple[str, str]] = set()
+    for m in _CODE_CITE_RE.finditer(answer or ""):
+        i = int(m.group(1)) - 1
+        if i < 0 or i >= len(rows):
+            continue
+        row = rows[i]
+        key = (str(row.get("receipt_id") or ""), str(row.get("result_id") or ""))
+        if key in seen:
+            continue
+        ref = _code_ref(row)
+        if ref is None:
+            continue
+        seen.add(key)
+        used.append(ref)
+    if not used:
+        for row in rows:
+            key = (str(row.get("receipt_id") or ""), str(row.get("result_id") or ""))
+            if key in seen:
+                continue
+            ref = _code_ref(row)
+            if ref is None:
+                continue
+            seen.add(key)
+            used.append(ref)
+            if len(used) >= 12:
+                break
+    return used[:24]
+
+
+async def _code_search(query_text: str, state: dict, rows: list[dict]) -> str:
+    q = (query_text or "").strip()
+    if not q:
+        return "# web_search: empty query"
+    payload = None
+    try:
+        payload = await search_web(
+            q, provider=SEARCH_PROVIDER, num=8, timeout=_CODE_SEARCH_S
         )
-        out = await _do_search(biased, ledger)
-        _code_sync_spend(state)
-        return out
-    if name == "docs_fetch":
-        out = await _do_fetch(
-            str(args.get("url") or ""),
-            str(args.get("focus") or ""),
-            question,
-            ledger,
+    except Exception:
+        payload = None
+    if payload is None:
+        return f"# web_search({q!r}) failed"
+    _code_note_spend(state, payload)
+    receipt = str(getattr(payload, "receipt_id", "") or "")
+    results = list(getattr(payload, "results", None) or [])
+    if not receipt or not results:
+        return f"# web_search({q!r}): no results"
+    lines = [f"# web_search({q!r}): {len(results)} results"]
+    for item in results:
+        rid = getattr(item, "result_id", None)
+        note = getattr(item, "note", None) or ""
+        if not isinstance(rid, str) or not rid or not str(note).strip():
+            continue
+        title = (getattr(item, "title", None) or "").strip()
+        url = (getattr(item, "url", None) or "").strip()
+        rows.append(
+            {
+                "receipt_id": receipt,
+                "result_id": rid,
+                "note_len": len(note),
+                "title": title,
+                "url": url,
+            }
         )
-        _code_sync_spend(state)
-        return out
-    if name == "docs_grep":
-        url = _code_resolve_source_url(str(args.get("source") or ""), ledger)
-        return _do_page_grep(url, str(args.get("pattern") or ""), ledger)
-    if name == "docs_read":
-        url = _code_resolve_source_url(str(args.get("source") or ""), ledger)
-        return _do_page_read(
-            url,
-            args.get("offset") or 0,
-            args.get("length") or PAGE_READ_MAX_CHARS,
-            ledger,
-        )
-    if name == "docs_retain":
-        return _do_retain_evidence(
-            str(args.get("source") or ""),
-            str(args.get("quote") or ""),
-            ledger,
-        )
+        n = len(rows)
+        lines.append(f"[{n}] {title} — {url}\n    {note[:550]}")
     return (
-        f"# unknown tool {name!r}; code-agent tools are "
-        "docs_search, docs_fetch, docs_grep, docs_read, docs_retain"
+        "\n".join(lines)
+        if len(lines) > 1
+        else f"# web_search({q!r}): no citable results"
     )
+
+
+async def _code_fetch(url: str, state: dict, rows: list[dict]) -> str:
+    target = (url or "").strip()
+    if not target:
+        return "# read_page: empty url"
+    payload = None
+    try:
+        payload = await fetch_page(
+            target, provider=SEARCH_PROVIDER, timeout=_CODE_FETCH_S
+        )
+    except Exception:
+        payload = None
+    if payload is None:
+        return f"# read_page({target!r}) failed"
+    _code_note_spend(state, payload)
+    receipt = str(getattr(payload, "receipt_id", "") or "")
+    results = list(getattr(payload, "results", None) or [])
+    if not receipt or not results:
+        return f"# read_page({target!r}): no content"
+    item = results[0]
+    rid = getattr(item, "result_id", None)
+    note = getattr(item, "note", None) or ""
+    if not isinstance(rid, str) or not rid or not str(note).strip():
+        return f"# read_page({target!r}): no usable content"
+    rows.append(
+        {
+            "receipt_id": receipt,
+            "result_id": rid,
+            "note_len": len(note),
+            "title": target,
+            "url": target,
+        }
+    )
+    n = len(rows)
+    body = note[:_CODE_NOTE_CHARS]
+    return f"# read_page({target!r}) -> [{n}] {len(note)} chars\n{body}"
 
 
 async def _code_chat(
@@ -3222,17 +3100,17 @@ async def _code_chat(
     *,
     finish_only: bool,
 ):
-    timeout = min(_CODE_TURN_S, deadline - monotonic() - 3.0)
-    if timeout <= 5.0:
+    timeout = min(_CODE_TURN_S, deadline - monotonic() - 4.0)
+    if timeout <= 6.0:
         return None
     lanes = (
-        (LLM_LANE_A, LOOP_MODEL_A, True),
-        (LLM_LANE_B, LOOP_MODEL_B, False),
+        (LLM_LANE_A, LOOP_MODEL_A),
+        (LLM_LANE_B, LOOP_MODEL_B),
+        (LLM_LANE_A, AUDIT_MODEL),
     )
     tools = None if finish_only else _CODE_TOOLS
     choice = None if finish_only else "auto"
-    max_tokens = _CODE_FINISH_TOKENS if finish_only else _CODE_TURN_TOKENS
-    for lane, model, pinned in lanes:
+    for lane, model in lanes:
         left = deadline - monotonic()
         if left <= _CODE_TAIL_S:
             return None
@@ -3247,11 +3125,9 @@ async def _code_chat(
                     parallel_tool_calls=None if finish_only else True,
                     temperature=0.2,
                     thinking=_code_think(model),
-                    max_output_tokens=max_tokens,
-                    provider_extra=_upstream(lane, model) if pinned else None,
                     timeout=min(timeout, left - 2.0),
                 ),
-                timeout=min(timeout + 3.0, max(1.0, left - 1.0)),
+                timeout=min(timeout + 6.0, max(1.0, left - 1.0)),
             )
             _code_note_spend(state, payload)
             return payload
@@ -3270,11 +3146,12 @@ async def _code_schema(
         f"Answer:\n{answer[:14000]}"
     )
     for lane, model in (
-        (LLM_LANE_A, LOOP_MODEL_A),
         (LLM_LANE_A, SCHEMA_MODEL),
+        (LLM_LANE_A, RESORT_MODEL),
+        (LLM_LANE_B, LOOP_MODEL_B),
     ):
         left = deadline - monotonic()
-        if left < 10.0:
+        if left < 12.0:
             break
         try:
             payload = await llm_chat(
@@ -3285,10 +3162,9 @@ async def _code_schema(
                     {"role": "user", "content": ask},
                 ],
                 temperature=0.0,
-                max_output_tokens=2800,
+                max_output_tokens=3400,
                 thinking=_code_think(model),
-                provider_extra=_upstream(lane, model),
-                timeout=min(22.0, left - 3.0),
+                timeout=min(45.0, left - 4.0),
             )
             _code_note_spend(state, payload)
             raw = _code_llm_text(payload)
@@ -3302,43 +3178,30 @@ async def _code_schema(
     return None
 
 
-async def _code_agent_loop(
-    question: str,
-    ledger: EvidenceLedger,
-    deadline: float,
-    state: dict,
-    *,
-    turn_cap: int,
-    carry: list | None = None,
-    allow_tools_in_wrapup: bool = False,
-) -> tuple[str, list]:
-    """Code-agent controller using the shared EvidenceLedger commit flow."""
-    if carry is not None:
-        messages = carry
-    else:
-        messages = [
-            {"role": "system", "content": _CODE_RULES},
-            {"role": "user", "content": question},
-        ]
-    answer = ""
-    tool_rounds = 0
-    ordered_wrapup = False
+async def _solve_code_agent(query: Query, question: str) -> Response:
+    deadline = monotonic() + _CODE_WALL_S
+    state: dict = {"left": None}
+    rows: list[dict] = []
     try:
-        for turn in range(1, turn_cap + 1):
+        info = await tooling_info(timeout=10.0)
+        _code_note_spend(state, info)
+    except Exception:
+        pass
+    messages: list = [
+        {"role": "system", "content": _CODE_RULES},
+        {"role": "user", "content": question},
+    ]
+    answer = ""
+    try:
+        for turn in range(1, _CODE_MAX_TURNS + 1):
             left = deadline - monotonic()
             if left <= _CODE_TAIL_S:
                 break
             finish_only = (
-                (left <= _CODE_WRAP_S and not allow_tools_in_wrapup)
+                left <= _CODE_WRAP_S
                 or _code_left(state) <= 0.02
-                or turn >= turn_cap
-                or (tool_rounds >= _CODE_MAX_TOOL_ROUNDS and not allow_tools_in_wrapup)
+                or turn >= _CODE_MAX_TURNS
             )
-            if allow_tools_in_wrapup and turn == 1:
-                finish_only = False
-            if finish_only and not ordered_wrapup:
-                messages.append({"role": "system", "content": _CODE_WRAP_MSG})
-                ordered_wrapup = True
             payload = await _code_chat(
                 messages, deadline, state, finish_only=finish_only
             )
@@ -3354,7 +3217,6 @@ async def _code_agent_loop(
                 candidate = _code_llm_text(payload)
                 if candidate.strip():
                     answer = candidate.strip()
-                    messages.append({"role": "assistant", "content": answer})
                 break
             try:
                 replay = msg.to_input_message()
@@ -3373,48 +3235,29 @@ async def _code_agent_loop(
                     ],
                 }
             messages.append(replay)
-            run_calls = list(calls)[:_CODE_TOOLS_PER_TURN]
-            tool_rounds += 1
-            tool_budget = max(
-                4.0,
-                min(_CODE_TOOL_WAIT_S, deadline - monotonic() - _CODE_TAIL_S),
-            )
-            tool_tasks = []
-            for c in run_calls:
-                raw_args = getattr(c, "arguments", "") or "{}"
+            run_calls = list(calls)[:6]
+            for call in run_calls:
+                raw_args = getattr(call, "arguments", "") or "{}"
                 try:
-                    parsed = json.loads(raw_args)
-                    if not isinstance(parsed, dict):
-                        parsed = {}
+                    args = json.loads(raw_args)
+                    if not isinstance(args, dict):
+                        args = {}
                 except Exception:
-                    parsed = {}
-                tool_tasks.append(
-                    asyncio.ensure_future(
-                        _code_run_tool(
-                            getattr(c, "name", "") or "",
-                            parsed,
-                            question,
-                            state,
-                            ledger,
+                    args = {}
+                name = getattr(call, "name", "") or ""
+                try:
+                    if name == "web_search":
+                        body = await _code_search(
+                            str(args.get("query") or ""), state, rows
                         )
-                    )
-                )
-            try:
-                await asyncio.wait(tool_tasks, timeout=tool_budget)
-            except Exception:
-                pass
-            results = []
-            for t in tool_tasks:
-                if t.done():
-                    try:
-                        results.append(t.result())
-                    except Exception as exc:
-                        results.append(f"# tool crashed: {exc}")
-                else:
-                    t.cancel()
-                    results.append("# tool timed out — use what you already have")
-            for call, raw in zip(run_calls, results):
-                body = _commit_tool_output(raw, ledger)
+                    elif name == "read_page":
+                        body = await _code_fetch(
+                            str(args.get("url") or ""), state, rows
+                        )
+                    else:
+                        body = f"# unknown tool {name!r}"
+                except Exception as exc:
+                    body = f"# tool crashed: {exc}"
                 messages.append(
                     {
                         "role": "tool",
@@ -3422,7 +3265,7 @@ async def _code_agent_loop(
                         "content": str(body) or "# empty",
                     }
                 )
-            for call in calls[_CODE_TOOLS_PER_TURN:]:
+            for call in calls[6:]:
                 messages.append(
                     {
                         "role": "tool",
@@ -3432,123 +3275,44 @@ async def _code_agent_loop(
                 )
     except Exception:
         answer = ""
-    return answer, messages
-
-
-async def _code_answer_from_ledger(
-    question: str, ledger: EvidenceLedger, deadline: float, state: dict
-) -> str:
-    """Answer-production path: synthesize the final answer from ledger evidence."""
-    if not ledger.rows or (deadline - monotonic()) < 10.0:
-        return ""
-    digest = _ledger_digest(ledger, char_cap=28000)
-    if not digest:
-        return ""
-    ask = (
-        "Write the FINAL ANSWER from the numbered evidence below. "
-        "First sentence is the answer. Cite [n] on load-bearing claims. "
-        "No preamble.\n\n"
-        f"Question:\n{question}\n\nEvidence:\n{digest}"
-    )
-    for lane, model in (
-        (LLM_LANE_A, LOOP_MODEL_A),
-        (LLM_LANE_B, LOOP_MODEL_B),
-    ):
-        left = deadline - monotonic()
-        if left < 10.0:
-            break
+    if not (answer or "").strip() and (deadline - monotonic()) > 12.0:
         try:
             payload = await llm_chat(
-                provider=lane,
-                model=model,
-                messages=[
-                    {"role": "system", "content": _CODE_RULES},
-                    {"role": "user", "content": ask},
-                ],
-                temperature=0.2,
-                max_output_tokens=_CODE_FINISH_TOKENS,
-                thinking=_code_think(model),
-                provider_extra=_upstream(lane, model),
-                timeout=min(22.0, left - 3.0),
-            )
-            _code_note_spend(state, payload)
-            text = _code_llm_text(payload).strip()
-            if text:
-                return text
-        except Exception:
-            continue
-    return ""
-
-
-async def _code_knowledge_fallback(question: str, deadline: float, state: dict) -> str:
-    if (deadline - monotonic()) <= 10.0:
-        return ""
-    for lane, model, reserve in (
-        (LLM_LANE_A, LOOP_MODEL_A, 3.0),
-        (LLM_LANE_B, LOOP_MODEL_B, 2.0),
-    ):
-        left = deadline - monotonic()
-        if left <= 10.0:
-            break
-        try:
-            payload = await llm_chat(
-                provider=lane,
-                model=model,
+                provider=LLM_LANE_A,
+                model=LOOP_MODEL_A,
                 messages=[
                     {"role": "system", "content": _CODE_RULES},
                     {"role": "user", "content": question},
                 ],
                 temperature=0.2,
-                max_output_tokens=_CODE_FINISH_TOKENS,
-                thinking=_code_think(model),
-                provider_extra=_upstream(lane, model),
-                timeout=min(22.0, left - reserve),
+                max_output_tokens=4000,
+                thinking=_code_think(LOOP_MODEL_A),
+                timeout=min(45.0, deadline - monotonic() - 4.0),
             )
             _code_note_spend(state, payload)
-            text = _code_llm_text(payload).strip()
-            if text:
-                return text
+            answer = _code_llm_text(payload)
         except Exception:
-            continue
-    return ""
-
-
-async def _solve_code_agent(query: Query, question: str) -> Response:
-    deadline = monotonic() + _CODE_WALL_S
-    state: dict = {"left": None}
-    ledger = EvidenceLedger()
-
-    answer = ""
-    messages: list = []
-    try:
-        answer, messages = await _code_agent_loop(
-            question,
-            ledger,
-            deadline,
-            state,
-            turn_cap=_CODE_MAX_TURNS,
-        )
-    except Exception:
-        answer = ""
-        messages = []
-
-    if not (answer or "").strip() and ledger.rows:
-        try:
-            rescued = await _code_answer_from_ledger(question, ledger, deadline, state)
-            if rescued.strip():
-                answer = rescued
-        except Exception:
-            pass
-    if not (answer or "").strip():
-        try:
-            answer = await _code_knowledge_fallback(question, deadline, state)
-        except Exception:
-            answer = ""
-
+            try:
+                payload = await llm_chat(
+                    provider=LLM_LANE_B,
+                    model=LOOP_MODEL_B,
+                    messages=[
+                        {"role": "system", "content": _CODE_RULES},
+                        {"role": "user", "content": question},
+                    ],
+                    temperature=0.2,
+                    max_output_tokens=4000,
+                    thinking=_code_think(LOOP_MODEL_B),
+                    timeout=min(40.0, deadline - monotonic() - 3.0),
+                )
+                _code_note_spend(state, payload)
+                answer = _code_llm_text(payload)
+            except Exception:
+                answer = ""
     text = (answer or "").strip()[:_CODE_ANSWER_CHARS]
     if not text:
         text = f"Best-effort answer unavailable for: {question[:400]}"
-    citations = _citations_for(text, ledger)
+    citations = _code_citations(text, rows)
     if query.output_schema is not None:
         structured = None
         try:
