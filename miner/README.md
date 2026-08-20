@@ -54,6 +54,8 @@ From the repo root:
 uv sync --all-packages --dev
 ```
 
+On Windows, the same command works; `bittensor` is skipped automatically (no Windows wheels). Use Linux/macOS for submit and wallet signing.
+
 Create a `.env` at the repo root (copy from `.env.example`) and fill:
 
 | Variable                              | Purpose                                                                                                                                                                                   |

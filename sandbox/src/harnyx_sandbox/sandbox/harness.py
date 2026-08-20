@@ -18,9 +18,13 @@ from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Protocol, cast
 
-import pyseccomp as seccomp
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+
+try:
+    import pyseccomp as seccomp
+except ImportError:  # pragma: no cover - non-Linux / local Windows test
+    seccomp = None
 
 from harnyx_miner_sdk._internal.tool_invoker import bind_tool_invoker
 from harnyx_miner_sdk.decorators import (
@@ -729,7 +733,17 @@ def _entrypoint_worker(
 
 
 def _block_new_tasks_in_this_process() -> None:
-    """Install a seccomp filter that denies task-creation syscalls."""
+    """Install a seccomp filter that denies task-creation syscalls.
+
+    No-op when pyseccomp is unavailable (Windows / local test without libseccomp).
+    """
+
+    if seccomp is None:
+        logger.warning(
+            "worker seccomp filter skipped; pyseccomp unavailable",
+            extra={"pid": os.getpid()},
+        )
+        return
 
     filter_ = seccomp.SyscallFilter(defaction=seccomp.ALLOW)
     for name in ("clone", "clone3", "fork", "vfork", "execve", "execveat"):

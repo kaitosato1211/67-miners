@@ -16,9 +16,21 @@ The core thesis is simple: better models matter, but better harnesses compound f
 
 ## Install dependencies (local dev)
 
+**Linux / macOS**
+
 ```bash
 uv sync --all-packages --dev
 ```
+
+**Windows**
+
+Bittensor and its native deps (`bittensor-wallet`, `bittensor-drand`) do not ship Windows wheels, so they are excluded on `win32`. Use the same sync command:
+
+```powershell
+uv sync --all-packages --dev
+```
+
+Wallet signing, submit, and on-chain validator paths that import `bittensor` still require Linux or macOS.
 
 ## How the subnet works today
 

@@ -49,7 +49,9 @@ This builds the `harnyx/harnyx-subnet-sandbox:local` Docker image using `sandbox
 ## Running locally (development)
 
 ```bash
-uv run --package harnyx-sandbox harnyx-sandbox --serve
+AGENT_PATH=/path/to/agent.py uv run --package harnyx-sandbox harnyx-sandbox --serve
 ```
 
 The server starts on `http://127.0.0.1:8000` by default. Set `SANDBOX_HOST` and `SANDBOX_PORT` to customize.
+
+On Windows, `pyseccomp` is skipped (Linux-only). Local `--serve` still works for test-only runs; production validators keep seccomp inside Linux containers.

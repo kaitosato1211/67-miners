@@ -67,6 +67,8 @@ From the repo root:
 uv sync --all-packages --dev
 ```
 
+On Windows, the same command works; `bittensor` is skipped automatically. Use Linux/macOS for submit and wallet signing.
+
 Then start the agent in:
 
 ```bash
