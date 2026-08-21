@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from enum import Enum
 from time import monotonic
 
 from harnyx_miner_sdk.api import fetch_page, llm_chat, search_web, tooling_info
@@ -2430,13 +2431,14 @@ async def query(query: Query) -> Response:
         return Response(text="No question provided.")
     agent_type = _detect_agent_type(question)
     try:
-        return await _solve(query, question)
+        if agent_type is AgentType.CODE:
+            return await _solve_code_agent(query)
+        return await _solve_text_agent(query, question)
     except Exception:
-        # a miner-attributed exception is a hard 0 — always return SOME text
         return Response(text=f"Best-effort answer unavailable for: {question[:500]}")
 
 
-async def _solve(query: Query, question: str) -> Response:
+async def _solve_text_agent(query: Query, question: str) -> Response:
     deadline = monotonic() + WALL_BUDGET_S
     try:
         info = await tooling_info(timeout=10.0)
@@ -2569,3 +2571,514 @@ async def _solve(query: Query, question: str) -> Response:
         return Response(text=text, citations=citations or None)
     except Exception:
         return Response(text=text)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CODE AGENT — fully isolated from the text-agent controller / ledger / rescue
+# path. Only harnyx_miner_sdk tools + helpers defined in this block are used.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_CA_WALL_S = 240.0
+_CA_CYCLE_CAP = 8
+_CA_MIN_TAIL_S = 8.0
+_CA_GATHER_S = 55.0
+_CA_ANSWER_S = 70.0
+_CA_JUDGE_S = 28.0
+_CA_SEARCH_S = 16.0
+_CA_FETCH_S = 14.0
+_CA_ANSWER_CAP = 60_000
+_CA_EVIDENCE_CAP = 90_000
+_CA_EXCERPT = 700
+_CA_LANE = "openrouter"
+_CA_MODEL = "z-ai/glm-5.2"
+_CA_MIN_ITEMS = 2
+
+_CA_CTRL_SYSTEM = (
+    "You are the controller of a code-specialist research agent. "
+    "Decide the next action as JSON only with keys: "
+    "action (search|fetch|answer), query (search string), url (page to fetch), "
+    "focus (optional fetch focus), reason (short). "
+    "Prefer search when evidence is thin; fetch concrete docs/specs when URLs exist; "
+    "choose answer only when evidence can support a correct code-focused reply."
+)
+
+_CA_ANSWER_SYSTEM = (
+    "You are a code specialist. Using only the numbered evidence, answer the "
+    "coding question. Cite evidence as [n]. Prefer concrete code, complexity, "
+    "APIs, and behavior over vague prose. If the question asks for code, put "
+    "the primary answer in a fenced block. Plain text only besides fences."
+)
+
+_CA_JUDGE_SYSTEM = (
+    "Judge whether the draft fully answers the coding question given the "
+    "evidence. JSON only with keys: sufficient (bool), missing (short string), "
+    "next_query (search string if insufficient else empty)."
+)
+
+
+class _CodeEvidenceBoard:
+    """Code-agent-only evidence state: numbered snippets and URL memory."""
+
+    __slots__ = ("items", "seen_urls", "seen_queries", "chars")
+
+    def __init__(self) -> None:
+        self.items: list[dict] = []
+        self.seen_urls: set[str] = set()
+        self.seen_queries: set[str] = set()
+        self.chars = 0
+
+    def add(self, *, kind: str, title: str, url: str, text: str) -> int | None:
+        body = (text or "").strip()
+        if not body:
+            return None
+        if self.chars >= _CA_EVIDENCE_CAP:
+            return None
+        room = _CA_EVIDENCE_CAP - self.chars
+        if len(body) > room:
+            body = body[:room]
+        idx = len(self.items) + 1
+        self.items.append({
+            "n": idx,
+            "kind": kind,
+            "title": (title or "")[:200],
+            "url": (url or "")[:500],
+            "text": body,
+        })
+        self.chars += len(body)
+        if url:
+            self.seen_urls.add(url)
+        return idx
+
+    def render(self, limit: int = 70_000) -> str:
+        if not self.items:
+            return "(no evidence yet)"
+        parts: list[str] = []
+        used = 0
+        for row in self.items:
+            block = (
+                f"[{row['n']}] ({row['kind']}) {row['title']}\n"
+                f"URL: {row['url']}\n{row['text']}"
+            )
+            if used + len(block) + 2 > limit:
+                break
+            parts.append(block)
+            used += len(block) + 2
+        return "\n\n".join(parts)
+
+    def citations_for(self, answer: str) -> list[CitationRef]:
+        cited = {
+            int(m.group(1))
+            for m in re.finditer(r"\[(\d+)\]", answer or "")
+            if m.group(1).isdigit()
+        }
+        refs: list[CitationRef] = []
+        for row in self.items:
+            if cited and row["n"] not in cited:
+                continue
+            url = row.get("url") or ""
+            snippet = (row.get("text") or "")[:1200]
+            if not url and not snippet:
+                continue
+            try:
+                refs.append(
+                    CitationRef(
+                        url=url or None,
+                        slices=[CitationSlice(text=snippet)] if snippet else None,
+                    )
+                )
+            except Exception:
+                continue
+            if len(refs) >= 20:
+                break
+        return refs
+
+
+def _ca_left(deadline: float) -> float:
+    return deadline - monotonic()
+
+
+def _ca_trim(text: str, cap: int = _CA_ANSWER_CAP) -> str:
+    t = (text or "").strip()
+    if len(t) > cap:
+        return t[: cap - 16] + " …"
+    return t
+
+
+def _ca_usable(text: str) -> bool:
+    t = (text or "").strip()
+    if len(t) < 8:
+        return False
+    low = t.lower()
+    if low.startswith("best-effort answer unavailable"):
+        return False
+    if low in {"code agent solved", "n/a", "unknown", "none"}:
+        return False
+    return True
+
+
+def _ca_parse_json(raw: str) -> dict:
+    text = (raw or "").strip()
+    if not text:
+        return {}
+    try:
+        obj = json.loads(text)
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        pass
+    m = re.search(r"\{.*\}", text, re.DOTALL)
+    if not m:
+        return {}
+    try:
+        obj = json.loads(m.group(0))
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        return {}
+
+
+async def _ca_llm(
+    *,
+    system: str,
+    user: str,
+    deadline: float,
+    timeout: float,
+    temperature: float = 0.1,
+) -> str:
+    left = _ca_left(deadline)
+    if left <= _CA_MIN_TAIL_S:
+        return ""
+    budget = max(4.0, min(timeout, left - _CA_MIN_TAIL_S))
+    try:
+        resp = await llm_chat(
+            provider=_CA_LANE,
+            model=_CA_MODEL,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=temperature,
+            timeout=budget,
+        )
+    except Exception:
+        return ""
+    llm = getattr(resp, "llm", None)
+    raw = getattr(llm, "raw_text", None) if llm is not None else None
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    choices = getattr(llm, "choices", None) or ()
+    if choices:
+        content = getattr(getattr(choices[0], "message", None), "content", None)
+        if isinstance(content, str):
+            return content.strip()
+    return ""
+
+
+async def _ca_search(query_text: str, board: _CodeEvidenceBoard, deadline: float) -> str:
+    q = (query_text or "").strip()
+    if not q or q.lower() in board.seen_queries:
+        return "# skipped duplicate/empty search"
+    if _ca_left(deadline) <= _CA_MIN_TAIL_S + 2.0:
+        return "# skipped: deadline"
+    board.seen_queries.add(q.lower())
+    try:
+        result = await search_web(
+            query=q,
+            provider="parallel",
+            max_results=6,
+            timeout=min(_CA_SEARCH_S, max(3.0, _ca_left(deadline) - _CA_MIN_TAIL_S)),
+        )
+    except Exception as exc:
+        return f"# search failed: {exc}"
+    rows = getattr(result, "results", None) or ()
+    lines: list[str] = []
+    for hit in rows:
+        title = str(getattr(hit, "title", "") or "")
+        url = str(getattr(hit, "url", "") or "")
+        excerpt = str(getattr(hit, "snippet", "") or getattr(hit, "content", "") or "")
+        excerpt = excerpt[:_CA_EXCERPT]
+        n = board.add(kind="search", title=title, url=url, text=excerpt or title)
+        if n is not None:
+            lines.append(f"[{n}] {title} :: {url}")
+    return "Search committed:\n" + ("\n".join(lines) if lines else "(no hits)")
+
+
+async def _ca_fetch(
+    url: str, focus: str, board: _CodeEvidenceBoard, deadline: float
+) -> str:
+    target = (url or "").strip()
+    if not target:
+        return "# skipped empty url"
+    if target in board.seen_urls and focus.strip() == "":
+        return "# skipped duplicate url"
+    if _ca_left(deadline) <= _CA_MIN_TAIL_S + 2.0:
+        return "# skipped: deadline"
+    try:
+        page = await fetch_page(
+            url=target,
+            timeout=min(_CA_FETCH_S, max(3.0, _ca_left(deadline) - _CA_MIN_TAIL_S)),
+        )
+    except Exception as exc:
+        return f"# fetch failed: {exc}"
+    title = str(getattr(page, "title", "") or target)
+    text = str(getattr(page, "text", "") or getattr(page, "content", "") or "")
+    if focus:
+        # keep focus-local windows without borrowing text-agent helpers
+        low = text.lower()
+        key = focus.lower().strip()
+        pos = low.find(key) if key else -1
+        if pos >= 0:
+            start = max(0, pos - 500)
+            text = text[start : start + 4500]
+        else:
+            text = text[:4500]
+    else:
+        text = text[:4500]
+    n = board.add(kind="page", title=title, url=target, text=text)
+    if n is None:
+        return "# fetch produced no usable text"
+    return f"Fetched as [{n}] {title}"
+
+
+async def _ca_plan_action(
+    question: str, board: _CodeEvidenceBoard, deadline: float, cycle: int
+) -> dict:
+    user = (
+        f"Question:\n{question}\n\n"
+        f"Cycle: {cycle}/{_CA_CYCLE_CAP}\n"
+        f"Seconds left: {max(0.0, _ca_left(deadline)):.1f}\n"
+        f"Evidence count: {len(board.items)}\n"
+        f"Known URLs: {len(board.seen_urls)}\n\n"
+        f"Evidence:\n{board.render(limit=35_000)}\n\n"
+        "Return the next controller action JSON."
+    )
+    raw = await _ca_llm(
+        system=_CA_CTRL_SYSTEM,
+        user=user,
+        deadline=deadline,
+        timeout=_CA_GATHER_S,
+        temperature=0.0,
+    )
+    plan = _ca_parse_json(raw)
+    action = str(plan.get("action") or "").strip().lower()
+    if action not in {"search", "fetch", "answer"}:
+        if len(board.items) >= _CA_MIN_ITEMS:
+            action = "answer"
+        else:
+            action = "search"
+            plan["query"] = plan.get("query") or question[:180]
+    plan["action"] = action
+    return plan
+
+
+async def _ca_generate_answer(
+    question: str, board: _CodeEvidenceBoard, deadline: float
+) -> str:
+    user = (
+        f"Question:\n{question}\n\n"
+        f"Numbered evidence:\n{board.render()}\n\n"
+        "Write the final answer now."
+    )
+    draft = await _ca_llm(
+        system=_CA_ANSWER_SYSTEM,
+        user=user,
+        deadline=deadline,
+        timeout=_CA_ANSWER_S,
+        temperature=0.1,
+    )
+    return _ca_trim(draft)
+
+
+async def _ca_judge_sufficient(
+    question: str, draft: str, board: _CodeEvidenceBoard, deadline: float
+) -> dict:
+    if not _ca_usable(draft):
+        return {
+            "sufficient": False,
+            "missing": "no usable draft",
+            "next_query": question[:180],
+        }
+    if _ca_left(deadline) <= _CA_MIN_TAIL_S + 12.0:
+        return {"sufficient": True, "missing": "", "next_query": ""}
+    user = (
+        f"Question:\n{question}\n\n"
+        f"Draft:\n{draft[:8000]}\n\n"
+        f"Evidence:\n{board.render(limit=25_000)}\n\n"
+        "Judge sufficiency."
+    )
+    raw = await _ca_llm(
+        system=_CA_JUDGE_SYSTEM,
+        user=user,
+        deadline=deadline,
+        timeout=_CA_JUDGE_S,
+        temperature=0.0,
+    )
+    verdict = _ca_parse_json(raw)
+    sufficient = bool(verdict.get("sufficient"))
+    missing = str(verdict.get("missing") or "").strip()
+    next_query = str(verdict.get("next_query") or "").strip()
+    if not sufficient and not next_query:
+        next_query = (missing or question)[:180]
+    return {
+        "sufficient": sufficient,
+        "missing": missing,
+        "next_query": next_query,
+    }
+
+
+async def _ca_schema_wrap(
+    question: str, answer: str, schema, deadline: float
+) -> object | None:
+    if schema is None or not _ca_usable(answer) or _ca_left(deadline) <= _CA_MIN_TAIL_S + 5.0:
+        return None
+    try:
+        schema_text = json.dumps(schema)
+    except Exception:
+        schema_text = str(schema)
+    user = (
+        f"Question:\n{question}\n\n"
+        f"Answer basis:\n{answer[:12000]}\n\n"
+        f"Output schema JSON:\n{schema_text}\n\n"
+        "Return ONLY a JSON value matching the schema."
+    )
+    raw = await _ca_llm(
+        system="Convert the answer into the requested JSON schema. JSON only.",
+        user=user,
+        deadline=deadline,
+        timeout=40.0,
+        temperature=0.0,
+    )
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except Exception:
+        m = re.search(r"(\{.*\}|\[.*\])", raw, re.DOTALL)
+        if not m:
+            return None
+        try:
+            return json.loads(m.group(1))
+        except Exception:
+            return None
+
+
+async def _ca_control_loop(question: str, deadline: float) -> tuple[str, _CodeEvidenceBoard]:
+    """Single code-agent loop: control → evidence → answer → (re-enter if weak)."""
+
+    board = _CodeEvidenceBoard()
+    answer = ""
+    forced_query = question[:180]
+
+    for cycle in range(1, _CA_CYCLE_CAP + 1):
+        if _ca_left(deadline) <= _CA_MIN_TAIL_S:
+            break
+
+        # 1) control-flow decision
+        if forced_query and len(board.items) < _CA_MIN_ITEMS:
+            plan = {
+                "action": "search",
+                "query": forced_query,
+                "url": "",
+                "focus": "",
+                "reason": "bootstrap evidence",
+            }
+            forced_query = ""
+        else:
+            plan = await _ca_plan_action(question, board, deadline, cycle)
+
+        action = plan.get("action")
+
+        # 2) evidence state / flow
+        if action == "search":
+            await _ca_search(str(plan.get("query") or question[:180]), board, deadline)
+        elif action == "fetch":
+            url = str(plan.get("url") or "").strip()
+            if not url:
+                # fall back to first unseen search hit url if planner omitted one
+                for row in board.items:
+                    candidate = str(row.get("url") or "")
+                    if candidate.startswith("http") and candidate not in board.seen_urls:
+                        url = candidate
+                        break
+            if url:
+                await _ca_fetch(url, str(plan.get("focus") or ""), board, deadline)
+            else:
+                await _ca_search(question[:180], board, deadline)
+        # action == "answer" falls through to generation below; search/fetch also
+        # attempt a draft each cycle so evidence and answer share one loop.
+
+        if _ca_left(deadline) <= _CA_MIN_TAIL_S:
+            break
+
+        # 3) answer-generation path (same loop)
+        draft = await _ca_generate_answer(question, board, deadline)
+        if _ca_usable(draft):
+            answer = draft
+
+        # 4) sufficiency gate — re-enter initial control if evidence is weak
+        verdict = await _ca_judge_sufficient(question, answer, board, deadline)
+        if verdict.get("sufficient") and _ca_usable(answer):
+            break
+        forced_query = str(verdict.get("next_query") or question[:180])
+        # continue → returns to the top of this same loop
+
+    if not _ca_usable(answer):
+        # deterministic last mile from local evidence only (no text-agent helpers)
+        if board.items:
+            lines = [f"Code-evidence summary for: {question[:300]}"]
+            for row in board.items[:8]:
+                lines.append(f"- [{row['n']}] {row['title']}: {row['text'][:220]}")
+            answer = "\n".join(lines)
+        else:
+            answer = (
+                "Unable to gather enough code evidence before the deadline for: "
+                f"{question[:400]}"
+            )
+    return _ca_trim(answer), board
+
+
+async def _solve_code_agent(query: Query) -> Response:
+    question = (query.text or "").strip()
+    if not question:
+        return Response(text="No question provided.")
+
+    deadline = monotonic() + _CA_WALL_S
+    try:
+        await tooling_info(timeout=8.0)
+    except Exception:
+        pass
+
+    try:
+        answer, board = await _ca_control_loop(question, deadline)
+    except Exception:
+        answer, board = (
+            f"Best-effort code answer unavailable for: {question[:400]}",
+            _CodeEvidenceBoard(),
+        )
+
+    try:
+        citations = board.citations_for(answer)
+    except Exception:
+        citations = []
+
+    if query.output_schema is not None:
+        structured = None
+        try:
+            structured = await _ca_schema_wrap(
+                question, answer, query.output_schema, deadline
+            )
+        except Exception:
+            structured = None
+        if structured is not None:
+            try:
+                return Response(output=structured, citations=citations or None)
+            except Exception:
+                pass
+        try:
+            return Response(output={"answer": _ca_trim(answer, 2000)},
+                            citations=citations or None)
+        except Exception:
+            pass
+
+    try:
+        return Response(text=answer, citations=citations or None)
+    except Exception:
+        return Response(text=answer)
