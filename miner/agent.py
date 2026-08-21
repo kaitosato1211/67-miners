@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-from enum import Enum
 from time import monotonic
 
 from harnyx_miner_sdk.api import fetch_page, llm_chat, search_web, tooling_info
@@ -2316,12 +2315,6 @@ def _cap(text: str) -> str:
         return t[:ANSWER_CHAR_CAP - 16] + " …"
     return t
 
-class AgentType(str, Enum):
-    """Concrete solver route for a query."""
-
-    CODE = "code"
-    TEXT = "text"
-
 
 _CODE_FENCE_RE = re.compile(
     r"```(?:js|javascript|ts|typescript|tsx|jsx|python|py|java|c\+\+|cpp|c|go|rust|"
@@ -2385,11 +2378,11 @@ _FACTUAL_SIGNAL_RE = re.compile(
 )
 
 
-def _detect_agent_type(text: str) -> AgentType:
+def _detect_agent_type(text: str) -> str:
     """Return the real solver type for this question: AgentType.CODE or AgentType.TEXT."""
     raw = (text or "").strip()
     if not raw:
-        return AgentType.TEXT
+        return "text"
 
     has_fence = _CODE_FENCE_RE.search(raw) is not None
     has_syntax = _CODE_SYNTAX_RE.search(raw) is not None
@@ -2401,7 +2394,7 @@ def _detect_agent_type(text: str) -> AgentType:
 
     # Hard route: embedded source or clear programming syntax.
     if has_fence or has_syntax:
-        return AgentType.CODE
+        return "code"
 
     score = 0
     if "```" in raw:
@@ -2420,8 +2413,8 @@ def _detect_agent_type(text: str) -> AgentType:
         score -= 2
 
     if score >= 4:
-        return AgentType.CODE
-    return AgentType.TEXT
+        return "code"
+    return "text"
 
 # ── entrypoint ────────────────────────────────────────────────────────────────
 @entrypoint("query")
@@ -2431,7 +2424,7 @@ async def query(query: Query) -> Response:
         return Response(text="No question provided.")
     agent_type = _detect_agent_type(question)
     try:
-        if agent_type is AgentType.CODE:
+        if agent_type == "code":
             return await _solve_code_agent(query)
         return await _solve_text_agent(query, question)
     except Exception:
@@ -2574,14 +2567,17 @@ async def _solve_text_agent(query: Query, question: str) -> Response:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CODE AGENT — fully isolated from the text-agent controller / ledger / rescue
-# path. Only harnyx_miner_sdk tools + helpers defined in this block are used.
+# CODE AGENT — isolated subsystem (does not call text-agent helpers / ledger /
+# spend / loop / rescue). Uses only SDK tools + symbols defined in this block.
+# Architecture:
+#   controller  -> evidence board -> answer draft -> sufficiency gate
+#   insufficient evidence returns to the SAME initial loop (deadline-bounded)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _CA_WALL_S = 240.0
 _CA_CYCLE_CAP = 8
 _CA_MIN_TAIL_S = 8.0
-_CA_GATHER_S = 55.0
+_CA_CTRL_S = 45.0
 _CA_ANSWER_S = 70.0
 _CA_JUDGE_S = 28.0
 _CA_SEARCH_S = 16.0
@@ -2589,35 +2585,64 @@ _CA_FETCH_S = 14.0
 _CA_ANSWER_CAP = 60_000
 _CA_EVIDENCE_CAP = 90_000
 _CA_EXCERPT = 700
+_CA_FETCH_CHARS = 4500
+_CA_CITATION_CAP = 20
+_CA_PROVIDER = "parallel"
 _CA_LANE = "openrouter"
 _CA_MODEL = "z-ai/glm-5.2"
 _CA_MIN_ITEMS = 2
 
+_CA_PHASE_BOOTSTRAP = "bootstrap"
+_CA_PHASE_CONTROL = "control"
+_CA_PHASE_EVIDENCE = "evidence"
+_CA_PHASE_ANSWER = "answer"
+_CA_PHASE_JUDGE = "judge"
+
 _CA_CTRL_SYSTEM = (
-    "You are the controller of a code-specialist research agent. "
-    "Decide the next action as JSON only with keys: "
-    "action (search|fetch|answer), query (search string), url (page to fetch), "
-    "focus (optional fetch focus), reason (short). "
-    "Prefer search when evidence is thin; fetch concrete docs/specs when URLs exist; "
-    "choose answer only when evidence can support a correct code-focused reply."
+    "You are the primary controller of a code-specialist agent. "
+    "Return JSON only with keys: "
+    "action (search|fetch|answer), query, url, focus, reason. "
+    "search = gather more sources; fetch = read a concrete URL; "
+    "answer = evidence is ready for a code-focused final reply."
 )
 
 _CA_ANSWER_SYSTEM = (
-    "You are a code specialist. Using only the numbered evidence, answer the "
-    "coding question. Cite evidence as [n]. Prefer concrete code, complexity, "
-    "APIs, and behavior over vague prose. If the question asks for code, put "
-    "the primary answer in a fenced block. Plain text only besides fences."
+    "You are a code specialist. Answer using ONLY the numbered evidence. "
+    "Cite as [n]. Prefer concrete code, APIs, complexity, and runtime behavior. "
+    "If code is requested, put the main solution in a fenced block."
 )
 
 _CA_JUDGE_SYSTEM = (
-    "Judge whether the draft fully answers the coding question given the "
-    "evidence. JSON only with keys: sufficient (bool), missing (short string), "
-    "next_query (search string if insufficient else empty)."
+    "Judge whether the draft fully answers the coding question with the evidence. "
+    "JSON only: sufficient (bool), missing (short), next_query (string; empty if sufficient)."
 )
 
 
+class _CodeAgentState:
+    """Runtime control + evidence-flow state for the code agent only."""
+
+    __slots__ = (
+        "phase",
+        "cycle",
+        "answer",
+        "forced_query",
+        "board",
+        "last_action",
+        "last_missing",
+    )
+
+    def __init__(self, question: str) -> None:
+        self.phase = _CA_PHASE_BOOTSTRAP
+        self.cycle = 0
+        self.answer = ""
+        self.forced_query = (question or "")[:180]
+        self.board = _CodeEvidenceBoard()
+        self.last_action = ""
+        self.last_missing = ""
+
+
 class _CodeEvidenceBoard:
-    """Code-agent-only evidence state: numbered snippets and URL memory."""
+    """Code-agent evidence store: numbered, citable tool results."""
 
     __slots__ = ("items", "seen_urls", "seen_queries", "chars")
 
@@ -2627,24 +2652,46 @@ class _CodeEvidenceBoard:
         self.seen_queries: set[str] = set()
         self.chars = 0
 
-    def add(self, *, kind: str, title: str, url: str, text: str) -> int | None:
+    def add(
+        self,
+        *,
+        kind: str,
+        receipt_id: str,
+        result_id: str,
+        title: str,
+        url: str,
+        text: str,
+        span: tuple[int, int] | None = None,
+    ) -> int | None:
         body = (text or "").strip()
-        if not body:
+        rid = (receipt_id or "").strip()
+        result = (result_id or "").strip()
+        if not body or not rid or not result:
             return None
         if self.chars >= _CA_EVIDENCE_CAP:
             return None
         room = _CA_EVIDENCE_CAP - self.chars
         if len(body) > room:
             body = body[:room]
+        note_len = len(body)
+        if span is None:
+            end = min(note_len, max(120, min(_CA_EXCERPT, note_len)))
+            span = (0, end) if end > 0 else None
+        if span is None or span[1] <= span[0]:
+            return None
         idx = len(self.items) + 1
         self.items.append({
             "n": idx,
             "kind": kind,
+            "receipt_id": rid,
+            "result_id": result,
             "title": (title or "")[:200],
             "url": (url or "")[:500],
             "text": body,
+            "note_len": note_len,
+            "span": (int(span[0]), int(span[1])),
         })
-        self.chars += len(body)
+        self.chars += note_len
         if url:
             self.seen_urls.add(url)
         return idx
@@ -2675,20 +2722,23 @@ class _CodeEvidenceBoard:
         for row in self.items:
             if cited and row["n"] not in cited:
                 continue
-            url = row.get("url") or ""
-            snippet = (row.get("text") or "")[:1200]
-            if not url and not snippet:
+            start, end = row["span"]
+            note_len = int(row["note_len"] or 0)
+            start = max(0, min(start, note_len))
+            end = max(start + 1, min(end, note_len)) if note_len else 0
+            if end <= start:
                 continue
             try:
                 refs.append(
                     CitationRef(
-                        url=url or None,
-                        slices=[CitationSlice(text=snippet)] if snippet else None,
+                        receipt_id=row["receipt_id"],
+                        result_id=row["result_id"],
+                        slices=[CitationSlice(start=start, end=end)],
                     )
                 )
             except Exception:
                 continue
-            if len(refs) >= 20:
+            if len(refs) >= _CA_CITATION_CAP:
                 break
         return refs
 
@@ -2709,7 +2759,9 @@ def _ca_usable(text: str) -> bool:
     if len(t) < 8:
         return False
     low = t.lower()
-    if low.startswith("best-effort answer unavailable"):
+    if low.startswith("best-effort"):
+        return False
+    if low.startswith("unable to gather"):
         return False
     if low in {"code agent solved", "n/a", "unknown", "none"}:
         return False
@@ -2735,6 +2787,21 @@ def _ca_parse_json(raw: str) -> dict:
         return {}
 
 
+def _ca_focus_slice(text: str, focus: str) -> tuple[str, tuple[int, int]]:
+    raw = text or ""
+    if not raw:
+        return "", (0, 0)
+    key = (focus or "").strip().lower()
+    if key:
+        pos = raw.lower().find(key)
+        if pos >= 0:
+            start = max(0, pos - 500)
+            end = min(len(raw), start + _CA_FETCH_CHARS)
+            return raw[start:end], (0, min(_CA_FETCH_CHARS, end - start))
+    clipped = raw[:_CA_FETCH_CHARS]
+    return clipped, (0, len(clipped))
+
+
 async def _ca_llm(
     *,
     system: str,
@@ -2743,10 +2810,9 @@ async def _ca_llm(
     timeout: float,
     temperature: float = 0.1,
 ) -> str:
-    left = _ca_left(deadline)
-    if left <= _CA_MIN_TAIL_S:
+    if _ca_left(deadline) <= _CA_MIN_TAIL_S:
         return ""
-    budget = max(4.0, min(timeout, left - _CA_MIN_TAIL_S))
+    budget = max(4.0, min(timeout, _ca_left(deadline) - _CA_MIN_TAIL_S))
     try:
         resp = await llm_chat(
             provider=_CA_LANE,
@@ -2757,17 +2823,18 @@ async def _ca_llm(
             ],
             temperature=temperature,
             timeout=budget,
+            thinking={"enabled": False},
         )
     except Exception:
         return ""
     llm = getattr(resp, "llm", None)
-    raw = getattr(llm, "raw_text", None) if llm is not None else None
-    if isinstance(raw, str) and raw.strip():
-        return raw.strip()
+    raw = (getattr(llm, "raw_text", None) or "").strip() if llm is not None else ""
+    if raw:
+        return raw
     choices = getattr(llm, "choices", None) or ()
     if choices:
         content = getattr(getattr(choices[0], "message", None), "content", None)
-        if isinstance(content, str):
+        if isinstance(content, str) and content.strip():
             return content.strip()
     return ""
 
@@ -2780,22 +2847,36 @@ async def _ca_search(query_text: str, board: _CodeEvidenceBoard, deadline: float
         return "# skipped: deadline"
     board.seen_queries.add(q.lower())
     try:
-        result = await search_web(
-            query=q,
-            provider="parallel",
-            max_results=6,
+        payload = await search_web(
+            q,
+            provider=_CA_PROVIDER,
+            num=6,
             timeout=min(_CA_SEARCH_S, max(3.0, _ca_left(deadline) - _CA_MIN_TAIL_S)),
         )
     except Exception as exc:
         return f"# search failed: {exc}"
-    rows = getattr(result, "results", None) or ()
+    receipt = str(getattr(payload, "receipt_id", "") or "")
+    rows = list(getattr(payload, "results", None) or [])
+    if not receipt or not rows:
+        return "# search: no citable results"
     lines: list[str] = []
     for hit in rows:
-        title = str(getattr(hit, "title", "") or "")
-        url = str(getattr(hit, "url", "") or "")
-        excerpt = str(getattr(hit, "snippet", "") or getattr(hit, "content", "") or "")
-        excerpt = excerpt[:_CA_EXCERPT]
-        n = board.add(kind="search", title=title, url=url, text=excerpt or title)
+        rid = getattr(hit, "result_id", None)
+        note = (getattr(hit, "note", None) or "").strip()
+        if not isinstance(rid, str) or not rid or not note:
+            continue
+        title = (getattr(hit, "title", None) or "").strip()
+        url = (getattr(hit, "url", None) or "").strip()
+        excerpt = note[:_CA_EXCERPT]
+        n = board.add(
+            kind="search",
+            receipt_id=receipt,
+            result_id=rid,
+            title=title,
+            url=url,
+            text=excerpt,
+            span=(0, len(excerpt)),
+        )
         if n is not None:
             lines.append(f"[{n}] {title} :: {url}")
     return "Search committed:\n" + ("\n".join(lines) if lines else "(no hits)")
@@ -2807,74 +2888,81 @@ async def _ca_fetch(
     target = (url or "").strip()
     if not target:
         return "# skipped empty url"
-    if target in board.seen_urls and focus.strip() == "":
+    if target in board.seen_urls and not (focus or "").strip():
         return "# skipped duplicate url"
     if _ca_left(deadline) <= _CA_MIN_TAIL_S + 2.0:
         return "# skipped: deadline"
     try:
-        page = await fetch_page(
-            url=target,
+        payload = await fetch_page(
+            target,
+            provider=_CA_PROVIDER,
             timeout=min(_CA_FETCH_S, max(3.0, _ca_left(deadline) - _CA_MIN_TAIL_S)),
         )
     except Exception as exc:
         return f"# fetch failed: {exc}"
-    title = str(getattr(page, "title", "") or target)
-    text = str(getattr(page, "text", "") or getattr(page, "content", "") or "")
-    if focus:
-        # keep focus-local windows without borrowing text-agent helpers
-        low = text.lower()
-        key = focus.lower().strip()
-        pos = low.find(key) if key else -1
-        if pos >= 0:
-            start = max(0, pos - 500)
-            text = text[start : start + 4500]
-        else:
-            text = text[:4500]
-    else:
-        text = text[:4500]
-    n = board.add(kind="page", title=title, url=target, text=text)
+    receipt = str(getattr(payload, "receipt_id", "") or "")
+    rows = list(getattr(payload, "results", None) or [])
+    if not receipt or not rows:
+        return "# fetch: no content"
+    item = rows[0]
+    rid = getattr(item, "result_id", None)
+    note = (getattr(item, "note", None) or "").strip()
+    if not isinstance(rid, str) or not rid or not note:
+        return "# fetch: no usable content"
+    title = (getattr(item, "title", None) or target).strip()
+    clipped, span = _ca_focus_slice(note, focus)
+    n = board.add(
+        kind="page",
+        receipt_id=receipt,
+        result_id=rid,
+        title=title,
+        url=target,
+        text=clipped,
+        span=span,
+    )
     if n is None:
         return "# fetch produced no usable text"
     return f"Fetched as [{n}] {title}"
 
 
-async def _ca_plan_action(
-    question: str, board: _CodeEvidenceBoard, deadline: float, cycle: int
-) -> dict:
+async def _ca_plan_action(state: _CodeAgentState, question: str, deadline: float) -> dict:
+    state.phase = _CA_PHASE_CONTROL
     user = (
         f"Question:\n{question}\n\n"
-        f"Cycle: {cycle}/{_CA_CYCLE_CAP}\n"
+        f"Cycle: {state.cycle}/{_CA_CYCLE_CAP}\n"
         f"Seconds left: {max(0.0, _ca_left(deadline)):.1f}\n"
-        f"Evidence count: {len(board.items)}\n"
-        f"Known URLs: {len(board.seen_urls)}\n\n"
-        f"Evidence:\n{board.render(limit=35_000)}\n\n"
+        f"Evidence count: {len(state.board.items)}\n"
+        f"Last missing: {state.last_missing or '(none)'}\n\n"
+        f"Evidence:\n{state.board.render(limit=35_000)}\n\n"
         "Return the next controller action JSON."
     )
     raw = await _ca_llm(
         system=_CA_CTRL_SYSTEM,
         user=user,
         deadline=deadline,
-        timeout=_CA_GATHER_S,
+        timeout=_CA_CTRL_S,
         temperature=0.0,
     )
     plan = _ca_parse_json(raw)
     action = str(plan.get("action") or "").strip().lower()
     if action not in {"search", "fetch", "answer"}:
-        if len(board.items) >= _CA_MIN_ITEMS:
+        if len(state.board.items) >= _CA_MIN_ITEMS and _ca_usable(state.answer):
             action = "answer"
         else:
             action = "search"
             plan["query"] = plan.get("query") or question[:180]
     plan["action"] = action
+    state.last_action = action
     return plan
 
 
 async def _ca_generate_answer(
-    question: str, board: _CodeEvidenceBoard, deadline: float
+    state: _CodeAgentState, question: str, deadline: float
 ) -> str:
+    state.phase = _CA_PHASE_ANSWER
     user = (
         f"Question:\n{question}\n\n"
-        f"Numbered evidence:\n{board.render()}\n\n"
+        f"Numbered evidence:\n{state.board.render()}\n\n"
         "Write the final answer now."
     )
     draft = await _ca_llm(
@@ -2888,12 +2976,19 @@ async def _ca_generate_answer(
 
 
 async def _ca_judge_sufficient(
-    question: str, draft: str, board: _CodeEvidenceBoard, deadline: float
+    state: _CodeAgentState, question: str, draft: str, deadline: float
 ) -> dict:
+    state.phase = _CA_PHASE_JUDGE
     if not _ca_usable(draft):
         return {
             "sufficient": False,
             "missing": "no usable draft",
+            "next_query": question[:180],
+        }
+    if len(state.board.items) < 1:
+        return {
+            "sufficient": False,
+            "missing": "no evidence",
             "next_query": question[:180],
         }
     if _ca_left(deadline) <= _CA_MIN_TAIL_S + 12.0:
@@ -2901,7 +2996,7 @@ async def _ca_judge_sufficient(
     user = (
         f"Question:\n{question}\n\n"
         f"Draft:\n{draft[:8000]}\n\n"
-        f"Evidence:\n{board.render(limit=25_000)}\n\n"
+        f"Evidence:\n{state.board.render(limit=25_000)}\n\n"
         "Judge sufficiency."
     )
     raw = await _ca_llm(
@@ -2922,6 +3017,31 @@ async def _ca_judge_sufficient(
         "missing": missing,
         "next_query": next_query,
     }
+
+
+async def _ca_apply_evidence_action(
+    state: _CodeAgentState, plan: dict, question: str, deadline: float
+) -> None:
+    state.phase = _CA_PHASE_EVIDENCE
+    action = plan.get("action")
+    if action == "search":
+        await _ca_search(str(plan.get("query") or question[:180]), state.board, deadline)
+        return
+    if action == "fetch":
+        url = str(plan.get("url") or "").strip()
+        if not url:
+            for row in state.board.items:
+                candidate = str(row.get("url") or "")
+                if candidate.startswith("http"):
+                    # allow re-fetch with focus even if seen
+                    url = candidate
+                    break
+        if url:
+            await _ca_fetch(url, str(plan.get("focus") or ""), state.board, deadline)
+        else:
+            await _ca_search(question[:180], state.board, deadline)
+        return
+    # action == answer: no new evidence this cycle
 
 
 async def _ca_schema_wrap(
@@ -2961,78 +3081,66 @@ async def _ca_schema_wrap(
 
 
 async def _ca_control_loop(question: str, deadline: float) -> tuple[str, _CodeEvidenceBoard]:
-    """Single code-agent loop: control → evidence → answer → (re-enter if weak)."""
+    """Single code-agent loop with control, evidence flow, answer, and re-entry."""
 
-    board = _CodeEvidenceBoard()
-    answer = ""
-    forced_query = question[:180]
+    state = _CodeAgentState(question)
 
-    for cycle in range(1, _CA_CYCLE_CAP + 1):
+    while state.cycle < _CA_CYCLE_CAP:
+        state.cycle += 1
         if _ca_left(deadline) <= _CA_MIN_TAIL_S:
             break
 
-        # 1) control-flow decision
-        if forced_query and len(board.items) < _CA_MIN_ITEMS:
+        # --- control flow ---
+        if state.forced_query and len(state.board.items) < _CA_MIN_ITEMS:
             plan = {
                 "action": "search",
-                "query": forced_query,
+                "query": state.forced_query,
                 "url": "",
                 "focus": "",
-                "reason": "bootstrap evidence",
+                "reason": "bootstrap / re-enter after insufficient evidence",
             }
-            forced_query = ""
+            state.forced_query = ""
+            state.phase = _CA_PHASE_BOOTSTRAP
+            state.last_action = "search"
         else:
-            plan = await _ca_plan_action(question, board, deadline, cycle)
-
-        action = plan.get("action")
-
-        # 2) evidence state / flow
-        if action == "search":
-            await _ca_search(str(plan.get("query") or question[:180]), board, deadline)
-        elif action == "fetch":
-            url = str(plan.get("url") or "").strip()
-            if not url:
-                # fall back to first unseen search hit url if planner omitted one
-                for row in board.items:
-                    candidate = str(row.get("url") or "")
-                    if candidate.startswith("http") and candidate not in board.seen_urls:
-                        url = candidate
-                        break
-            if url:
-                await _ca_fetch(url, str(plan.get("focus") or ""), board, deadline)
-            else:
-                await _ca_search(question[:180], board, deadline)
-        # action == "answer" falls through to generation below; search/fetch also
-        # attempt a draft each cycle so evidence and answer share one loop.
+            plan = await _ca_plan_action(state, question, deadline)
 
         if _ca_left(deadline) <= _CA_MIN_TAIL_S:
             break
 
-        # 3) answer-generation path (same loop)
-        draft = await _ca_generate_answer(question, board, deadline)
-        if _ca_usable(draft):
-            answer = draft
+        # --- evidence management / flow ---
+        if plan.get("action") != "answer" or len(state.board.items) < _CA_MIN_ITEMS:
+            await _ca_apply_evidence_action(state, plan, question, deadline)
 
-        # 4) sufficiency gate — re-enter initial control if evidence is weak
-        verdict = await _ca_judge_sufficient(question, answer, board, deadline)
-        if verdict.get("sufficient") and _ca_usable(answer):
+        if _ca_left(deadline) <= _CA_MIN_TAIL_S:
             break
-        forced_query = str(verdict.get("next_query") or question[:180])
-        # continue → returns to the top of this same loop
 
-    if not _ca_usable(answer):
-        # deterministic last mile from local evidence only (no text-agent helpers)
-        if board.items:
+        # --- answer generation (same loop) ---
+        draft = await _ca_generate_answer(state, question, deadline)
+        if _ca_usable(draft):
+            state.answer = draft
+
+        # --- sufficiency gate; insufficient => return to initial loop ---
+        verdict = await _ca_judge_sufficient(state, question, state.answer, deadline)
+        if verdict.get("sufficient") and _ca_usable(state.answer):
+            break
+        state.last_missing = str(verdict.get("missing") or "")
+        state.forced_query = str(verdict.get("next_query") or question[:180])
+        state.phase = _CA_PHASE_BOOTSTRAP
+        # loop continues at the top (initial control)
+
+    if not _ca_usable(state.answer):
+        if state.board.items:
             lines = [f"Code-evidence summary for: {question[:300]}"]
-            for row in board.items[:8]:
+            for row in state.board.items[:8]:
                 lines.append(f"- [{row['n']}] {row['title']}: {row['text'][:220]}")
-            answer = "\n".join(lines)
+            state.answer = "\n".join(lines)
         else:
-            answer = (
+            state.answer = (
                 "Unable to gather enough code evidence before the deadline for: "
                 f"{question[:400]}"
             )
-    return _ca_trim(answer), board
+    return _ca_trim(state.answer), state.board
 
 
 async def _solve_code_agent(query: Query) -> Response:
@@ -3073,8 +3181,10 @@ async def _solve_code_agent(query: Query) -> Response:
             except Exception:
                 pass
         try:
-            return Response(output={"answer": _ca_trim(answer, 2000)},
-                            citations=citations or None)
+            return Response(
+                output={"answer": _ca_trim(answer, 2000)},
+                citations=citations or None,
+            )
         except Exception:
             pass
 
